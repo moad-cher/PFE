@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Chat — {{ task.title }}{% endblock %}
+{% block content %}
+<div class="mb-4 flex items-center justify-between">
+    <a href="{% url 'projects:task_detail' task.pk %}" class="text-blue-600 text-sm hover:underline">← {{ task.title }}</a>
+    <div class="flex items-center gap-2">
+        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+        <h1 class="text-base font-semibold text-gray-700">Chat de la tâche</h1>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow flex flex-col" style="height: calc(100vh - 180px);">
+    <!-- Header -->
+    <div class="flex items-center gap-3 px-5 py-3 border-b bg-gray-50 rounded-t-2xl">
+        <div class="w-9 h-9 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            #
+        </div>
+        <div>
+            <p class="font-semibold text-sm text-gray-800">{{ task.title }}</p>
+            <p class="text-xs text-gray-400">Sous-groupe · {{ project.name }}</p>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="task-chat-messages"
+         class="flex-1 overflow-y-auto p-4"
+         hx-get="{% url 'messaging:task_messages' task.pk %}"
+         hx-trigger="every 5s"
+         hx-swap="innerHTML"
+         hx-on::after-settle="this.scrollTop = this.scrollHeight">
+        {% include 'messaging/partials/messages.html' with messages=messages current_user=user %}
+    </div>
+
+    <!-- Input -->
+    <div class="border-t p-3 bg-white rounded-b-2xl">
+        <form id="task-chat-form"
+              hx-post="{% url 'messaging:send_task_message' task.pk %}"
+              hx-target="#task-chat-messages"
+              hx-swap="innerHTML"
+              hx-on::after-request="document.getElementById('task-chat-form').reset(); var el=document.getElementById('task-chat-messages'); el.scrollTop=el.scrollHeight;"
+              class="flex gap-2">
+            {% csrf_token %}
+            <input type="text" name="content" id="task-msg-input" placeholder="Écrire un message…"
+                   autocomplete="off"
+                   class="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-gray-50">
+            <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors flex-shrink-0">
+                Envoyer
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var el = document.getElementById('task-chat-messages');
+        if (el) el.scrollTop = el.scrollHeight;
+    });
+    document.getElementById('task-msg-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.closest('form').requestSubmit();
+        }
+    });
+</script>
+{% endblock %}

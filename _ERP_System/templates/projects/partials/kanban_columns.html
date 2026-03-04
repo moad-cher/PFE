@@ -1,0 +1,52 @@
+{% for col in columns %}
+<div class="flex-shrink-0 w-72">
+    <div class="rounded-xl p-3" style="background-color: {{ col.status.color }}15;">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-sm flex items-center">
+                <span class="w-3 h-3 rounded-full mr-2" style="background-color: {{ col.status.color }};"></span>
+                {{ col.status.name }}
+            </h3>
+            <span class="text-xs bg-white rounded-full px-2 py-0.5 text-gray-500">{{ col.tasks.count }}</span>
+        </div>
+        <div class="space-y-2 kanban-column">
+            {% for task in col.tasks %}
+            <div class="bg-white rounded-lg shadow-sm border p-3 hover:shadow-md transition">
+                <a href="{% url 'projects:task_detail' task.pk %}"
+                    class="font-medium text-sm text-gray-800 hover:text-blue-600">{{ task.title }}</a>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-xs px-2 py-0.5 rounded-full
+                        {% if task.priority == 'urgent' %}bg-red-100 text-red-700
+                        {% elif task.priority == 'high' %}bg-orange-100 text-orange-700
+                        {% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ task.get_priority_display }}
+                    </span>
+                    {% if task.time_slot %}
+                    <span class="text-xs text-gray-400">{{ task.get_time_slot_display }}</span>
+                    {% endif %}
+                </div>
+                {% if task.deadline %}
+                <p
+                    class="text-xs mt-1 {% if task.is_overdue %}text-red-500 font-bold{% elif task.deadline_approaching %}text-orange-500{% else %}text-gray-400{% endif %}">
+                    {{ task.deadline|date:"d/m" }}
+                </p>
+                {% endif %}
+                <!-- Move buttons -->
+                <div class="flex flex-wrap gap-1 mt-2">
+                    {% for move_col in columns %}
+                    {% if move_col.status.slug != col.status.slug %}
+                    <button hx-post="{% url 'projects:task_move' task.pk %}"
+                        hx-vals='{"status": "{{ move_col.status.slug }}"}' hx-target="#kanban-board" hx-swap="innerHTML"
+                        class="text-[10px] px-1.5 py-0.5 rounded border hover:bg-gray-100"
+                        title="Déplacer vers {{ move_col.status.name }}">
+                        → {{ move_col.status.name|truncatechars:8 }}
+                    </button>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endfor %}

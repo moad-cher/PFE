@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Mon Profil — ERP{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Profile header card -->
+    <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-start gap-6">
+            {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="w-20 h-20 rounded-2xl object-cover flex-shrink-0">
+            {% else %}
+            <div class="w-20 h-20 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
+                {{ user.first_name|first|upper|default:user.username|first|upper }}
+            </div>
+            {% endif %}
+            <div class="flex-1">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ user.get_full_name|default:user.username }}</h1>
+                        <p class="text-gray-500 text-sm mt-0.5">@{{ user.username }}</p>
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{{ user.get_role_display }}</span>
+                            {% if user.department %}
+                            <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">{{ user.department }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-xl">
+                        <span class="text-yellow-500 text-xl">🏆</span>
+                        <div>
+                            <p class="text-xl font-bold text-yellow-700 leading-none">{{ user.reward_points }}</p>
+                            <p class="text-xs text-yellow-600">points</p>
+                        </div>
+                    </div>
+                </div>
+                {% if user.skills_list %}
+                <div class="flex flex-wrap gap-2 mt-3">
+                    {% for skill in user.skills_list %}
+                    <span class="bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-5 text-center">
+            <p class="text-3xl font-bold text-blue-600">{{ active_projects|length }}</p>
+            <p class="text-sm text-gray-500 mt-1">Projets actifs</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-5 text-center">
+            <p class="text-3xl font-bold text-green-600">{{ tasks_done }}</p>
+            <p class="text-sm text-gray-500 mt-1">Tâches terminées</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-5 text-center">
+            <p class="text-3xl font-bold text-orange-500">{{ tasks_active }}</p>
+            <p class="text-sm text-gray-500 mt-1">Tâches en cours</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Edit form -->
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">Modifier le profil</h2>
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                {% for field in form %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                    Sauvegarder
+                </button>
+            </form>
+        </div>
+
+        <!-- Active projects -->
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">Mes projets</h2>
+            {% if active_projects %}
+            <div class="space-y-3">
+                {% for project in active_projects %}
+                <a href="{% url 'projects:project_detail' project.pk %}" class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-blue-50 transition-colors group">
+                    <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {{ project.name|first|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 group-hover:text-blue-600 truncate">{{ project.name }}</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ project.progress }}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-400 flex-shrink-0">{{ project.progress }}%</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-400 text-sm text-center py-8">Aucun projet actif.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

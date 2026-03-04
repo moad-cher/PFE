@@ -1,0 +1,47 @@
+<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for item in member_data %}
+    <div class="bg-white rounded-xl shadow-sm border p-5" id="member-card-{{ item.member.pk }}">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                    {{ item.member.username|first|upper }}
+                </div>
+                <div>
+                    <p class="font-semibold text-sm">{{ item.member.get_full_name|default:item.member.username }}</p>
+                    <p class="text-xs text-gray-400">{{ item.member.get_role_display }}{% if item.member.department %} &middot; {{ item.member.department }}{% endif %}</p>
+                </div>
+            </div>
+            {% if user.is_superuser or user.role == 'admin' or user.is_project_manager %}
+            <button hx-post="{% url 'projects:member_remove' project.pk item.member.pk %}" hx-target="#member-list"
+                hx-swap="innerHTML"
+                hx-confirm="Retirer {{ item.member.get_full_name|default:item.member.username }} du projet ?"
+                class="text-red-400 hover:text-red-600 text-xs" title="Retirer du projet">
+                ✕
+            </button>
+            {% endif %}
+        </div>
+        <div class="text-xs text-gray-500 space-y-1">
+            <p>Compétences: {{ item.member.skills|default:"—" }}</p>
+            <div class="flex justify-between">
+                <span>Tâches: {{ item.tasks_count }} ({{ item.done_count }} terminées)</span>
+                <span class="text-yellow-600 font-bold">{{ item.member.reward_points }} pts</span>
+            </div>
+        </div>
+        {% if item.active_tasks %}
+        <div class="mt-3 border-t pt-2">
+            <p class="text-xs text-gray-400 mb-1">Tâches actives:</p>
+            {% for task in item.active_tasks|slice:":3" %}
+            <a href="{% url 'projects:task_detail' task.pk %}"
+                class="block text-xs text-blue-600 hover:underline truncate">• {{ task.title }}</a>
+            {% endfor %}
+            {% if item.active_tasks.count > 3 %}
+            <span class="text-xs text-gray-400">+{{ item.active_tasks.count|add:"-3" }} autre(s)</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <p class="text-gray-400 text-center py-4 col-span-3">Aucun membre dans ce projet.</p>
+    {% endfor %}
+</div>

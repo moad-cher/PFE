@@ -1,0 +1,16 @@
+<div class="bg-white rounded-2xl shadow p-5 text-sm" id="assignee-section">
+    <div class="flex justify-between items-center mb-2">
+        <span class="text-gray-500 font-medium">Assigné à</span>
+        {% if user.is_superuser or user.role == 'admin' or user.is_project_manager %}
+        <button hx-get="{% url 'projects:task_reassign' task.pk %}" hx-target="#assignee-section" hx-swap="outerHTML"
+            class="text-xs text-blue-600 hover:underline">Réassigner</button>
+        {% endif %}
+    </div>
+    {% for u in task.assigned_to.all %}
+    <span class="inline-block text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded mb-1">
+        {{ u.get_full_name|default:u.username }}
+    </span>
+    {% empty %}
+    <span class="text-gray-400 text-xs">Personne</span>
+    {% endfor %}
+</div>

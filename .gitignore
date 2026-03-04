@@ -1,0 +1,31 @@
+
+# ignore any __pycache__ directory wherever it appears
+**/__pycache__/
+
+# ignore the environment file
+.env
+_ERP_System/db.db
+
+# LaTeX build artifacts (auxiliary files) – match anywhere
+**/*.aux
+**/*.log
+**/*.fls
+**/*.fdb_latexmk
+**/*.out
+**/*.toc
+**/*.lof
+**/*.lot
+**/*.gz
+**/*.idx
+**/*.ilg
+**/*.ind
+**/*.mtc*
+**/*.maf
+**/*.mtc
+**/*.synctex.gz
+**/*.bbl
+**/*.blg
+**/*.run.xml
+
+# directories for LaTeX generates
+**/_Cache__/

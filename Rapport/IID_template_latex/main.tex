@@ -1,0 +1,151 @@
+\documentclass{iid}
+% \usepackage{titletoc} % removed: part of titlesec bundle, incompatible with minitoc
+\setlength{\glsdescwidth}{0.65\textwidth}
+% \usepackage{lscape}
+
+\typeMemoire{Diplôme d'Ingénieur d'État }
+\optionFormation{\textbf{Informatique et Ingénierie des Données}\\ \includegraphics[scale=0.08]{images/logoIID.png}}
+\etudiant{Prenom \textbf{Nom}}
+\titreDuMemoire{Titre du mémoire} 
+\dateSoutenance{ }
+%\promo{2\up{ème}}
+\anneeScolaire{\the\year}
+
+
+%%maitre de mémoire
+\encadrants{Prenom \textbf{Nom}\\Prenom \textbf{Nom}}
+
+%% Membres du Jury
+\jurys{%
+\begin{tabular}{lll}
+	Nom et prénoms du président &  Entité & Président \\
+	Nom et prénoms de l'examinateur & Entité & Examinateur \\
+	Nom et prénoms du rapporteur &  Entité & Rapporteur \\
+		Nom et prénoms du rapporteur &  Entité & Rapporteur \\
+\end{tabular}	
+}
+
+
+\hypersetup{
+ pdftitle={--},
+ pdfauthor={--},
+ pdfsubject={--},
+ pdfkeywords={--} 
+ }
+
+%importation du glossaire
+\loadglsentries{glossaire_reduit}
+
+\begin{document}
+
+\color{bookColor}
+
+
+\pageDeGarde
+%\pageTitre
+
+\pagecolor{white}
+
+%% page vide
+\thispagestyle{empty}\ \clearpage
+
+\newpage
+% sommaire
+\pagenumbering{roman}
+
+\setcounter{tocdepth}{0}
+\renewcommand{\contentsname}{Sommaire}
+\tableofcontents
+\renewcommand{\contentsname}{Table des matières}
+\setcounter{tocdepth}{5}
+
+%% rdedicaces
+\include{0-dedicace}
+\newpage 
+
+%% remerciements
+\include{1-remerciements}
+\newpage 
+
+% Résume
+\include{2-resume}
+\newpage
+
+% Résume
+\include{2-2-resumeAn}
+\newpage
+
+% Résume
+\include{2-3-resumeAr}
+\newpage
+
+\selectlanguage{french}
+\dominitoc  % initializer les minitoc
+\tableofcontents
+\newpage
+
+%liste des figures
+\listoffigures 
+\newpage
+
+%liste des tableaux
+\listoftables
+\newpage
+
+%%liste des algo
+%\listofalgorithmes
+%\newpage
+%
+
+
+%% Les sigles et acronymes
+\include{2-4-listedessigles}
+\newpage
+
+%% Les sigles et acronymes
+%\setglossarystyle{altlist}
+%\printglossary[title=Liste des acronymes, toctitle=Liste des acronymes, type=\acronymtype]
+%\newpage
+
+% Le glossaire proprement dit
+%\setglossarystyle{super}
+%\printglossary[type=main]
+
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+%%introduction
+\include{3-introduction}
+%\lhead[]{} \rhead[]{} \chead[]{}
+\selectlanguage{french}
+\fancyhead[L]{\tiny \leftmark}
+\fancyhead[R]{\scriptsize \rightmark}
+\fancyfoot[C]{\thepage}
+
+\chapter{fknznefkljebngflkjen}\label{chap:1}
+\minitoc
+ \input{1-partie/1-fichier}
+ 
+ \chapter{-}\label{chap:2}
+ \input{2-partie/1-fichier}
+ 
+\chapter{--}\label{chap:3}
+ \input{3-partie/1-fichier}
+ 
+% \include{perspectives}
+%%conclusion
+\include{4-conclusion}
+% 
+\lhead[]{} \rhead[]{} \chead[]{}
+
+%%biblio
+\addcontentsline{toc}{chapter}{Bibliographie}
+\bibliographystyle{abbrv}
+\bibliography{biblio}
+
+
+%\include{annexe}
+
+
+
+\end{document}          

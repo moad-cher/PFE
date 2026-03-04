@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}{{ project.name }} — ERP{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'projects:dashboard' %}" class="text-blue-600 text-sm hover:underline">← Tableau de bord</a>
+</div>
+
+<div class="bg-white rounded-2xl shadow p-6 mb-6">
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 class="text-2xl font-bold">{{ project.name }}</h1>
+            <p class="text-gray-500 mt-1">{{ project.start_date|date:"d/m/Y" }} — {{ project.end_date|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{% url 'projects:kanban_board' project.pk %}"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">Kanban</a>
+            <a href="{% url 'projects:scrum_board' project.pk %}"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Scrum</a>
+            <a href="{% url 'messaging:project_chat' project.pk %}"
+                class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">💬 Chat</a>
+            {% if user.is_superuser or user.role == 'admin' or user.is_project_manager %}
+            <a href="{% url 'projects:project_edit' project.pk %}"
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">Modifier</a>
+            <a href="{% url 'projects:project_settings' project.pk %}"
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">Paramètres</a>
+            {% endif %}
+        </div>
+    </div>
+    {% if project.description %}
+    <p class="text-gray-600 mt-3">{{ project.description }}</p>
+    {% endif %}
+    <div class="mt-4">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span>Progression globale</span>
+            <span>{{ project.progress }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div class="bg-blue-600 h-2.5 rounded-full transition-all" style="width: {{ project.progress }}%"></div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    {% if user.is_superuser or user.role == 'admin' or user.is_project_manager %}
+    <a href="{% url 'projects:task_create' project.pk %}"
+        class="bg-white rounded-xl shadow-sm border p-4 text-center hover:shadow-md transition">
+        <p class="text-2xl font-bold text-blue-600">+</p>
+        <p class="text-sm text-gray-500">Nouvelle tâche</p>
+    </a>
+    {% endif %}
+    <a href="{% url 'projects:members_view' project.pk %}"
+        class="bg-white rounded-xl shadow-sm border p-4 text-center hover:shadow-md transition">
+        <p class="text-2xl font-bold text-blue-600">{{ project.members.count }}</p>
+        <p class="text-sm text-gray-500">Membres</p>
+    </a>
+    {% if user.is_superuser or user.role == 'admin' or user.is_project_manager %}
+    <a href="{% url 'projects:task_bulk_reassign' project.pk %}"
+        class="bg-white rounded-xl shadow-sm border p-4 text-center hover:shadow-md transition">
+        <p class="text-2xl font-bold text-blue-600">↻</p>
+        <p class="text-sm text-gray-500">Réassignation</p>
+    </a>
+    {% endif %}
+    <a href="{% url 'projects:leaderboard' project.pk %}"
+        class="bg-white rounded-xl shadow-sm border p-4 text-center hover:shadow-md transition">
+        <p class="text-2xl font-bold text-yellow-600">🏆</p>
+        <p class="text-sm text-gray-500">Classement</p>
+    </a>
+</div>
+
+<!-- Recent Tasks -->
+<h2 class="text-lg font-semibold mb-3">Tâches récentes</h2>
+<div class="bg-white rounded-xl shadow overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Tâche</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Statut</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Priorité</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Échéance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in project.tasks.all|slice:":10" %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="px-4 py-3"><a href="{% url 'projects:task_detail' task.pk %}"
+                        class="text-blue-600 hover:underline">{{ task.title }}</a></td>
+                <td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded-full bg-gray-100">{{ task.status }}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-xs px-2 py-0.5 rounded-full
+                        {% if task.priority == 'urgent' %}bg-red-100 text-red-700
+                        {% elif task.priority == 'high' %}bg-orange-100 text-orange-700
+                        {% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ task.get_priority_display }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-gray-500 {% if task.is_overdue %}text-red-500 font-bold{% endif %}">
+                    {{ task.deadline|date:"d/m/Y"|default:"—" }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="px-4 py-8 text-center text-gray-400">Aucune tâche</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

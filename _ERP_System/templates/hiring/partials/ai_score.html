@@ -1,0 +1,16 @@
+<span class="inline-flex items-center" id="ai-score-{{ application.pk }}">
+    {% if application.ai_score is not None and application.ai_score > 0 %}
+    <span class="text-sm font-bold
+        {% if application.ai_score >= 70 %}text-green-600
+        {% elif application.ai_score >= 40 %}text-yellow-600
+        {% else %}text-red-600{% endif %}">
+        {{ application.ai_score }}%
+    </span>
+    {% else %}
+    <button hx-post="{% url 'hiring:analyze_resume' application.pk %}" hx-target="#ai-score-{{ application.pk }}"
+        hx-swap="outerHTML" class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200">
+        Analyser IA
+        <span class="htmx-indicator">⏳</span>
+    </button>
+    {% endif %}
+</span>

@@ -1,0 +1,5 @@
+{% for notification in notifications %}
+{% include 'notifications/partials/notification_item.html' %}
+{% empty %}
+<p class="text-gray-400 text-center py-8">Aucune notification.</p>
+{% endfor %}

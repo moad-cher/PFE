@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Paramètres — {{ project.name }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-4">
+        <a href="{% url 'projects:project_detail' project.pk %}" class="text-blue-600 text-sm hover:underline">←           {{ project.name }}</a>
+    </div>
+
+    <!-- Config -->
+    <div class="bg-white rounded-2xl shadow p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">Configuration du projet</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_config">
+            {% for field in config_form %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <button type="submit"
+                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-sm">Sauvegarder</button>
+        </form>
+    </div>
+
+    <!-- Statuses -->
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-xl font-bold mb-4">Colonnes Kanban</h2>
+        <div class="space-y-2 mb-6">
+            {% for s in statuses %}
+            <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                <div class="flex items-center">
+                    <span class="w-4 h-4 rounded mr-3" style="background-color: {{ s.color }};"></span>
+                    <span class="font-medium text-sm">{{ s.name }}</span>
+                    <span class="text-xs text-gray-400 ml-2">({{ s.slug }})</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-gray-400">Ordre: {{ s.order }}</span>
+                    <form method="post" action="{% url 'projects:status_delete' project.pk s.pk %}"
+                        onsubmit="return confirm('Supprimer le statut « {{ s.name }} » ?')">
+                        {% csrf_token %}
+                        <button type="submit" class="text-red-400 hover:text-red-600 text-xs"
+                            title="Supprimer">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <h3 class="font-semibold text-sm mb-3">Ajouter un statut</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_status">
+            <div class="grid grid-cols-2 gap-3">
+                {% for field in status_form %}
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit"
+                class="mt-3 bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">Ajouter</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

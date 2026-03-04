@@ -1,0 +1,47 @@
+{% extends 'base.html' %} {% block title %} Classement — {{ project.name }}{% endblock %} {% block content %}
+<div class="mb-4">
+  <a
+    href="{% url 'projects:project_detail' project.pk %}"
+    class="text-blue-600 text-sm hover:underline"
+    >← {{ project.name }}</a
+  >
+</div>
+<h1 class="text-2xl font-bold mb-6">🏆 Classement</h1>
+
+<div class="bg-white rounded-2xl shadow overflow-hidden max-w-xl mx-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="text-left px-4 py-3 font-medium text-gray-500">#</th>
+        <th class="text-left px-4 py-3 font-medium text-gray-500">Membre</th>
+        <th class="text-right px-4 py-3 font-medium text-gray-500">Points</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for member in members %}
+      <tr class="border-b {% if forloop.first %}bg-yellow-50{% endif %}">
+        <td
+          class="px-4 py-3 font-bold {% if forloop.first %}text-yellow-600{% endif %}"
+        >
+          {{ forloop.counter }}
+        </td>
+        <td class="px-4 py-3">
+          <span class="font-medium"
+            >{{ member.get_full_name|default:member.username }}</span
+          >
+          <span class="text-xs text-gray-400 ml-1"
+            >{{ member.get_role_display }}</span
+          >
+        </td>
+        <td class="px-4 py-3 text-right">
+          <span
+            class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-bold"
+            >{{ member.reward_points }}</span
+          >
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

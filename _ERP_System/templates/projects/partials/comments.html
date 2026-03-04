@@ -1,0 +1,11 @@
+{% for comment in comments %}
+<div class="border-b py-3 last:border-0">
+    <div class="flex justify-between items-center">
+        <span class="font-medium text-sm">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+        <span class="text-xs text-gray-400">{{ comment.created_at|date:"d/m/Y H:i" }}</span>
+    </div>
+    <p class="text-sm text-gray-600 mt-1">{{ comment.content }}</p>
+</div>
+{% empty %}
+<p class="text-gray-400 text-sm">Aucun commentaire.</p>
+{% endfor %}

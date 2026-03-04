@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — ERP{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-2xl shadow p-8">
+        <h1 class="text-2xl font-bold mb-6">{{ title }}</h1>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <!-- Members Selection -->
+            {% if all_users %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Membres de l'équipe</label>
+                <input type="text" id="member-filter" placeholder="Filtrer par nom, email ou compétence..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm mb-3">
+                <div id="member-checkboxes" class="max-h-72 overflow-y-auto border rounded-lg divide-y">
+                    {% for user in all_users %}
+                    <label class="member-item flex items-center p-3 hover:bg-blue-50 cursor-pointer transition"
+                        data-search="{{ user.username }} {{ user.first_name }} {{ user.last_name }} {{ user.email }} {{ user.skills }}">
+                        <input type="checkbox" name="members" value="{{ user.pk }}" 
+                        {% if user.pk in selected_member_ids %}
+                            checked{% endif %} class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <div
+                            class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm mr-3 flex-shrink-0">
+                            {{ user.username|first|upper }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-800 truncate">{{ user.get_full_name|default:user.username }}</p>
+                            <p class="text-xs text-gray-400 truncate">{{ user.email|default:"—" }} · {{ user.get_role_display }}</p>
+                            {% if user.skills %}
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                {% for skill in user.skills_list %}
+                                <span class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                <p class="text-xs text-gray-400 mt-1" id="member-count"></p>
+            </div>
+            {% endif %}
+
+            <div class="flex space-x-3 mt-6">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Enregistrer
+                </button>
+                <a href="{% url 'projects:dashboard' %}"
+                    class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const filter = document.getElementById('member-filter');
+        const items = document.querySelectorAll('.member-item');
+        const countEl = document.getElementById('member-count');
+
+        function updateCount() {
+            const checked = document.querySelectorAll('input[name=members]:checked').length;
+            countEl.textContent = checked + ' membre' + (checked > 1 ? 's' : '') + ' sélectionné' + (checked > 1 ? 's' : '');
+        }
+        updateCount();
+        document.querySelectorAll('input[name=members]').forEach(cb => cb.addEventListener('change', updateCount));
+
+        filter.addEventListener('input', function () {
+            const q = this.value.toLowerCase();
+            items.forEach(item => {
+                const text = item.getAttribute('data-search').toLowerCase();
+                item.style.display = text.includes(q) ? '' : 'none';
+            });
+        });
+    });
+</script>
+{% endblock %}
