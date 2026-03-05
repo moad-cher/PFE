@@ -29,6 +29,7 @@ _ERP_System/db.db
 **/*.acn
 **/*.glo
 **/*.ist
+main.pdf
 
 # directories for LaTeX generates
 **/_Cache__/
