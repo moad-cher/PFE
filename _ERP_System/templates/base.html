@@ -60,7 +60,7 @@
                   hx-get="{% url 'notifications:dropdown' %}"
                   hx-target="#notif-dropdown-panel"
                   hx-swap="innerHTML"
-                  hx-trigger="click once"
+                  hx-trigger="click"
                   class="relative text-gray-600 hover:text-blue-600 p-1"
                 >
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,5 +136,40 @@
         {% block content %}{% endblock %}
       </main>
     </div>
+
+{% if user.is_authenticated %}
+<script>
+(function () {
+    const WS_URL = 'ws://' + location.host + '/ws/notifications/';
+    const socket = new WebSocket(WS_URL);
+
+    socket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        if (data.type !== 'notification_message') return;
+
+        // Update badge count
+        const count = data.unread_count || 0;
+        let badge = document.getElementById('notif-badge');
+        if (count > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.id = 'notif-badge';
+                badge.className = 'absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center';
+                document.getElementById('notif-btn').appendChild(badge);
+            }
+            badge.textContent = count;
+        } else if (badge) {
+            badge.remove();
+        }
+
+        // Refresh dropdown content if it is open
+        const panel = document.getElementById('notif-dropdown-panel');
+        if (panel && !panel.classList.contains('hidden')) {
+            htmx.trigger('#notif-btn', 'click');
+        }
+    };
+}());
+</script>
+{% endif %}
   </body>
 </html>

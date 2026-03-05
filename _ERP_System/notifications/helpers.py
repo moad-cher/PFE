@@ -2,15 +2,37 @@
 from django.urls import reverse
 
 
+def _push_ws(user, notif):
+    """Push a notification to the user's WebSocket group (fire-and-forget)."""
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        from .models import Notification
+        unread = Notification.objects.filter(recipient=user, is_read=False).count()
+        async_to_sync(get_channel_layer().group_send)(
+            f'user_{user.pk}',
+            {
+                'type':         'notification_message',
+                'title':        notif.title,
+                'message':      notif.message,
+                'link':         notif.link,
+                'unread_count': unread,
+            }
+        )
+    except Exception:
+        pass  # Channels not available (e.g. during tests / management commands)
+
+
 def _create(recipient, notif_type, title, message='', link=''):
     from .models import Notification
-    Notification.objects.create(
+    notif = Notification.objects.create(
         recipient=recipient,
         type=notif_type,
         title=title,
         message=message,
         link=link,
     )
+    _push_ws(recipient, notif)
 
 
 def notify_task_assigned(task):
