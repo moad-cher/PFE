@@ -20,7 +20,7 @@ def _push_ws(user, notif):
             }
         )
     except Exception:
-        pass  # Channels not available (e.g. during tests / management commands)
+        pass
 
 
 def _create(recipient, notif_type, title, message='', link=''):

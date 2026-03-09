@@ -140,14 +140,11 @@
 {% if user.is_authenticated %}
 <script>
 (function () {
-    const WS_URL = 'ws://' + location.host + '/ws/notifications/';
-    const socket = new WebSocket(WS_URL);
+    const socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/notifications/');
 
     socket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         if (data.type !== 'notification_message') return;
-
-        // Update badge count
         const count = data.unread_count || 0;
         let badge = document.getElementById('notif-badge');
         if (count > 0) {
@@ -161,8 +158,6 @@
         } else if (badge) {
             badge.remove();
         }
-
-        // Refresh dropdown content if it is open
         const panel = document.getElementById('notif-dropdown-panel');
         if (panel && !panel.classList.contains('hidden')) {
             htmx.trigger('#notif-btn', 'click');

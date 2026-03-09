@@ -15,7 +15,7 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
-    'daphne',  # must be first for runserver ASGI
+    'daphne',  # must be first — overrides runserver to use ASGI
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -62,7 +62,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ERP_System.wsgi.application'
 ASGI_APPLICATION = 'ERP_System.asgi.application'
 
-# Channel Layers — in-memory (single-process dev; swap for Redis in production)
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',

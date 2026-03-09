@@ -32,7 +32,7 @@
             <input type="text" name="content" id="task-msg-input" placeholder="Écrire un message…"
                    autocomplete="off"
                    class="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-gray-50">
-            <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors flex-shrink-0">
+            <button type="submit" id="task-msg-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors flex-shrink-0">
                 Envoyer
             </button>
         </form>
@@ -41,58 +41,69 @@
 
 <script>
 (function () {
-    const WS_URL = 'ws://' + location.host + '/ws/chat/task/{{ task.pk }}/';
+    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/chat/task/{{ task.pk }}/';
     const MY_PK  = {{ user.pk }};
     const box    = document.getElementById('task-chat-messages');
-    const form   = document.getElementById('task-chat-form');
     const input  = document.getElementById('task-msg-input');
+    const btn    = document.getElementById('task-msg-btn');
+    const dot    = document.querySelector('.animate-pulse');
 
     box.scrollTop = box.scrollHeight;
+    let socket;
 
-    const socket = new WebSocket(WS_URL);
+    function setConnected(ok) {
+        input.disabled    = !ok;
+        btn.disabled      = !ok;
+        dot.className     = 'w-2 h-2 rounded-full ' + (ok ? 'bg-green-400 animate-pulse' : 'bg-red-400');
+        input.placeholder = ok ? 'Écrire un message…' : 'Connexion…';
+    }
 
-    socket.onmessage = function (e) {
-        const data = JSON.parse(e.data);
-        if (data.type === 'chat_message') {
-            const isMe = data.author_pk === MY_PK;
-            box.insertAdjacentHTML('beforeend', buildBubble(data, isMe));
+    function connect() {
+        setConnected(false);
+        socket = new WebSocket(WS_URL);
+
+        socket.onopen = () => setConnected(true);
+
+        socket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            if (data.type !== 'chat_message') return;
+            box.insertAdjacentHTML('beforeend', bubble(data, data.author_pk === MY_PK));
             box.scrollTop = box.scrollHeight;
-        }
-    };
+        };
 
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
+        socket.onclose = function () {
+            setConnected(false);
+            setTimeout(connect, 3000);
+        };
+
+        socket.onerror = function () { socket.close(); };
+    }
+
+    function send() {
         const content = input.value.trim();
         if (!content || socket.readyState !== WebSocket.OPEN) return;
-        socket.send(JSON.stringify({ content: content }));
+        socket.send(JSON.stringify({ content }));
         input.value = '';
-    });
-
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            form.dispatchEvent(new Event('submit'));
-        }
-    });
-
-    function buildBubble(data, isMe) {
-        const align = isMe ? 'justify-end' : 'justify-start';
-        const bubble = isMe
-            ? 'bg-indigo-600 text-white rounded-br-none'
-            : 'bg-gray-100 text-gray-800 rounded-bl-none';
-        const timeAlign = isMe ? 'text-right mr-1' : 'ml-1';
-        const authorHtml = isMe ? '' : `<p class="text-xs text-gray-400 mb-0.5 ml-2">${data.author_display}</p>`;
-        return `<div class="flex ${align} mb-2">
-            <div class="max-w-xs lg:max-w-sm xl:max-w-md">
-                ${authorHtml}
-                <div class="px-3 py-2 rounded-2xl text-sm break-words ${bubble}">${escHtml(data.content)}</div>
-                <p class="text-xs text-gray-300 mt-0.5 ${timeAlign}">${data.created_at}</p>
-            </div></div>`;
     }
 
-    function escHtml(str) {
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    document.getElementById('task-chat-form').addEventListener('submit', e => { e.preventDefault(); send(); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+
+    function bubble(data, isMe) {
+        const side   = isMe ? 'justify-end'  : 'justify-start';
+        const bg     = isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none';
+        const tAlign = isMe ? 'text-right mr-1' : 'ml-1';
+        const author = isMe ? '' : `<p class="text-xs text-gray-400 mb-0.5 ml-2">${data.author_display}</p>`;
+        return `<div class="flex ${side} mb-2"><div class="max-w-xs lg:max-w-sm xl:max-w-md">
+            ${author}
+            <div class="px-3 py-2 rounded-2xl text-sm break-words ${bg}">${esc(data.content)}</div>
+            <p class="text-xs text-gray-300 mt-0.5 ${tAlign}">${data.created_at}</p>
+        </div></div>`;
     }
+
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    connect();
 }());
 </script>
 {% endblock %}

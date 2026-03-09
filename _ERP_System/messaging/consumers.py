@@ -6,22 +6,23 @@ from channels.db import database_sync_to_async
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        await self.accept()
         self.user = self.scope['user']
+
         if not self.user.is_authenticated:
-            await self.close()
+            await self.close(code=4001)
             return
 
         kwargs = self.scope['url_route']['kwargs']
-        self.room_type = kwargs['room_type']   # 'project' or 'task'
-        self.room_pk   = int(kwargs['pk'])
+        self.room_type  = kwargs['room_type']
+        self.room_pk    = int(kwargs['pk'])
         self.room_group = f'chat_{self.room_type}_{self.room_pk}'
 
         if not await self._check_access():
-            await self.close()
+            await self.close(code=4003)
             return
 
         await self.channel_layer.group_add(self.room_group, self.channel_name)
-        await self.accept()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group'):
