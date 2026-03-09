@@ -31,5 +31,6 @@ _ERP_System/db.db
 **/*.ist
 main.pdf
 
+
 # directories for LaTeX generates
 **/_Cache__/
