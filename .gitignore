@@ -5,7 +5,7 @@
 # ignore the environment file
 .env
 _ERP_System/db.db
-
+_erp_FastAPI
 # LaTeX build artifacts (auxiliary files) – match anywhere
 **/*.aux
 **/*.log
