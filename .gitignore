@@ -29,7 +29,7 @@ _ERP_System/db.db
 **/*.acn
 **/*.glo
 **/*.ist
-main.pdf
+**/*.pdf
 
 
 # directories for LaTeX generates
