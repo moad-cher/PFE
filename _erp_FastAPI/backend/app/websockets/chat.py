@@ -8,7 +8,7 @@ from app.core.database import AsyncSessionLocal
 from app.core.security import decode_token
 from app.models.accounts import User
 from app.models.messaging import ChatMessage
-from app.models.projects import Task
+from app.models.projects import Project, Task
 from app.websockets.manager import ws_manager
 
 router = APIRouter()
@@ -63,7 +63,7 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int, token: str = ""):
         await ws.close(code=status.WS_1003_UNSUPPORTED_DATA)
         return
 
-    # Resolve project_id (required on ChatMessage) for task rooms
+    # Resolve project_id and enforce membership check
     project_id = pk
     if room_type == "task":
         async with AsyncSessionLocal() as db:
@@ -73,6 +73,24 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int, token: str = ""):
                 await ws.close(code=status.WS_1008_POLICY_VIOLATION)
                 return
             project_id = task.project_id
+
+    async with AsyncSessionLocal() as db:
+        proj_res = await db.execute(
+            select(Project).where(Project.id == project_id)
+            .options(selectinload(Project.members))
+        )
+        project = proj_res.scalar_one_or_none()
+        if project is None:
+            await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        is_member = (
+            user.role in ("admin", "hr_manager")
+            or project.manager_id == user.id
+            or any(m.id == user.id for m in project.members)
+        )
+        if not is_member:
+            await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
 
     room = f"chat_{room_type}_{pk}"
     await ws_manager.connect(ws, room, user_id=user.id)

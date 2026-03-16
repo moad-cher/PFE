@@ -75,7 +75,6 @@ graph TD
     TOOLS["Agent Tools<br>• search_candidates()<br>• assign_task()<br>• check_deadline()"]
     ORM["SQLAlchemy (async)<br>+ Alembic migrations"]
     DB[("PostgreSQL")]
-    MONGO[("MongoDB<br>(CVs / Chat history)")]
     REDIS[("Redis<br>(Pub/Sub for WS broadcast)")]
 
     JS -->|REST JSON| API
@@ -89,9 +88,7 @@ graph TD
     NOTIF --> REDIS
     AI_AGENT --> TOOLS
     TOOLS --> ORM
-    TOOLS --> MONGO
     ORM -->|async| DB
-    AI_AGENT --> MONGO
 
     style API fill:#009688,color:#fff
     style AUTH fill:#1565C0,color:#fff
@@ -102,7 +99,6 @@ graph TD
     style TOOLS fill:#7B1FA2,color:#fff
     style ORM fill:#FF8F00,color:#fff
     style DB fill:#336791,color:#fff
-    style MONGO fill:#4DB33D,color:#fff
     style REDIS fill:#DC382D,color:#fff
 ```
 
@@ -379,13 +375,11 @@ graph TD
         FS1["FastAPI (ASGI)<br>— REST + WebSocket + AI"]
         FS2["Redis<br>— Pub/Sub for WS broadcast"]
         FS3["PostgreSQL"]
-        FS4["MongoDB (optional)<br>— CV / chat history"]
-        FS5["JS Frontend<br>(React/Vue)"]
+        FS4["JS Frontend<br>(React/Vue)"]
         FS1 --- FS2
         FS1 --- FS3
-        FS1 --- FS4
-        FS5 --- FS1
-        COUNT_F["📦 3-4 services — leaner stack"]
+        FS4 --- FS1
+        COUNT_F["📦 3 services — leaner stack"]
     end
 
     style DjangoStack fill:#2c3e50,color:#fff
@@ -572,7 +566,7 @@ flowchart TD
 | Interactive AI w/ tools | ❌ Celery offload, no streaming | ✅ `await agent.arun()` + streaming | **Critical** |
 | Teaches transferable skills | ⚠️ Mostly Django-specific patterns | ✅ Python async, DI, SQLAlchemy, JWT | **High** |
 | Not opinionated | ❌ MVT enforced, specific app structure | ✅ Structure freely | **High** |
-| Infrastructure simplicity | ❌ 6 services | ✅ 3-4 services | **High** |
+| Infrastructure simplicity | ❌ 6 services | ✅ 3 services | **High** |
 | Async I/O | ❌ Blocking WSGI by default | ✅ ASGI native | **High** |
 | Built-in Admin UI | ✅ Excellent | ⚠️ SQLAdmin lib | Low |
 | ORM & Migrations | ✅ Built-in | ⚠️ SQLAlchemy + Alembic | Medium |
@@ -599,4 +593,4 @@ xychart-beta
 >
 > FastAPI is explicit by design: every dependency is declared, every async call is visible, type hints catch mistakes before they run. Its bugs are Python bugs — learnable and searchable. Its patterns (async/await, DI, Pydantic, JWT) are transferable across the entire Python ecosystem.
 >
-> **Chosen architecture:** FastAPI (ASGI) + SQLAlchemy async + Alembic + Redis (Pub/Sub) + PostgreSQL + MongoDB (CVs/chat history) + React/Vue frontend.
+> **Chosen architecture:** FastAPI (ASGI) + SQLAlchemy async + Alembic + Redis (Pub/Sub) + PostgreSQL + React/Vue frontend.

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_db, get_current_user
-from app.helpers.notifications import notify_task_assigned, notify_task_updated, notify_reward
+from app.helpers.notifications import notify_task_assigned, notify_task_completed, notify_task_updated, notify_reward
 from app.models.accounts import User
 from app.models.projects import Project, ProjectConfig, RewardLog, Task, Comment, TaskStatus
 from app.schemas.project import (
@@ -49,10 +49,11 @@ async def _award_points(task: Task, db: AsyncSession):
 
     is_late = bool(task.deadline and task.deadline < date.today())
     points = late_pts if is_late else on_time_pts
+    reason = "Completed late" if is_late else "Completed on time"
 
     for assignee in task.assigned_to:
         assignee.reward_points = (assignee.reward_points or 0) + points
-        db.add(RewardLog(user_id=assignee.id, task_id=task.id, points=points))
+        db.add(RewardLog(user_id=assignee.id, task_id=task.id, points=points, reason=reason))
         # fire-and-forget notification (no background task available here, use direct call)
         import asyncio
         asyncio.ensure_future(notify_reward(assignee.id, points, task.title))
@@ -127,7 +128,7 @@ async def update_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_project_or_403(project_id, current_user, db)
+    project = await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
         select(Task).where(Task.id == task_id, Task.project_id == project_id)
         .options(selectinload(Task.assigned_to))
@@ -146,6 +147,7 @@ async def update_task(
     if task.status == "done" and not task.completed_at:
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
+        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
 
     new_assigned_ids: list[int] = []
     if assignee_ids is not None:
@@ -193,7 +195,7 @@ async def move_task(
     current_user: User = Depends(get_current_user),
 ):
     """Move a task to a different Kanban column (status slug)."""
-    await _get_project_or_403(project_id, current_user, db)
+    project = await _get_project_or_403(project_id, current_user, db)
 
     # Validate that the target status exists in the project
     status_res = await db.execute(
@@ -219,6 +221,7 @@ async def move_task(
     if data.status == "done" and not task.completed_at:
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
+        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
 
     await db.commit()
     await db.refresh(task, ["assigned_to"])

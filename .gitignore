@@ -4,7 +4,7 @@
 
 # ignore the environment file
 .env
-_ERP_System/db.db
+_ERP_System/backend/db.db
 
 # LaTeX build artifacts (auxiliary files) – match anywhere
 **/*.aux

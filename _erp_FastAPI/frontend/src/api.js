@@ -1,65 +1,188 @@
-import axios from "axios";
+import axios from 'axios';
 
-const client = axios.create({ baseURL: "" });  // uses Vite proxy
+export const API_BASE = 'http://localhost:8000';
+export const WS_BASE = 'ws://localhost:8000';
 
-// Attach token to every request
-client.interceptors.request.use((cfg) => {
-  const token = localStorage.getItem("token");
-  if (token) cfg.headers.Authorization = `Bearer ${token}`;
-  return cfg;
+export const api = axios.create({
+  baseURL: API_BASE,
 });
 
-// Auth
-export async function login(username, password) {
-  const body = new URLSearchParams({ username, password });
-  const { data } = await client.post("/auth/token", body);
-  localStorage.setItem("token", data.access_token);
-  return data;
-}
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-export function logout() {
-  localStorage.removeItem("token");
-}
+// ===================== Auth =====================
+export const authLogin = (username, password) => {
+  const params = new URLSearchParams();
+  params.append('username', username);
+  params.append('password', password);
+  return api.post('/auth/token', params);
+};
 
-export function getToken() {
-  return localStorage.getItem("token");
-}
+export const authRegister = (userData) => api.post('/auth/register', userData);
+export const getMe = () => api.get('/auth/me');
 
-// AI REST
-export async function fetchAIStatus() {
-  const { data } = await client.get("/ai/status");
-  return data;
-}
+// ===================== Users =====================
+export const getUsersMe = () => api.get('/users/me');
+export const getUsersMeStats = () => api.get('/users/me/stats');
+export const updateUsersMe = (data) => api.patch('/users/me', data);
+export const updateUserAvatar = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/users/me/avatar', formData);
+};
+export const changePassword = (data) => api.post('/users/me/password', data);
+export const listUsers = () => api.get('/users/');
+export const getUser = (id) => api.get(`/users/${id}`);
+export const adminListUsers = () => api.get('/users/admin/all');
+export const adminUpdateUser = (id, data) => api.patch(`/users/admin/${id}`, data);
+export const listDepartments = () => api.get('/departments/');
+export const createDepartment = (data) => api.post('/departments/', data);
+export const updateDepartment = (id, data) => api.patch(`/departments/${id}`, data);
+export const deleteDepartment = (id) => api.delete(`/departments/${id}`);
 
-export async function sendChat(messages, system_prompt = "") {
-  const { data } = await client.post("/ai/chat", { messages, system_prompt });
-  return data; // { reply, model }
-}
+// ===================== Projects =====================
+export const getDashboard = () => api.get('/projects/dashboard');
+export const listProjects = () => api.get('/projects/');
+export const createProject = (data) => api.post('/projects/', data);
+export const getProject = (pk) => api.get(`/projects/${pk}`);
+export const updateProject = (pk, data) => api.patch(`/projects/${pk}`, data);
+export const deleteProject = (pk) => api.delete(`/projects/${pk}`);
+export const getProjectConfig = (pk) => api.get(`/projects/${pk}/config`);
+export const updateProjectConfig = (pk, data) => api.patch(`/projects/${pk}/config`, data);
+export const getProjectStatuses = (pk) => api.get(`/projects/${pk}/statuses`);
+export const createProjectStatus = (pk, data) => api.post(`/projects/${pk}/statuses`, data);
+export const deleteProjectStatus = (pk, id) => api.delete(`/projects/${pk}/statuses/${id}`);
+export const getKanban = (pk) => api.get(`/projects/${pk}/kanban`);
+export const getScrum = (pk, params) => api.get(`/projects/${pk}/scrum`, { params });
+export const searchProjectMembers = (pk, q) => api.get(`/projects/${pk}/members/search`, { params: { q } });
+export const getProjectMembers = (pk) => api.get(`/projects/${pk}/members`);
+export const addProjectMember = (pk, userId) => api.post(`/projects/${pk}/members/${userId}`);
+export const removeProjectMember = (pk, userId) => api.delete(`/projects/${pk}/members/${userId}`);
+export const getLeaderboard = (pk) => api.get(`/projects/${pk}/leaderboard`);
+export const bulkReassign = (pk, data) => api.post(`/projects/${pk}/tasks/bulk-reassign`, data);
+export const suggestAssignee = (pk, taskId) => api.get(`/projects/${pk}/tasks/${taskId}/suggest`);
 
-export async function summarizeText(text, max_words = 100, language = "English") {
-  const { data } = await client.post("/ai/summarize", { text, max_words, language });
-  return data; // { summary, model }
-}
+// ===================== Tasks =====================
+export const listTasks = (projectId, params) =>
+  api.get(`/projects/${projectId}/tasks/`, { params });
+export const createTask = (projectId, data) =>
+  api.post(`/projects/${projectId}/tasks/`, data);
+export const getTask = (projectId, taskId) =>
+  api.get(`/projects/${projectId}/tasks/${taskId}`);
+export const updateTask = (projectId, taskId, data) =>
+  api.patch(`/projects/${projectId}/tasks/${taskId}`, data);
+export const deleteTask = (projectId, taskId) =>
+  api.delete(`/projects/${projectId}/tasks/${taskId}`);
+export const moveTask = (projectId, taskId, status) =>
+  api.patch(`/projects/${projectId}/tasks/${taskId}/move`, { status });
+export const reassignTask = (projectId, taskId, newAssigneeId) =>
+  api.patch(`/projects/${projectId}/tasks/${taskId}/reassign`, null, {
+    params: { new_assignee_id: newAssigneeId },
+  });
+export const getTaskComments = (projectId, taskId) =>
+  api.get(`/projects/${projectId}/tasks/${taskId}/comments`);
+export const createTaskComment = (projectId, taskId, content) =>
+  api.post(`/projects/${projectId}/tasks/${taskId}/comments`, { content });
 
-export async function generateDescription(title, context = "task", language = "English") {
-  const { data } = await client.post("/ai/generate-description", { title, context, language });
-  return data; // { description, model }
-}
+// ===================== Hiring =====================
+export const listJobs = (status) =>
+  api.get('/hiring/jobs', { params: status ? { status } : {} });
+export const createJob = (data) => api.post('/hiring/jobs', data);
+export const getJob = (id) => api.get(`/hiring/jobs/${id}`);
+export const updateJob = (id, data) => api.patch(`/hiring/jobs/${id}`, data);
+export const deleteJob = (id) => api.delete(`/hiring/jobs/${id}`);
+export const listApplications = () => api.get('/hiring/applications');
+export const getJobApplications = (id) => api.get(`/hiring/jobs/${id}/applications`);
+export const applyToJob = (id, formData) =>
+  api.post(`/hiring/jobs/${id}/apply`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+export const getApplication = (id) => api.get(`/hiring/applications/${id}`);
+export const updateApplicationStatus = (id, status) =>
+  api.patch(`/hiring/applications/${id}/status`, { status });
+export const analyzeApplication = (id) =>
+  api.post(`/hiring/applications/${id}/analyze`);
+export const scheduleInterview = (id, data) =>
+  api.post(`/hiring/applications/${id}/interviews`, data);
+export const getInterviews = (id) => api.get(`/hiring/applications/${id}/interviews`);
 
-// AI WebSocket streaming — connects via Vite proxy at same origin
-export function createStreamSocket(onToken, onDone, onError) {
-  const token = getToken();
-  const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
-  const ws = new WebSocket(`${wsProto}//${location.host}/ws/ai/stream?token=${token}`);
+// ===================== Notifications =====================
+export const listNotifications = () => api.get('/notifications/');
+export const getUnreadCount = () => api.get('/notifications/unread-count');
+export const markAllRead = () => api.post('/notifications/mark-all-read');
+export const markNotificationRead = (id) => api.patch(`/notifications/${id}/read`);
+export const deleteNotification = (id) => api.delete(`/notifications/${id}`);
 
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === "token") onToken(msg.token);
-    else if (msg.type === "done") onDone(msg.full);
-    else if (msg.type === "error") onError(msg.message);
-  };
+// ===================== Chat =====================
+export const getProjectChat = (id, params) =>
+  api.get(`/chat/project/${id}`, { params });
+export const sendProjectMessage = (id, content) =>
+  api.post(`/chat/project/${id}`, { content });
+export const getTaskChat = (id, params) =>
+  api.get(`/chat/task/${id}`, { params });
+export const sendTaskMessage = (id, content) =>
+  api.post(`/chat/task/${id}`, { content });
+export const deleteChatMessage = (id) => api.delete(`/chat/message/${id}`);
 
-  ws.onerror = () => onError("WebSocket error");
+// ===================== AI =====================
+export const getAIStatus = () => api.get('/ai/status');
+export const aiChat = (messages, system) =>
+  api.post('/ai/chat', { messages, system });
+export const aiSummarize = (text, maxWords, language) =>
+  api.post('/ai/summarize', { text, max_words: maxWords, language });
+export const aiGenerateDescription = (title, contextType) =>
+  api.post('/ai/generate-description', { title, context_type: contextType });
 
-  return ws;
-}
+// ===================== WebSocket helpers =====================
+export const createChatWS = (roomType, pk) => {
+  const token = localStorage.getItem('token');
+  return new WebSocket(`${WS_BASE}/ws/chat/${roomType}/${pk}?token=${token}`);
+};
+
+export const createNotificationsWS = () => {
+  const token = localStorage.getItem('token');
+  return new WebSocket(`${WS_BASE}/ws/notifications?token=${token}`);
+};
+
+export const createAIStreamWS = () => {
+  const token = localStorage.getItem('token');
+  return new WebSocket(`${WS_BASE}/ws/ai/stream?token=${token}`);
+};
+
+// ===================== Utility =====================
+export const relativeTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString();
+};
+
+export const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+export const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};

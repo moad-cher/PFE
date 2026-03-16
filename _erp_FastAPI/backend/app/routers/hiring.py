@@ -9,8 +9,9 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.deps import get_current_user, get_db, require_roles
+from app.helpers.notifications import notify_application_received
 from app.helpers.resume_ai import analyze_resume
-from app.models.accounts import User
+from app.models.accounts import User, RoleEnum
 from app.models.hiring import Application, ApplicationStatusEnum, Interview, JobPosting, JobStatusEnum
 from app.schemas.hiring import (
     ApplicationDetailRead,
@@ -170,6 +171,17 @@ async def apply(
     await db.refresh(application)
 
     background_tasks.add_task(analyze_resume, application.id)
+
+    # Notify all HR managers and admins of the new application
+    hr_res = await db.execute(
+        select(User).where(
+            User.role.in_([RoleEnum.hr_manager, RoleEnum.admin]),
+            User.is_active.is_(True),
+        )
+    )
+    for hr_user in hr_res.scalars().all():
+        background_tasks.add_task(notify_application_received, hr_user.id, job.title, application.id)
+
     return application
 
 

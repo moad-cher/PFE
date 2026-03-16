@@ -1,53 +1,112 @@
-import { useState } from "react";
-import { logout, getToken } from "./api";
-import Login from "./components/Login";
-import AIStatus from "./components/AIStatus";
-import AIChat from "./components/AIChat";
-import AISummarize from "./components/AISummarize";
-import AIDescribe from "./components/AIDescribe";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Navbar from './components/Navbar';
 
-const TABS = [
-  { id: "chat",      label: "💬 Chat" },
-  { id: "summarize", label: "📄 Summarize" },
-  { id: "describe",  label: "✏️ Describe" },
-  { id: "status",    label: "⚙️ Status" },
-];
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import Notifications from './pages/Notifications';
+
+import ProjectNew from './pages/projects/ProjectNew';
+import ProjectDetail from './pages/projects/ProjectDetail';
+import ProjectEdit from './pages/projects/ProjectEdit';
+import ProjectSettings from './pages/projects/ProjectSettings';
+import KanbanBoard from './pages/projects/KanbanBoard';
+import ScrumBoard from './pages/projects/ScrumBoard';
+import TaskNew from './pages/projects/TaskNew';
+import TaskDetail from './pages/projects/TaskDetail';
+import TaskEdit from './pages/projects/TaskEdit';
+import BulkReassign from './pages/projects/BulkReassign';
+import Members from './pages/projects/Members';
+import Leaderboard from './pages/projects/Leaderboard';
+import ProjectChat from './pages/projects/ProjectChat';
+import TaskChat from './pages/projects/TaskChat';
+
+import JobList from './pages/hiring/JobList';
+import JobNew from './pages/hiring/JobNew';
+import JobDetail from './pages/hiring/JobDetail';
+import JobEdit from './pages/hiring/JobEdit';
+import Apply from './pages/hiring/Apply';
+import ApplySuccess from './pages/hiring/ApplySuccess';
+import ApplicationDetail from './pages/hiring/ApplicationDetail';
+import InterviewSchedule from './pages/hiring/InterviewSchedule';
+
+function AppLayout() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="pt-16">
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
+function PublicLayout() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Outlet />
+    </div>
+  );
+}
 
 export default function App() {
-  const [authed, setAuthed] = useState(!!getToken());
-  const [tab, setTab] = useState("chat");
-
-  function handleLogout() {
-    logout();
-    setAuthed(false);
-  }
-
-  if (!authed) return <Login onLogin={() => setAuthed(true)} />;
-
   return (
-    <div className="app">
-      <header className="app-header">
-        <span className="app-logo">🤖 ERP AI</span>
-        <nav className="tab-nav">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              className={`tab-btn ${tab === t.id ? "active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        <button className="btn-logout" onClick={handleLogout}>Sign out</button>
-      </header>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route element={<PublicLayout />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/hiring/jobs/:id/apply" element={<Apply />} />
+            <Route path="/hiring/apply-success" element={<ApplySuccess />} />
+          </Route>
 
-      <main className="app-main">
-        {tab === "chat"      && <AIChat />}
-        {tab === "summarize" && <AISummarize />}
-        {tab === "describe"  && <AIDescribe />}
-        {tab === "status"    && <AIStatus />}
-      </main>
-    </div>
+          {/* Protected routes with Navbar */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
+
+            {/* Project routes */}
+            <Route path="/projects/new" element={<ProjectNew />} />
+            <Route path="/projects/:pk" element={<ProjectDetail />} />
+            <Route path="/projects/:pk/edit" element={<ProjectEdit />} />
+            <Route path="/projects/:pk/settings" element={<ProjectSettings />} />
+            <Route path="/projects/:pk/kanban" element={<KanbanBoard />} />
+            <Route path="/projects/:pk/scrum" element={<ScrumBoard />} />
+            <Route path="/projects/:pk/tasks/new" element={<TaskNew />} />
+            <Route path="/projects/:pk/tasks/:taskId" element={<TaskDetail />} />
+            <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
+            <Route path="/projects/:pk/tasks/:taskId/chat" element={<TaskChat />} />
+            <Route path="/projects/:pk/bulk-reassign" element={<BulkReassign />} />
+            <Route path="/projects/:pk/members" element={<Members />} />
+            <Route path="/projects/:pk/leaderboard" element={<Leaderboard />} />
+            <Route path="/projects/:pk/chat" element={<ProjectChat />} />
+
+            {/* Hiring routes */}
+            <Route path="/hiring/jobs" element={<JobList />} />
+            <Route path="/hiring/jobs/new" element={<JobNew />} />
+            <Route path="/hiring/jobs/:id" element={<JobDetail />} />
+            <Route path="/hiring/jobs/:id/edit" element={<JobEdit />} />
+            <Route path="/hiring/applications/:id" element={<ApplicationDetail />} />
+            <Route path="/hiring/applications/:id/interview" element={<InterviewSchedule />} />
+          </Route>
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

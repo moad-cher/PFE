@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from datetime import date
 
 from app.core.deps import get_db, get_current_user
 from app.helpers.notifications import notify_task_assigned
@@ -317,6 +318,40 @@ async def kanban_board(
         )
         for s in statuses
     ]
+
+
+# ── Scrum board ───────────────────────────────────────────────────────────────
+
+_PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
+
+
+@router.get("/{pk}/scrum", response_model=list[TaskRead])
+async def scrum_board(
+    pk: int,
+    status: str | None = Query(None, description="Filter by status slug"),
+    assignee_id: int | None = Query(None, description="Filter by assignee user id"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Flat task list sorted by priority then deadline — Scrum backlog view."""
+    project = await _load_project(pk, db)
+    if not _can_access(project, current_user):
+        raise HTTPException(403, "Access denied")
+
+    tasks = project.tasks
+    if status:
+        tasks = [t for t in tasks if t.status == status]
+    if assignee_id:
+        tasks = [t for t in tasks if any(a.id == assignee_id for a in t.assigned_to)]
+
+    tasks = sorted(
+        tasks,
+        key=lambda t: (
+            _PRIORITY_ORDER.get(t.priority.value if hasattr(t.priority, "value") else t.priority, 99),
+            t.deadline or date.max,
+        ),
+    )
+    return [TaskRead.model_validate(t) for t in tasks]
 
 
 # ── Members ───────────────────────────────────────────────────────────────────

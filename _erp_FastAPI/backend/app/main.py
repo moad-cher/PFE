@@ -1,9 +1,13 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import asyncio
 import os
 
 from app.core.config import settings
+from app.helpers.scheduler import deadline_scheduler
 from app.routers import auth, users, projects, tasks, hiring, notifications, messaging
 from app.routers import ai as ai_router
 from app.routers.users import dept_router
@@ -11,7 +15,15 @@ from app.websockets.chat import router as ws_chat_router
 from app.websockets.notifications import router as ws_notif_router
 from app.websockets.ai import router as ws_ai_router
 
-app = FastAPI(title="ERP API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(deadline_scheduler())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="ERP API", version="1.0.0", lifespan=lifespan)
 
 # ------------------------------------------------------------------ #
 #  CORS — allow React dev server (and any local origin)               #

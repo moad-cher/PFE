@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 from app.models.projects import PriorityEnum
 from app.schemas.user import UserBrief
@@ -77,6 +77,18 @@ class TaskRead(BaseModel):
     assigned_to: list[UserBrief]
 
     model_config = {"from_attributes": True}
+
+    @computed_field
+    @property
+    def is_overdue(self) -> bool:
+        return bool(self.deadline and self.completed_at is None and self.deadline < date.today())
+
+    @computed_field
+    @property
+    def deadline_approaching(self) -> bool:
+        if not self.deadline or self.completed_at is not None:
+            return False
+        return 0 <= (self.deadline - date.today()).days <= 2
 
 
 class TaskUpdate(BaseModel):
