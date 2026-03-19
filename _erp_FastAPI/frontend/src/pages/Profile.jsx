@@ -6,7 +6,6 @@ import {
   updateUserAvatar,
   changePassword,
   listProjects,
-  relativeTime,
   API_BASE,
 } from '../api';
 import { useAuth } from '../context/AuthContext';

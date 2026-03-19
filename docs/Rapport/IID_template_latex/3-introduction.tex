@@ -1,2 +1,145 @@
 \introduction
-bla bla bla \gls{acro} puis \Gls{acroglo} et enfin \gls{glossaire}
+
+\section{Introduction à la Problématique}
+
+La gestion des ressources humaines et la gestion de projets sont au cœur de toute organisation moderne. Aujourd'hui, les entreprises sont confrontées à des défis croissants :
+
+\begin{itemize}
+    \item \textbf{Recrutement inefficace} : Les processus manuels de sélection de candidats manquent de scalabilité et d'objectivité. L'analyse des candidatures par les responsables \gls{RH} est chronophage et sujette à des biais.
+
+    \item \textbf{Gestion de projets fragmentée} : L'absence de vue centralisée sur les tâches, les délais et les charges de travail des équipes entraîne des retards et une mauvaise allocation des ressources.
+
+    \item \textbf{Communication en temps réel} : Les outils isolés (email, applications de chat, documents) ralentissent la collaboration et les échanges critiques.
+
+    \item \textbf{Manque d'intelligence décisionnelle} : L'absence d'analyse prédictive et d'aide à la décision basée sur les données rend les managers dépendants de leur intuition.
+\end{itemize}
+
+La solution proposée est un système \gls{ERP} \textit{(Enterprise Resource Planning)} intégré, combinant :
+
+\begin{itemize}
+    \item Un module de \textbf{recrutement intelligent} utilisant l'\gls{IA} pour analyser les profils des candidats et les classer automatiquement en fonction des critères de sélection.
+
+    \item Un module de \textbf{gestion de projets} avec kanban, tableau de bord \textit{Scrum}, notifications en temps réel et assignation intelligente de tâches.
+
+    \item Une \textbf{base de données centralisée} unifiant les informations sur les employés, les projets et les candidatures.
+
+    \item Une \textbf{couche de communication} permettant le chat et les notifications instantanées au sein de l'organisation.
+\end{itemize}
+
+\section{Présentation de l'Entreprise Partenaire : Harmony}
+
+\subsection{Qui est Harmony ?}
+
+\Gls{Harmony} est une entreprise technologique marocaine basée à Rabat, actrice majeure dans la transformation digitale depuis 2015. L'entreprise dispose d'une présence régionale étendue couvrant le Maroc, l'Afrique du Nord et le Moyen-Orient.
+
+\subsection{Chiffres Clés}
+
+\begin{itemize}
+    \item \textbf{110 experts} passionnés par l'innovation technologique
+    \item \textbf{150+ clients} satisfaits à travers plusieurs secteurs
+    \item \textbf{250+ projets} de transformation réalisés
+    \item \textbf{15+ brevets} développés
+    \item \textbf{2,5 millions d'objets} identifiés par des solutions \gls{IoT}
+\end{itemize}
+
+\subsection{Domaines de Compétence}
+
+Les services de Harmony s'articulent autour de quatre piliers stratégiques :
+
+\begin{enumerate}
+    \item \textbf{Intelligence Documentaire et Savoir Numérique} : Modernisation de la gestion de l'information par la numérisation et l'indexation assistées par l'\gls{IA}.
+
+    \item \textbf{Intelligence Artificielle, Analyse de Données et Développement Numérique} : Transformation pilotée par les données, automatisation des processus et conception d'applications en ligne.
+
+    \item \textbf{Industries Intelligentes 4.0 (IoT, Drones, Robotique)} : Déploiement de solutions de suivi en temps réel avec une précision de 99,8\% et automatisation industrielle.
+
+    \item \textbf{Villes Intelligentes et Durables} : Conception d'écosystèmes urbains durables utilisant les jumeaux numériques et le monitoring environnemental.
+\end{enumerate}
+
+\subsection{Secteurs Cibles}
+
+Harmony accompagne des organisations dans l'éducation, la manufacture, l'automobile, l'énergie, la logistique, les transports et l'administration publique.
+
+\subsection{Vision et Philosophie}
+
+La mission d'Harmony s'articule autour du concept \textit{« Transformer vos défis en croissance »}, reposant sur une philosophie de \textit{« Dépasser les Attentes »} qui se décline par :
+
+\begin{itemize}
+    \item Anticiper les besoins futurs de l'organisation.
+    \item Convertir les obstacles en opportunités de valeur.
+    \item Maximiser le retour sur investissement de chaque projet.
+\end{itemize}
+
+\section{Technologies et Architecture Retenues}
+
+Pour répondre aux exigences du projet \gls{ERP}, l'architecture suivante a été sélectionnée :
+
+\subsection{Backend — Serveur d'Application}
+
+\textbf{\Gls{FastAPI}} a été retenu comme framework serveur principal pour ses avantages intrinsèques :
+
+\begin{itemize}
+    \item \textbf{Asynchrone natif} : \Gls{FastAPI} repose sur \gls{ASGI}, permettant le traitement concurrent de multiples requêtes sans bloquer sur les opérations I/O.
+
+    \item \textbf{WebSocket intégré} : Support natif pour la communication bidirectionnelle en temps réel, essentiel pour le chat et les notifications.
+
+    \item \textbf{Validation de schémas} : \Gls{Pydantic} v2 fournit une validation stricte des données entrantes avec génération automatique de documentation \gls{OpenAPI}.
+
+    \item \textbf{Authentification} : Support natif de \glspl{JWT} et \gls{OAuth2}, simplifiant la sécurisation des endpoints \gls{REST} et WebSocket.
+
+    \item \textbf{Support de l'IA} : Intégration fluide avec \gls{LangChain} pour l'exécution asynchrone d'agents d'\gls{IA} avec appel d'outils (\textit{tool-calling}).
+\end{itemize}
+
+\subsection{Couche Données}
+
+\begin{itemize}
+    \item \textbf{\Gls{PostgreSQL}} : Base de données relationnelle performante et fiable, offrant les garanties ACID et le support des transactions complexes.
+
+    \item \textbf{\Gls{SQLAlchemy}} (mode asynchrone) : \gls{ORM} de haut niveau permettant les requêtes non-bloquantes via \textit{asyncpg}.
+
+    \item \textbf{\Gls{Alembic}} : Outil de migrations de schéma garantissant la cohérence et la traçabilité des évolutions de base de données.
+\end{itemize}
+
+\subsection{Système de Cache et Pub/Sub}
+
+\textbf{\Gls{Redis}} assure deux rôles critiques :
+
+\begin{itemize}
+    \item \textbf{\gls{PubSub}} : Broadcast des messages de chat et notifications aux clients WebSocket connectés.
+
+    \item \textbf{Cache} : Stockage temporaire de données fréquemment consultées pour réduire la charge sur la base de données.
+\end{itemize}
+
+\subsection{Frontend — Interface Utilisateur}
+
+\textbf{\Gls{React}} avec \Gls{Vite} compose la couche frontend :
+
+\begin{itemize}
+    \item \textbf{Single Page Application} : Interface réactive sans rechargement de page.
+
+    \item \textbf{Intégration WebSocket} : Réception des notifications et messages en temps réel.
+
+    \item \textbf{Authentification par JWT} : Stockage du \textit{token} \textit{JavaScript Web Token} en mémoire ou cookies sécurisés.
+\end{itemize}
+
+\subsection{Intelligence Artificielle}
+
+\textbf{\Gls{LangChain}} avec \gls{OpenAI} (ou autre \gls{LLM}) active les fonctionnalités d'\gls{IA} :
+
+\begin{itemize}
+    \item \textbf{Analyse de \glspl{CV}} : Extraction automatique de compétences, expériences et évaluation de pertinence vis-à-vis des postes.
+
+    \item \textbf{Assignation intelligente de tâches} : Suggestion d'assignations basées sur les compétences, la charge de travail et l'historique des équipiers.
+
+    \item \textbf{Streaming de réponses} : Affichage progressif des résultats \gls{IA} au fur et à mesure de leur génération.
+\end{itemize}
+
+\subsection{Infrastructure et Déploiement}
+
+\begin{itemize}
+    \item \textbf{Conteneurisation} : \Gls{Docker} pour assurer la reproductibilité et la portabilité de tous les services.
+
+    \item \textbf{Orchestration} : \Gls{DockerCompose} pour le développement ; \Gls{Kubernetes} envisagé pour la production.
+
+    \item \textbf{Monitoring et Logging} : Integration avec des outils d'observation pour assurer la disponibilité et diagnostiquer les anomalies.
+\end{itemize}

@@ -30,6 +30,7 @@ _ERP_System/backend/db.db
 **/*.glo
 **/*.ist
 **/*.pdf
+**/*.zip
 
 
 # directories for LaTeX generates

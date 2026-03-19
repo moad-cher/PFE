@@ -60,10 +60,10 @@ export default function ProjectSettings() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Reward Points</h2>
           <form onSubmit={saveConfig} className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
-              {[[' points_on_time','On-time pts'],[' points_late','Late pts'],[' notify_deadline_days','Notify N days before']].map(([k,l]) => (
+              {[['points_on_time','On-time pts'],['points_late','Late pts'],['notify_deadline_days','Notify N days before']].map(([k,l]) => (
                 <div key={k}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{l}</label>
-                  <input type="number" min="0" value={config[k.trim()]} onChange={e => setConfig(c=>({...c,[k.trim()]:e.target.value}))}
+                  <input type="number" min="0" value={config[k]} onChange={e => setConfig(c=>({...c,[k]:e.target.value}))}
                     className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
                 </div>
               ))}

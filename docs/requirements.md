@@ -27,8 +27,4 @@ every project has tasks, deadlines, and tasks have assigned team members.
 - [ ] page des offres d'emploi avec possibilité de postuler
 
 
-# premier rapport
-introduction au problematique 
-presententation de la societe
-les technologies
 

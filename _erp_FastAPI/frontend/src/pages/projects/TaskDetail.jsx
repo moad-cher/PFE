@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   getTask, getProject, getTaskComments, createTaskComment,
-  deleteTask, moveTask, suggestAssignee, getProjectStatuses, formatDateTime,
+  deleteTask, moveTask, suggestAssignee, getProjectStatuses, formatDateTime, relativeTime,
 } from '../../api';
-import { relativeTime } from '../../api';
 import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import StatusBadge from '../../components/StatusBadge';

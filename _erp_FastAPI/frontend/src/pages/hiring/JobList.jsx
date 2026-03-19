@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { listJobs, listApplications } from '../../api';
+import { listJobs } from '../../api';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
 
