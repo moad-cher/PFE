@@ -7,7 +7,7 @@ echo ==============================================
 echo.
 
 set "ROOT_DIR=%~dp0"
-set "BACKEND_DIR=%ROOT_DIR%backend\backend_by_domain"
+set "BACKEND_DIR=%ROOT_DIR%backend"
 set "FRONTEND_DIR=%ROOT_DIR%frontend"
 
 if not exist "%BACKEND_DIR%\app\main.py" (

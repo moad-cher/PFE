@@ -1,0 +1,212 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[pdftex]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{fontawesome5}
+
+
+\setlength{\footskip}{12pt}
+\hypersetup{
+  colorlinks=true,
+  urlcolor=Iris,
+  linkcolor=Iris,
+  citecolor=Iris
+}
+\urlstyle{same}
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.530in}
+\addtolength{\evensidemargin}{-0.375in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.70in}
+\addtolength{\textheight}{1in}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% define accent colors (close)
+\definecolor{Iris}{RGB}{100,50,100}
+\definecolor{Purple}{RGB}{122,50,122}
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-5pt}\scshape\raggedright\Large\color{Purple}
+}{}{0em}{}[\color{Purple}\titlerule \vspace{-5pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[2]{
+  \item\small{
+    \textbf{#1}{: #2 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeItemWithoutTitle}[1]{
+  \item\small{
+    {\vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{1pt}\item
+  \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+    \color{Iris}
+      \textbf{\large #1} & #2 \\
+      \textit{#3} & \textit{#4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+
+\newcommand{\resumeSubItem}[2]{\resumeItem{#1}{#2}\vspace{-3pt}}
+
+\renewcommand{\labelitemii}{$\circ$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-----------------------------
+%%%%%%  CV STARTS HERE  %%%%%%
+
+\begin{document}
+
+%----------HEADING-----------------
+% requires \usepackage{graphicx} in the preamble; replace "photo.jpg" with your picture path
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \begin{minipage}[c]{0.1\textwidth}
+    \vspace{-0.1in}\includegraphics[width=3.0cm,height=3.0cm,keepaspectratio]{pfp.png}\vspace{-0.1in}
+  \end{minipage}%
+  &
+  \begin{minipage}[t]{0.75\textwidth}
+    \textbf{{\Huge \color{Iris} Moad CHERGUI}}\\[6pt]
+    \color{Iris}\faEnvelope~\href{mailto:moadchergui13@gmail.com}{moadchergui13@gmail.com} \quad \color{Iris}\faLinkedin~\href{https://www.linkedin.com/in/moad-chergui}{/moad-chergui}\\
+    \color{Iris}\faPhone~+212-697183751 \quad \color{Iris}\faGithub~\href{https://github.com/moad-cher}{/moad-cher}
+  \end{minipage} \\
+\end{tabular*}
+
+%-----------PROFILE-----------------
+\section{Profil}
+  \small Élève ingénieur en 5\textsuperscript{ème} année Génie Informatique et Ingénierie des Données à l'ENSA Khouribga. 
+  Intéressé par l'ingénierie des données, la science des données et le développement. 
+  À la recherche d'un stage de fin d'études (4--6 mois) pour appliquer mes compétences
+
+%-----------EDUCATION-----------------
+
+\section{Formation}
+  \resumeSubHeadingListStart
+    \resumeSubheading{ENSA Khouribga}{Khouribga, Maroc}{Diplôme d'Ingénieur — Génie Informatique \& Ingénierie des Données}{2021 -- 2026}
+    % \resumeSubheading{ENSA Khouribga}{Khouribga, Maroc}{Cycle préparatoire intégré}{2021 -- 2023}
+    \resumeSubheading{Lycée Tariq Ibn Ziyad}{El Ksiba, Maroc}{Baccalauréat en Sciences Mathématiques A}{2020 -- 2021}
+  \resumeSubHeadingListEnd
+
+
+%-----------EXPERIENCE-----------------
+
+\section{Expérience Professionnelle}
+  \resumeSubHeadingListStart
+    \resumeSubheading{Digitalent SARL}{Tétouan, Maroc (Distanciel)}{Stage (PFA)}{Juillet -- Août 2025}
+    \resumeItemListStart
+      \resumeItem{Formation Salesforce}
+      {Parcours Trailhead couvrant Apex, LWC et Flows, avec défis pratiques.}
+      \resumeItem{Projet Salesforce -- Système de gestion des congés}
+        {Développement de 3 composants LWC (un par profil), calcul automatique des jours ouvrables et soldes, notifications personnalisées, 23 tests Apex avec 100\% de couverture, tableau de bord RH créé avec Dashboard Builder à partir de rapports agrégés.}
+
+    \resumeItemListEnd
+
+    \resumeSubheading{Les Eaux Minérales d'Oulmès}{Oulmès, Maroc}{Stage d'initiation}{Juillet 2024}
+    \resumeItemListStart
+      \resumeItem{Formation réseau}
+        {Acquisition de connaissances sur les serveurs, switches, routeurs et firewalls.}
+      \resumeItem{Projet -- Plateforme de commande à double portail}
+        {Portails client/fournisseur pour la saisie et validation des commandes ; workflow d'approbation avec emails automatiques (Python, Streamlit, MySQL).}
+    \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------------
+\section{Projets}
+\resumeSubHeadingListStart
+
+  % Data Science Projects
+  \resumeSubItem{Plateforme e-learning avec détection d'émotions en temps réel}{Visioconférence avec mesure de l'engagement ; Stack: React, Flask, Firebase ; détection faciale, inférence périodique, tableau de bord enseignant.}
+  \resumeSubItem{Modèle de prévision climatique}{Collection et prétraitement de séries temporelles ; modèles SARIMAX, XGBoost et LSTM pour 10 ans de prévisions mensuelles ; interface Streamlit pour la visualisation.}
+  \resumeSubItem{Streaming temps réel de données IoT}{Producteur Kafka et consumer Flink avec fenêtres de 30s ; calcul de moyennes par zone, alertes par seuil redirigées vers topic Kafka dédié. Scala, Flink, Kafka}
+  \resumeSubItem{Classification automatisée d'Iris}{Construction de modèle de classification avec Azure AutoML ; configuration et déploiement de cluster VM pour l'entraînement ; 96\% de précision via sélection automatique d'algorithme.}
+
+
+\resumeSubHeadingListEnd
+
+%-----------SKILLS-----------------
+\section{Compétences Techniques}
+
+\resumeSubHeadingListStart
+  \resumeSubItem{Langages}{Python, Java, Scala, SQL, JavaScript, HTML/CSS}
+  \resumeSubItem{Machine Learning}{TensorFlow, PyTorch, Scikit-learn, Azure ML}
+  \resumeSubItem{Big Data \& Streaming}{Spark, Flink, Kafka, Hadoop (Hive, Pig)}
+  \resumeSubItem{Bases de données}{MongoDB, MySQL}
+  \resumeSubItem{ETL \& BI}{SSIS, SSAS, Power BI, Tableau}
+  \resumeSubItem{Développement Web}{Flask, FastAPI, Angular.js, Spring Boot}
+  \resumeSubItem{Outils \& DevOps}{Docker, Kubernetes, Git/GitHub/GitLab, Linux, n8n}
+\resumeSubHeadingListEnd
+%-----------SOFT SKILLS-----------------
+
+% \section{Compétences de Gestion}
+% \resumeSubHeadingListStart
+  % \resumeSubItem{Soft skills}
+  % {Travail d'équipe, Autonomie, Volonté d'apprendre, Organisation, Agile/Scrum, UML, Merise}
+  % \resumeSubHeadingListEnd
+
+\begin{minipage}[t]{0.48\textwidth}
+  %-----------CERTIFICATIONS-----------------
+  \section{Certifications}
+  \resumeSubHeadingListStart
+  \resumeSubItem{Data Scientist Career Track}{365 Data Science}
+  \resumeSubItem{Data Analyst Career Track}{365 Data Science}
+  \resumeSubItem{Python for Data Science}{CognitiveClass (IBM)}
+  \resumeSubItem{Data analytics job simulation}{Deloitte}
+  \resumeSubItem{Data Visualization Course}{Kaggle}
+  \resumeSubHeadingListEnd
+
+  %-----------INTERESTS-----------------
+  \section{Centres d'Intérêt}
+  % \resumeSubHeadingListStart
+    \textbf
+    {Callisthénie -- Dessin}
+  % \resumeSubHeadingListEnd
+\end{minipage}
+\hfill
+\vline
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+% -----------EXTRACURRICULAR ACTIVITIES-----------------
+\section{Activités Parascolaires}
+  \resumeSubHeadingListStart
+  \resumeSubItem{Hackathon}{Système de recommandation pour ressources académiques}
+  \resumeSubItem{Événement Dataverse}{L'équipe technique}
+  \resumeSubHeadingListEnd
+%-----------LANGUES & INTERETS-----------------
+\section{Langues}
+\resumeSubHeadingListStart
+  \resumeSubItem{Arabe}{Langue maternelle}
+  \resumeSubItem{Français}{Professionnel}
+  \resumeSubItem{Anglais}{Professionnel}
+\resumeSubHeadingListEnd
+\end{minipage}
+\vspace{-0.3in}
+\end{document}
