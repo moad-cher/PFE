@@ -5,6 +5,7 @@
 # ignore the environment file
 .env
 _ERP_System/backend/db.db
+**/node_modules
 
 # LaTeX build artifacts (auxiliary files) – match anywhere
 **/*.aux
