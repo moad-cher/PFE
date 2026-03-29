@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { getKanban, moveTask, getProject } from '../../api';
 import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
 
-function TaskCard({ task, columns, projectId, onMove }) {
+function TaskCard({ task, projectId, isDragging }) {
   return (
-    <div className="bg-white rounded-xl border shadow-sm p-3 hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-xl border shadow-sm p-3 transition-shadow ${isDragging ? 'shadow-lg ring-2 ring-blue-400 rotate-2' : 'hover:shadow-md'}`}>
       <Link to={`/projects/${projectId}/tasks/${task.id}`} className="block">
         <p className="font-medium text-sm text-gray-900 hover:text-blue-600 line-clamp-2 mb-2">{task.title}</p>
       </Link>
@@ -22,7 +23,7 @@ function TaskCard({ task, columns, projectId, onMove }) {
         </p>
       )}
       {task.assigned_to?.length > 0 && (
-        <div className="flex -space-x-1 mb-2">
+        <div className="flex -space-x-1">
           {task.assigned_to.slice(0, 3).map(u => (
             <div key={u.id} title={u.username}
               className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-[9px] border-2 border-white">
@@ -34,14 +35,6 @@ function TaskCard({ task, columns, projectId, onMove }) {
           )}
         </div>
       )}
-      <div className="flex gap-1 flex-wrap pt-2 border-t">
-        {columns.filter(c => c.status.slug !== task.status).map(col => (
-          <button key={col.status.slug} onClick={() => onMove(task.id, col.status.slug)}
-            className="text-[10px] border rounded px-1.5 py-0.5 hover:bg-gray-50 text-gray-500 hover:text-gray-700">
-            → {col.status.name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -59,18 +52,47 @@ export default function KanbanBoard() {
       .finally(() => setLoading(false));
   }, [pk]);
 
-  const handleMove = async (taskId, newStatus) => {
-    await moveTask(pk, taskId, newStatus);
+  const handleDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
+    
+    // Dropped outside a droppable area
+    if (!destination) return;
+    
+    // Dropped in the same position
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+    
+    const taskId = parseInt(draggableId.replace('task-', ''));
+    const sourceColSlug = source.droppableId;
+    const destColSlug = destination.droppableId;
+    
+    // Optimistically update UI
     setColumns(prev => {
-      const moved = prev.flatMap(c => c.tasks).find(t => t.id === taskId);
-      if (!moved) return prev;
-      return prev.map(col => ({
-        ...col,
-        tasks: col.status.slug === newStatus
-          ? [...col.tasks, { ...moved, status: newStatus }]
-          : col.tasks.filter(t => t.id !== taskId),
-      }));
+      const newColumns = [...prev];
+      const sourceCol = newColumns.find(c => c.status.slug === sourceColSlug);
+      const destCol = newColumns.find(c => c.status.slug === destColSlug);
+      
+      if (!sourceCol || !destCol) return prev;
+      
+      // Remove from source
+      const [movedTask] = sourceCol.tasks.splice(source.index, 1);
+      movedTask.status = destColSlug;
+      
+      // Add to destination
+      destCol.tasks.splice(destination.index, 0, movedTask);
+      
+      return newColumns;
     });
+    
+    // If moved to a different column, update the backend
+    if (sourceColSlug !== destColSlug) {
+      try {
+        await moveTask(pk, taskId, destColSlug);
+      } catch (error) {
+        // Revert on error by refetching
+        const res = await getKanban(pk);
+        setColumns(res.data);
+      }
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
@@ -92,29 +114,52 @@ export default function KanbanBoard() {
             )}
           </div>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
-          {columns.map(col => (
-            <div key={col.status.id} className="flex-shrink-0 w-72">
-              <div className="rounded-xl p-3" style={{ background: col.status.color + '22' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ background: col.status.color }} />
-                    <span className="font-semibold text-sm text-gray-800">{col.status.name}</span>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
+            {columns.map(col => (
+              <div key={col.status.id} className="flex-shrink-0 w-72">
+                <div className="rounded-xl p-3" style={{ background: col.status.color + '22' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full" style={{ background: col.status.color }} />
+                      <span className="font-semibold text-sm text-gray-800">{col.status.name}</span>
+                    </div>
+                    <span className="text-xs bg-white px-2 py-0.5 rounded-full text-gray-500 shadow-sm">{col.tasks.length}</span>
                   </div>
-                  <span className="text-xs bg-white px-2 py-0.5 rounded-full text-gray-500 shadow-sm">{col.tasks.length}</span>
-                </div>
-                <div className="space-y-2">
-                  {col.tasks.map(task => (
-                    <TaskCard key={task.id} task={task} columns={columns} projectId={pk} onMove={handleMove} />
-                  ))}
-                  {col.tasks.length === 0 && (
-                    <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">Empty</div>
-                  )}
+                  <Droppable droppableId={col.status.slug}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`space-y-2 min-h-[100px] rounded-lg transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50/50 ring-2 ring-blue-200 ring-dashed' : ''}`}
+                      >
+                        {col.tasks.map((task, index) => (
+                          <Draggable key={task.id} draggableId={`task-${task.id}`} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                              >
+                                <TaskCard task={task} projectId={pk} isDragging={snapshot.isDragging} />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        {col.tasks.length === 0 && !snapshot.isDraggingOver && (
+                          <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">
+                            Drop tasks here
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Droppable>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </DragDropContext>
       </div>
     </div>
   );

@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.config import settings
 from app.core.deps import get_current_user, get_db, require_roles
+from app.core.media import ensure_media_dir, get_media_url, RESUMES_DIR
 from app.notifications.service import notify_application_received
 from app.hiring.ai import analyze_resume
 from app.users.models import User, RoleEnum
@@ -152,10 +152,10 @@ async def apply(
     if ext not in allowed:
         raise HTTPException(400, f"Unsupported file type '{ext}'. Allowed: {', '.join(allowed)}")
 
-    resume_dir = os.path.join(settings.MEDIA_DIR, "resumes")
-    os.makedirs(resume_dir, exist_ok=True)
+    resume_dir = ensure_media_dir(RESUMES_DIR)
     safe_email = email.replace("@", "_at_").replace(".", "_")
-    file_path = os.path.join(resume_dir, f"{job_id}_{safe_email}_{resume.filename}")
+    filename = f"{job_id}_{safe_email}_{resume.filename}"
+    file_path = resume_dir / filename
     async with aiofiles.open(file_path, "wb") as f:
         await f.write(await resume.read())
 
@@ -164,7 +164,7 @@ async def apply(
         first_name=first_name, last_name=last_name,
         email=email, phone=phone,
         cover_letter=cover_letter,
-        resume=file_path,
+        resume=str(file_path),  # Store absolute path for AI processing
     )
     db.add(application)
     await db.commit()

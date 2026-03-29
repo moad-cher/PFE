@@ -7,9 +7,9 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.config import settings
 from app.core.deps import get_db, get_current_user, require_roles
 from app.core.security import hash_password, verify_password
+from app.core.media import ensure_media_dir, get_media_url, AVATARS_DIR
 from app.users.models import Department, User
 from app.projects.models import Project, Task, project_members, task_assignees
 from app.users.schemas import (
@@ -100,12 +100,14 @@ async def upload_avatar(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    os.makedirs(f"{settings.MEDIA_DIR}/avatars", exist_ok=True)
+    avatar_dir = ensure_media_dir(AVATARS_DIR)
     ext = (file.filename or "jpg").rsplit(".", 1)[-1]
-    path = f"{settings.MEDIA_DIR}/avatars/{current_user.id}.{ext}"
-    async with aiofiles.open(path, "wb") as f:
+    file_path = avatar_dir / f"{current_user.id}.{ext}"
+    
+    async with aiofiles.open(file_path, "wb") as f:
         await f.write(await file.read())
-    current_user.avatar = path
+    
+    current_user.avatar = get_media_url(AVATARS_DIR, f"{current_user.id}.{ext}")
     await db.commit()
     await db.refresh(current_user)
     return current_user

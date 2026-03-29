@@ -7,6 +7,7 @@ import asyncio
 import os
 
 from app.core.config import settings
+from app.core.media import MEDIA_ROOT
 from app.notifications.scheduler import deadline_scheduler
 
 # Domain routers
@@ -34,10 +35,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ERP API", version="1.0.0", lifespan=lifespan)
 
-# CORS configuration
+# CORS configuration - allow local network access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["*"],  # Allow all origins for local development/LAN
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,10 +60,9 @@ app.include_router(ws_chat_router)
 app.include_router(ws_notif_router)
 app.include_router(ws_ai_router)
 
-# Static files
-media_dir = settings.MEDIA_DIR
-os.makedirs(media_dir, exist_ok=True)
-app.mount("/media", StaticFiles(directory=media_dir), name="media")
+# Static files - serve media directory
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(MEDIA_ROOT)), name="media")
 
 
 @app.get("/")

@@ -1,7 +1,20 @@
 import axios from 'axios';
 
-export const API_BASE = 'http://localhost:8001';
-export const WS_BASE = 'ws://localhost:8001';
+// Auto-detect API base URL based on current host
+// When accessed from LAN, use the same host with backend port
+const getApiBase = () => {
+  const hostname = window.location.hostname;
+  // If accessing from localhost, use localhost; otherwise use the current host IP
+  return `http://${hostname}:8001`;
+};
+
+const getWsBase = () => {
+  const hostname = window.location.hostname;
+  return `ws://${hostname}:8001`;
+};
+
+export const API_BASE = getApiBase();
+export const WS_BASE = getWsBase();
 
 export const api = axios.create({
   baseURL: API_BASE,
