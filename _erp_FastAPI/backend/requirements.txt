@@ -9,3 +9,5 @@ python-multipart
 aiofiles
 python-dotenv
 httpx
+pytest
+pytest-asyncio

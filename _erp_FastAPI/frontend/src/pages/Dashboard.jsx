@@ -37,7 +37,11 @@ function ProjectCard({ project }) {
             <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
           )}
         </div>
-        <StatusBadge status={project.status} className="flex-shrink-0" />
+        {project.progress > 0 && (
+          <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 flex-shrink-0">
+            {project.progress}%
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-gray-500">
         <span>{project.tasks_count ?? 0} tasks</span>

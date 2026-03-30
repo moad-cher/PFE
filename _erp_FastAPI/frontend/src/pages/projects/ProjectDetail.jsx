@@ -84,7 +84,11 @@ export default function ProjectDetail() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
-              <StatusBadge status={project?.status} />
+              {project?.progress > 0 && (
+                <span className="text-sm bg-blue-100 text-blue-700 rounded-full px-3 py-1">
+                  {project.progress}% complete
+                </span>
+              )}
             </div>
             {project?.description && (
               <p className="text-gray-500 mt-1 max-w-xl">{project.description}</p>

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import select, func
+from sqlalchemy import delete, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from datetime import date
 
 from app.core.deps import get_db, get_current_user
+from app.messaging.models import ChatMessage
 from app.notifications.service import notify_task_assigned
 from app.tasks.ai import suggest_task_assignees
 from app.users.models import User
@@ -182,7 +183,14 @@ async def delete_project(
         raise HTTPException(404, "Project not found")
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
-    await db.delete(project)
+    
+    # Delete related chat messages first (FK may not have CASCADE in DB)
+    await db.execute(
+        delete(ChatMessage).where(ChatMessage.project_id == pk)
+    )
+    
+    # Use raw SQL delete to rely on DB-level CASCADE constraints
+    await db.execute(delete(Project).where(Project.id == pk))
     await db.commit()
 
 
