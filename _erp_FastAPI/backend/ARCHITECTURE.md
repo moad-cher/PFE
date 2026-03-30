@@ -1,3 +1,6 @@
+<style>
+body {padding: 0px;}
+</style>
 # Domain-Driven Backend Structure - Visual Guide
 
 ## 🏗️ Complete Architecture Map
@@ -155,7 +158,6 @@ backend_by_domain/
         │              │              │              │
 ┌───────▼────────┐ ┌───▼────────┐ ┌──▼──────────┐ ┌─▼────────────┐
 │  projects/     │ │  hiring/   │ │ messaging/  │ │notifications/│
-│  (uses: users) │ │(uses:users)│ │(uses: users)│ │(uses: users) │
 └───────┬────────┘ └────────────┘ └─────────────┘ └──────────────┘
         │
 ┌───────▼────────┐
@@ -204,12 +206,8 @@ Presentation → Domain → Core
 ```
 
 ## 🚀 Getting Started
+### Step 1:
 
-### Step 1: Build the Structure
-```batch
-cd c:\Users\acer\Desktop\stage\_erp_FastAPI\backend\backend_by_domain
-SETUP.bat
-```
 
 ### Step 2: Configure
 ```batch

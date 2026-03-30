@@ -40,8 +40,12 @@ export default function ProjectSettings() {
 
   const removeStatus = async (id) => {
     if (!window.confirm('Delete this column? Tasks will move to the first column.')) return;
-    await deleteProjectStatus(pk, id);
-    setStatuses(prev => prev.filter(s => s.id !== id));
+    try {
+      await deleteProjectStatus(pk, id);
+      setStatuses(prev => prev.filter(s => s.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Cannot delete this column');
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
@@ -82,8 +86,13 @@ export default function ProjectSettings() {
                 <span className="font-medium text-sm">{s.name}</span>
                 <span className="text-xs text-gray-400">{s.slug} · order {s.order}</span>
               </div>
-              {isManager && statuses.length > 1 && (
+              {isManager && statuses.length > 1 && !['todo','done'].includes(s.slug) && (
                 <button onClick={() => removeStatus(s.id)} className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded border border-red-200">Remove</button>
+              )}
+              {['todo','done'].includes(s.slug) && (
+                <span className="text-xs text-gray-400 italic">
+                  {/* Essential */}
+                  </span>
               )}
             </div>
           ))}
@@ -103,12 +112,25 @@ export default function ProjectSettings() {
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
               </div>
             </div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap items-center">
               {COLOR_OPTS.map(c => (
                 <button type="button" key={c} onClick={()=>setNewStatus(s=>({...s,color:c}))}
                   className={`w-7 h-7 rounded-full border-2 ${newStatus.color === c ? 'border-gray-800 scale-110' : 'border-transparent'} transition-all`}
                   style={{background:c}} />
               ))}
+              <label 
+                className="w-8 h-8 rounded-full cursor-pointer flex items-center justify-center hover:scale-110 transition-all overflow-hidden relative" 
+                title="Pick custom color"
+                style={{background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'}}
+              >
+                <span className="w-7 h-7 rounded-full border-2 border-white shadow-sm" style={{background: newStatus.color}} />
+                <input 
+                  type="color" 
+                  value={newStatus.color} 
+                  onChange={e=>setNewStatus(s=>({...s,color:e.target.value}))}
+                  className="absolute opacity-0 w-0 h-0"
+                />
+              </label>
             </div>
             <button className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">+ Add Column</button>
           </form>

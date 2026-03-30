@@ -1,6 +1,6 @@
 
-# ignore any __pycache__ directory wherever it appears
-**/__pycache__/
+# ignore any cache directory wherever it appears
+**/**cache**
 
 # ignore the environment file
 .env

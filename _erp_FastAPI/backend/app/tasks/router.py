@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
@@ -17,6 +18,8 @@ from app.projects.schemas import (
     TaskRead,
     TaskUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["tasks"])
 
@@ -40,6 +43,8 @@ async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> 
 
 async def _award_points(task: Task, db: AsyncSession):
     """Award points to every assignee upon task completion."""
+    logger.info(f"[AWARD_POINTS] Starting for task {task.id}, assigned_to count: {len(task.assigned_to)}")
+    
     cfg_res = await db.execute(
         select(ProjectConfig).where(ProjectConfig.project_id == task.project_id)
     )
@@ -50,13 +55,19 @@ async def _award_points(task: Task, db: AsyncSession):
     is_late = bool(task.deadline and task.deadline < date.today())
     points = late_pts if is_late else on_time_pts
     reason = "Completed late" if is_late else "Completed on time"
+    
+    logger.info(f"[AWARD_POINTS] Points to award: {points}, is_late: {is_late}")
 
     for assignee in task.assigned_to:
+        logger.info(f"[AWARD_POINTS] Awarding {points} points to user {assignee.id} ({assignee.username})")
         assignee.reward_points = (assignee.reward_points or 0) + points
-        db.add(RewardLog(user_id=assignee.id, task_id=task.id, points=points, reason=reason))
+        db.add(assignee)  # Explicitly mark assignee for update
+        db.add(RewardLog(user_id=assignee.id, task_id=task.id, points=points))
         # fire-and-forget notification (no background task available here, use direct call)
         import asyncio
         asyncio.ensure_future(notify_reward(assignee.id, points, task.title))
+    
+    logger.info(f"[AWARD_POINTS] Completed, awarded to {len(task.assigned_to)} assignees")
 
 
 # ── Task CRUD ─────────────────────────────────────────────────────────────────
@@ -217,11 +228,16 @@ async def move_task(
 
     old_status = task.status
     task.status = data.status
+    
+    logger.info(f"[MOVE_TASK] Task {task.id} status: {old_status} -> {data.status}, completed_at: {task.completed_at}")
 
     if data.status == "done" and not task.completed_at:
+        logger.info(f"[MOVE_TASK] Marking task {task.id} as completed and awarding points")
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
         background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
+    else:
+        logger.info(f"[MOVE_TASK] Skipping points award - status={data.status}, completed_at={task.completed_at}")
 
     await db.commit()
     await db.refresh(task, ["assigned_to"])

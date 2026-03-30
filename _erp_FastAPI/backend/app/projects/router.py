@@ -36,6 +36,8 @@ DEFAULT_STATUSES = [
     ("Terminé",  "done",        3, "#2ecc71"),
 ]
 
+ESSENTIAL_SLUGS = {"todo", "done"}
+
 
 def _can_access(project: Project, user: User) -> bool:
     return (
@@ -281,6 +283,8 @@ async def delete_status(
     target = next((s for s in project.statuses if s.id == status_id), None)
     if not target:
         raise HTTPException(404, "Status not found")
+    if target.slug in ESSENTIAL_SLUGS:
+        raise HTTPException(400, "Cannot delete essential status column")
 
     remaining = sorted(
         [s for s in project.statuses if s.id != status_id],

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getTask, updateTask, getProject, getProjectStatuses } from '../../api';
+import { getTask, updateTask, getProject, getProjectStatuses, getProjectMembers } from '../../api';
 import Spinner from '../../components/Spinner';
 
 export default function TaskEdit() {
@@ -8,15 +8,19 @@ export default function TaskEdit() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [statuses, setStatuses] = useState([]);
+  const [members, setMembers] = useState([]);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([getTask(pk, taskId), getProject(pk), getProjectStatuses(pk)])
-      .then(([t, p, s]) => {
+    Promise.all([getTask(pk, taskId), getProject(pk), getProjectStatuses(pk), getProjectMembers(pk)])
+      .then(([t, p, s, m]) => {
         setProject(p.data);
         setStatuses(s.data);
+        // Extract user objects from MemberStatsRead response
+        const users = m.data.map(stat => stat.user);
+        setMembers(users);
         const d = t.data;
         setForm({
           title: d.title, description: d.description || '',
@@ -26,6 +30,17 @@ export default function TaskEdit() {
         });
       });
   }, [pk, taskId]);
+
+  const toggleAssignee = (userId) => {
+    setForm(f => {
+      const ids = f.assigned_to_ids || [];
+      if (ids.includes(userId)) {
+        return { ...f, assigned_to_ids: ids.filter(id => id !== userId) };
+      } else {
+        return { ...f, assigned_to_ids: [...ids, userId] };
+      }
+    });
+  };
 
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
@@ -60,6 +75,45 @@ export default function TaskEdit() {
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4}
               className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
           </div>
+
+          {/* Assignees Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
+            <div className="border rounded-xl p-3 max-h-48 overflow-y-auto">
+              {members.length === 0 ? (
+                <p className="text-sm text-gray-500">No project members available</p>
+              ) : (
+                <div className="space-y-2">
+                  {members.map(member => (
+                    <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.assigned_to_ids?.includes(member.id) || false}
+                        onChange={() => toggleAssignee(member.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        {member.avatar ? (
+                          <img src={member.avatar.startsWith('http') ? member.avatar : `${window.location.protocol}//${window.location.hostname}:8001${member.avatar}`}
+                            alt={member.username} className="w-7 h-7 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium">
+                            {member.username?.[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <span className="text-sm text-gray-800">{member.first_name || member.username} {member.last_name || ''}</span>
+                        {member.role && <span className="text-xs text-gray-400">({member.role})</span>}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            {form.assigned_to_ids?.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">{form.assigned_to_ids.length} member(s) selected</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>

@@ -11,7 +11,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
 ### task management
 - [x] show tasks in a kanban board and a scrum board view
 - [x] show who is assigned to each task in task view
-- [ ] show tasks assigned to each team member in members view
+- [x] show tasks assigned to each team member in members view
 - [ ] AI suggests task assignments based on team members' skills and workload
 - [x] allow team members to update task status and add comments
 - [x] tasks can be assigned for morning or afternoon
@@ -22,6 +22,8 @@ every project has tasks, deadlines, and tasks have assigned team members.
 
 - [ ] proper permissions system with roles (admin, manager, employee)
     - [ ] rh and system admin can manage accounts
+    - [ ] kanban permissions
+
 - [ ] employés separés par départements
 
 - [ ] page des offres d'emploi avec possibilité de postuler
