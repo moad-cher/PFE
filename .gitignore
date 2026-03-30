@@ -6,6 +6,7 @@
 .env
 _ERP_System/backend/db.db
 **/node_modules
+**/.vscode
 
 # LaTeX build artifacts (auxiliary files) – match anywhere
 **/*.aux
@@ -36,5 +37,3 @@ _ERP_System/backend/db.db
 
 # directories for LaTeX generates
 **/_Cache__/
-
-# _erp_FastAPI

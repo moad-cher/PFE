@@ -1,8 +1,4 @@
-"""
-Unit tests for the ERP API.
-Run with: pytest test_api.py -v
-Note: Backend server must be running on port 8001
-"""
+
 import io
 import pytest
 import httpx
