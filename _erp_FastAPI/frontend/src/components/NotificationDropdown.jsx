@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   createNotificationsWS,
   listNotifications,
@@ -10,6 +11,7 @@ import {
 } from '../api';
 
 export default function NotificationDropdown() {
+  const { refreshUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -63,6 +65,14 @@ export default function NotificationDropdown() {
             if (data.type === 'notification') {
               setNotifications((prev) => [data, ...prev.slice(0, 49)]);
               setUnreadCount((c) => c + 1);
+              
+              // Refresh user data if this is a reward notification
+              const message = (data.message || data.content || '').toLowerCase();
+              const isReward = message.includes('point') || message.includes('reward') || message.includes('earned');
+              
+              if (isReward) {
+                refreshUser().catch(() => {});
+              }
             } else if (data.type === 'unread_count') {
               setUnreadCount(data.count);
             }
