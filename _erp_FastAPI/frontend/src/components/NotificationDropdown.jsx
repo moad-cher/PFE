@@ -31,6 +31,18 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Listen for deletions from other components
+  useEffect(() => {
+    const handler = (e) => {
+      const { id } = e.detail;
+      const notif = notifications.find((n) => n.id === id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      if (notif && !notif.is_read) setUnreadCount((c) => Math.max(0, c - 1));
+    };
+    window.addEventListener('notification-deleted', handler);
+    return () => window.removeEventListener('notification-deleted', handler);
+  }, [notifications]);
+
   // Load initial notifications
   useEffect(() => {
     listNotifications()
@@ -124,6 +136,9 @@ export default function NotificationDropdown() {
       const notif = notifications.find((n) => n.id === id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       if (notif && !notif.is_read) setUnreadCount((c) => Math.max(0, c - 1));
+      
+      // Broadcast deletion to other components
+      window.dispatchEvent(new CustomEvent('notification-deleted', { detail: { id } }));
     } catch (_) {}
   };
 

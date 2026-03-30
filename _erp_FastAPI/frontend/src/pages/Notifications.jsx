@@ -24,6 +24,16 @@ export default function Notifications() {
     loadNotifications();
   }, []);
 
+  // Listen for deletions from other components (e.g., dropdown)
+  useEffect(() => {
+    const handler = (e) => {
+      const { id } = e.detail;
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    };
+    window.addEventListener('notification-deleted', handler);
+    return () => window.removeEventListener('notification-deleted', handler);
+  }, []);
+
   const handleMarkAll = async () => {
     try {
       await markAllRead();
@@ -44,6 +54,9 @@ export default function Notifications() {
     try {
       await deleteNotification(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      
+      // Broadcast deletion to other components
+      window.dispatchEvent(new CustomEvent('notification-deleted', { detail: { id } }));
     } catch (_) {}
   };
 
