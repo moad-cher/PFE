@@ -27,9 +27,15 @@ def _msg_payload(msg: ChatMessage, user: User) -> dict:
     return {
         "type": "message",
         "id": msg.id,
-        "author_id": user.id,
-        "author": f"{user.first_name} {user.last_name}".strip() or user.username,
-        "avatar": user.avatar,
+        "user_id": user.id,
+        "username": user.username,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "avatar": user.avatar,
+        },
         "content": msg.content,
         "created_at": msg.created_at.isoformat(),
     }
@@ -114,9 +120,15 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int, token: str = ""):
         "messages": [
             {
                 "id": m.id,
-                "author_id": m.author_id,
-                "author": f"{m.author.first_name} {m.author.last_name}".strip() or m.author.username,
-                "avatar": m.author.avatar,
+                "user_id": m.author_id,
+                "username": m.author.username,
+                "user": {
+                    "id": m.author.id,
+                    "username": m.author.username,
+                    "first_name": m.author.first_name,
+                    "last_name": m.author.last_name,
+                    "avatar": m.author.avatar,
+                },
                 "content": m.content,
                 "created_at": m.created_at.isoformat(),
             }

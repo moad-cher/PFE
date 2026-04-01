@@ -10,10 +10,7 @@
 ## project management
 every project has tasks, deadlines, and tasks have assigned team members.
 ### task management
-- [x] show tasks
-    - [x] kanban
-    - [x] scrum
-    - [ ] gantt
+
 - [x] show who is assigned to each task in task view
 - [x] show tasks assigned to each team member in members view
 - [x] allow team members to update task status and add comments
@@ -42,3 +39,4 @@ every project has tasks, deadlines, and tasks have assigned team members.
 
 - [x] chaque employé a un profil avec ses compétences et son historique de travail
 
+- [ ] pie chart of project progress from tasks statuses

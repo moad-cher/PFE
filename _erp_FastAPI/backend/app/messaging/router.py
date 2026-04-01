@@ -73,9 +73,15 @@ async def send_project_message(
     payload = {
         "type": "message",
         "id": msg.id,
-        "author_id": current_user.id,
-        "author": f"{current_user.first_name} {current_user.last_name}".strip() or current_user.username,
-        "avatar": current_user.avatar,
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "user": {
+            "id": current_user.id,
+            "username": current_user.username,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name,
+            "avatar": current_user.avatar,
+        },
         "content": msg.content,
         "created_at": msg.created_at.isoformat(),
     }
@@ -102,9 +108,15 @@ async def send_task_message(
     payload = {
         "type": "message",
         "id": msg.id,
-        "author_id": current_user.id,
-        "author": f"{current_user.first_name} {current_user.last_name}".strip() or current_user.username,
-        "avatar": current_user.avatar,
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "user": {
+            "id": current_user.id,
+            "username": current_user.username,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name,
+            "avatar": current_user.avatar,
+        },
         "content": msg.content,
         "created_at": msg.created_at.isoformat(),
     }
