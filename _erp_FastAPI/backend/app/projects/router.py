@@ -9,7 +9,7 @@ from app.messaging.models import ChatMessage
 from app.notifications.service import notify_task_assigned
 from app.tasks.ai import suggest_task_assignees
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, Task, TaskStatus, project_members
+from app.projects.models import Project, ProjectConfig, RewardLog, Task, TaskStatus, project_members
 from app.projects.schemas import (
     AISuggestionRead,
     KanbanColumnRead,
@@ -473,19 +473,41 @@ async def leaderboard(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Get project leaderboard showing points earned only from tasks in this project."""
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
 
     all_members = list({project.manager, *project.members})
-    board = sorted(all_members, key=lambda u: u.reward_points, reverse=True)
+    
+    # Calculate project-specific points from RewardLog joined with Tasks
+    member_points = {}
+    for member in all_members:
+        result = await db.execute(
+            select(func.sum(RewardLog.points))
+            .join(Task, RewardLog.task_id == Task.id)
+            .where(
+                RewardLog.user_id == member.id,
+                Task.project_id == pk
+            )
+        )
+        points = result.scalar() or 0
+        member_points[member.id] = points
+    
+    # Sort by project-specific points
+    board = sorted(
+        all_members,
+        key=lambda u: member_points.get(u.id, 0),
+        reverse=True
+    )
+    
     return [
         {
             "rank": i + 1,
             "user_id": u.id,
             "username": u.username,
             "full_name": f"{u.first_name} {u.last_name}".strip(),
-            "reward_points": u.reward_points,
+            "reward_points": member_points.get(u.id, 0),
         }
         for i, u in enumerate(board)
     ]
