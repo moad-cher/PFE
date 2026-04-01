@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getLeaderboard, getProject } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/Spinner';
 
 export default function Leaderboard() {
   const { pk } = useParams();
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [board, setBoard] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,24 +39,47 @@ export default function Leaderboard() {
             {board.length === 0 && (
               <tr><td colSpan={3} className="text-center text-gray-400 py-10">No data yet</td></tr>
             )}
-            {board.map(entry => (
-              <tr key={entry.user_id} className={entry.rank === 1 ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
-                <td className="px-6 py-4">
-                  <span className={`font-bold text-sm ${entry.rank === 1 ? 'text-yellow-600' : entry.rank === 2 ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : entry.rank}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <p className="font-medium text-gray-900 text-sm">{entry.full_name || entry.username}</p>
-                  <p className="text-xs text-gray-400">@{entry.username}</p>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-sm font-semibold">
-                    {entry.reward_points} pts
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {board.map(entry => {
+              const isCurrentUser = entry.user_id === user?.id;
+              return (
+                <tr 
+                  key={entry.user_id} 
+                  className={
+                    isCurrentUser 
+                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500' 
+                      : entry.rank === 1 
+                        ? 'bg-yellow-50' 
+                        : 'hover:bg-gray-50'
+                  }
+                >
+                  <td className="px-6 py-4">
+                    <span className={`font-bold text-sm ${entry.rank === 1 ? 'text-yellow-600' : entry.rank === 2 ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : entry.rank}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className={`font-medium text-sm ${isCurrentUser ? 'text-blue-900 font-bold' : 'text-gray-900'}`}>
+                          {entry.full_name || entry.username}
+                          {isCurrentUser && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">You</span>}
+                        </p>
+                        <p className="text-xs text-gray-400">@{entry.username}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                      isCurrentUser 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {entry.reward_points} pts
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
