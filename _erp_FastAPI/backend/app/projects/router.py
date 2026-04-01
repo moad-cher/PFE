@@ -12,7 +12,6 @@ from app.users.models import User
 from app.projects.models import Project, ProjectConfig, Task, TaskStatus, project_members
 from app.projects.schemas import (
     AISuggestionRead,
-    BulkReassignRequest,
     KanbanColumnRead,
     MemberStatsRead,
     ProjectConfigRead,
@@ -492,47 +491,6 @@ async def leaderboard(
     ]
 
 
-# ── Bulk reassign ─────────────────────────────────────────────────────────────
-
-@router.post("/{pk}/tasks/bulk-reassign", status_code=200)
-async def bulk_reassign(
-    pk: int,
-    data: BulkReassignRequest,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
-        raise HTTPException(403, "Access denied")
-
-    new_user_res = await db.execute(select(User).where(User.id == data.new_assignee_id))
-    new_user = new_user_res.scalar_one_or_none()
-    if not new_user:
-        raise HTTPException(404, "Assignee not found")
-
-    tasks_res = await db.execute(
-        select(Task)
-        .where(Task.project_id == pk, Task.id.in_(data.task_ids))
-        .options(selectinload(Task.assigned_to))
-    )
-    tasks = tasks_res.scalars().all()
-
-    for task in tasks:
-        if data.action == "replace":
-            task.assigned_to = [new_user]
-        elif new_user not in task.assigned_to:
-            task.assigned_to.append(new_user)
-        background_tasks.add_task(
-            notify_task_assigned,
-            new_user.id,
-            task.title,
-            project.name,
-            task.id,
-        )
-
-    await db.commit()
-    return {"updated": len(tasks)}
 
 
 # ── AI assignment suggestion ──────────────────────────────────────────────────

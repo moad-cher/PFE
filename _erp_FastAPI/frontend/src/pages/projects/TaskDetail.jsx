@@ -2,23 +2,38 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   getTask, getProject, getTaskComments, createTaskComment,
-  deleteTask, moveTask, suggestAssignee, getProjectStatuses, formatDateTime, relativeTime,
+  deleteTask, moveTask, suggestAssignee, reassignTask, getProjectStatuses, formatDateTime, relativeTime,
 } from '../../api';
 import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 
-function AISuggestPanel({ pk, taskId }) {
+function AISuggestPanel({ pk, taskId, onAssigned }) {
   const [loading, setLoading] = useState(false);
+  const [assigning, setAssigning] = useState(null);
   const [result, setResult] = useState(null);
 
   const run = async () => {
     setLoading(true);
     try {
       const r = await suggestAssignee(pk, taskId);
-      setResult(r.data);
+      // Sort by confidence (highest first)
+      const sorted = (r.data.members || []).sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+      setResult({ ...r.data, members: sorted });
     } finally { setLoading(false); }
+  };
+
+  const handleAssign = async (userId) => {
+    setAssigning(userId);
+    try {
+      await reassignTask(pk, taskId, userId);
+      onAssigned();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to assign');
+    } finally {
+      setAssigning(null);
+    }
   };
 
   return (
@@ -44,7 +59,14 @@ function AISuggestPanel({ pk, taskId }) {
               <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1.5">
                 <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${(m.confidence || 0) * 100}%` }} />
               </div>
-              <p className="text-xs text-gray-500 line-clamp-2">{m.reason}</p>
+              <p className="text-xs text-gray-500 mb-2 line-clamp-2">{m.reason}</p>
+              <button
+                onClick={() => handleAssign(m.user_id)}
+                disabled={assigning === m.user_id}
+                className="w-full py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-60 transition-colors"
+              >
+                {assigning === m.user_id ? 'Assigning...' : 'Assign'}
+              </button>
             </div>
           ))}
           <button onClick={run} className="text-xs text-purple-600 hover:underline mt-1">Re-run</button>
@@ -67,6 +89,10 @@ export default function TaskDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    loadTaskData();
+  }, [pk, taskId]);
+
+  const loadTaskData = () => {
     Promise.all([
       getTask(pk, taskId), getProject(pk),
       getTaskComments(pk, taskId), getProjectStatuses(pk),
@@ -76,7 +102,7 @@ export default function TaskDetail() {
         setComments(c.data); setStatuses(s.data);
       })
       .finally(() => setLoading(false));
-  }, [pk, taskId]);
+  };
 
   const submitComment = async e => {
     e.preventDefault(); setPosting(true);
@@ -229,7 +255,7 @@ export default function TaskDetail() {
             )}
           </div>
 
-          <AISuggestPanel pk={pk} taskId={taskId} />
+          <AISuggestPanel pk={pk} taskId={taskId} onAssigned={loadTaskData} />
 
           <Link to={`/projects/${pk}/tasks/${taskId}/chat`}
             className="flex items-center gap-2 bg-white rounded-2xl shadow p-4 hover:shadow-md transition-shadow text-green-700">

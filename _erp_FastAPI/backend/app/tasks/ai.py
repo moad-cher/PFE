@@ -46,12 +46,13 @@ async def suggest_task_assignees(
         "Analyse the task and available team members to propose the best assignment. "
         "Consider skills, current workload (active_tasks), and reward_points. "
         "Reply ONLY with valid JSON — key \"ranked_members\": array of up to 3 objects, "
-        "each with: username (string), reason (string), confidence (float 0.0–1.0)."
+        "each with: username (the @username without @ symbol, exactly as shown), reason (string), confidence (float 0.0–1.0). "
+        "IMPORTANT: Use the exact @username value (without the @) from the member list, not their full name."
     )
 
     member_lines = "\n".join(
-        f"- {m['full_name']} (@{m['username']}): skills={m['skills'] or 'N/A'}, "
-        f"active_tasks={m['active_tasks']}, reward_points={m['reward_points']}"
+        f"- Username: {m['username']}, Name: {m['full_name']}, Skills: {m['skills'] or 'N/A'}, "
+        f"Active Tasks: {m['active_tasks']}, Reward Points: {m['reward_points']}"
         for m in members
     )
 
@@ -90,5 +91,8 @@ async def suggest_task_assignees(
             "confidence": float(item.get("confidence", 0.0)),
             "reason": item.get("reason", ""),
         })
+
+    # Sort by confidence (highest first)
+    result.sort(key=lambda x: x["confidence"], reverse=True)
 
     return {"members": result, "error": None}

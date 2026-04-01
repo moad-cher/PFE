@@ -167,12 +167,6 @@ class TaskMoveRequest(BaseModel):
     status: str  # slug of the target TaskStatus
 
 
-# ── Bulk reassign ─────────────────────────────────────────────────────────────
-
-class BulkReassignRequest(BaseModel):
-    task_ids: list[int]
-    new_assignee_id: int
-    action: str = "add"   # "add" | "replace"
 
 
 # ── AI suggestion ─────────────────────────────────────────────────────────────

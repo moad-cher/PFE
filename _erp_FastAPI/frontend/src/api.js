@@ -77,7 +77,6 @@ export const getProjectMembers = (pk) => api.get(`/projects/${pk}/members`);
 export const addProjectMember = (pk, userId) => api.post(`/projects/${pk}/members/${userId}`);
 export const removeProjectMember = (pk, userId) => api.delete(`/projects/${pk}/members/${userId}`);
 export const getLeaderboard = (pk) => api.get(`/projects/${pk}/leaderboard`);
-export const bulkReassign = (pk, data) => api.post(`/projects/${pk}/tasks/bulk-reassign`, data);
 export const suggestAssignee = (pk, taskId) => api.get(`/projects/${pk}/tasks/${taskId}/suggest`);
 
 // ===================== Tasks =====================

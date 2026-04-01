@@ -18,7 +18,6 @@ import ScrumBoard from './pages/projects/ScrumBoard';
 import TaskNew from './pages/projects/TaskNew';
 import TaskDetail from './pages/projects/TaskDetail';
 import TaskEdit from './pages/projects/TaskEdit';
-import BulkReassign from './pages/projects/BulkReassign';
 import Members from './pages/projects/Members';
 import Leaderboard from './pages/projects/Leaderboard';
 import ProjectChat from './pages/projects/ProjectChat';
@@ -89,7 +88,6 @@ export default function App() {
             <Route path="/projects/:pk/tasks/:taskId" element={<TaskDetail />} />
             <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
             <Route path="/projects/:pk/tasks/:taskId/chat" element={<TaskChat />} />
-            <Route path="/projects/:pk/bulk-reassign" element={<BulkReassign />} />
             <Route path="/projects/:pk/members" element={<Members />} />
             <Route path="/projects/:pk/leaderboard" element={<Leaderboard />} />
             <Route path="/projects/:pk/chat" element={<ProjectChat />} />
