@@ -171,6 +171,12 @@ export default function TaskDetail() {
                 <span className="text-xs text-gray-400">Move to:</span>
                 {statuses.filter(s => s.slug !== task.status).map(s => (
                   <button key={s.slug} onClick={() => handleMove(s.slug)}
+                    // className="text-xs border rounded-full px-3 py-1 transition-colors"
+                    style={{
+                      color: s.color,
+                      borderColor: s.color,
+                      background: s.color + '11',
+                    }}
                     className="text-xs border rounded-full px-3 py-1 hover:bg-gray-50 text-gray-600 hover:border-gray-400 transition-colors">
                     {s.name}
                   </button>

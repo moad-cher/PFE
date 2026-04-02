@@ -33,10 +33,16 @@ export default function ProjectSettings() {
 
   const addStatus = async (e) => {
     e.preventDefault();
+    const essentialSlugs = ['todo', 'done'];
+    if (essentialSlugs.includes(newStatus.slug.trim().toLowerCase())) {
+      setMsg('Cannot use an essential slug (todo, done) for a new column.');
+      return;
+    }
     const res = await createProjectStatus(pk, newStatus);
     setStatuses(prev => [...prev, res.data]);
     setNewStatus({ name:'', slug:'', order: statuses.length, color:'#3498db' });
   };
+
 
   const removeStatus = async (id) => {
     if (!window.confirm('Delete this column? Tasks will move to the first column.')) return;

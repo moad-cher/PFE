@@ -7,7 +7,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
-import Notifications from './pages/Notifications';
 
 import ProjectNew from './pages/projects/ProjectNew';
 import ProjectDetail from './pages/projects/ProjectDetail';
@@ -75,8 +74,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/notifications" element={<Notifications />} />
-
+            
             {/* Project routes */}
             <Route path="/projects/new" element={<ProjectNew />} />
             <Route path="/projects/:pk" element={<ProjectDetail />} />

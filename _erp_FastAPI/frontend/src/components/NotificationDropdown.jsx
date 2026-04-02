@@ -33,14 +33,23 @@ export default function NotificationDropdown() {
 
   // Listen for deletions from other components
   useEffect(() => {
-    const handler = (e) => {
+    const handleDelete = (e) => {
       const { id } = e.detail;
       const notif = notifications.find((n) => n.id === id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       if (notif && !notif.is_read) setUnreadCount((c) => Math.max(0, c - 1));
     };
-    window.addEventListener('notification-deleted', handler);
-    return () => window.removeEventListener('notification-deleted', handler);
+    const handleMarkRead = (e) => {
+      const { id } = e.detail;
+      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    };
+    window.addEventListener('notification-deleted', handleDelete);
+    window.addEventListener('notification-marked-read', handleMarkRead);
+    return () => {
+      window.removeEventListener('notification-deleted', handleDelete);
+      window.removeEventListener('notification-marked-read', handleMarkRead);
+    };
   }, [notifications]);
 
   // Load initial notifications
@@ -51,7 +60,7 @@ export default function NotificationDropdown() {
         setNotifications(notifs);
         setUnreadCount(notifs.filter((n) => !n.is_read).length);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // WebSocket for live notifications
@@ -75,20 +84,23 @@ export default function NotificationDropdown() {
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'notification') {
-              setNotifications((prev) => [data, ...prev.slice(0, 49)]);
+              setNotifications((prev) => {
+                if (prev.some((n) => n.id === data.id)) return prev;
+                return [data, ...prev.slice(0, 49)];
+              });
               setUnreadCount((c) => c + 1);
-              
+
               // Refresh user data if this is a reward notification
               const message = (data.message || data.content || '').toLowerCase();
               const isReward = message.includes('point') || message.includes('reward') || message.includes('earned');
-              
+
               if (isReward) {
-                refreshUser().catch(() => {});
+                refreshUser().catch(() => { });
               }
             } else if (data.type === 'unread_count') {
               setUnreadCount(data.count);
             }
-          } catch (_) {}
+          } catch (_) { }
         };
 
         ws.onclose = () => {
@@ -99,7 +111,7 @@ export default function NotificationDropdown() {
         ws.onerror = () => {
           ws.close();
         };
-      } catch (_) {}
+      } catch (_) { }
     };
 
     connect();
@@ -116,7 +128,7 @@ export default function NotificationDropdown() {
       await markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleMarkRead = async (id) => {
@@ -126,8 +138,11 @@ export default function NotificationDropdown() {
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
       setUnreadCount((c) => Math.max(0, c - 1));
-    } catch (_) {}
+      // Broadcast mark as read to other components
+      window.dispatchEvent(new CustomEvent('notification-marked-read', { detail: { id } }));
+    } catch (_) { }
   };
+
 
   const handleDelete = async (id, e) => {
     e.stopPropagation();
@@ -136,10 +151,10 @@ export default function NotificationDropdown() {
       const notif = notifications.find((n) => n.id === id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       if (notif && !notif.is_read) setUnreadCount((c) => Math.max(0, c - 1));
-      
+
       // Broadcast deletion to other components
       window.dispatchEvent(new CustomEvent('notification-deleted', { detail: { id } }));
-    } catch (_) {}
+    } catch (_) { }
   };
 
   return (
@@ -183,9 +198,8 @@ export default function NotificationDropdown() {
                 <div
                   key={notif.id}
                   onClick={() => !notif.is_read && handleMarkRead(notif.id)}
-                  className={`flex items-start gap-3 px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !notif.is_read ? 'bg-blue-50' : ''
-                  }`}
+                  className={`flex items-start gap-3 px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.is_read ? 'bg-blue-50' : ''
+                    }`}
                 >
                   <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notif.is_read ? 'bg-blue-600' : 'bg-transparent'}`} />
                   <div className="flex-1 min-w-0">
@@ -196,8 +210,8 @@ export default function NotificationDropdown() {
                     onClick={(e) => handleDelete(notif.id, e)}
                     className="text-gray-300 hover:text-red-500 flex-shrink-0"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
@@ -206,13 +220,19 @@ export default function NotificationDropdown() {
           </div>
 
           <div className="px-4 py-2 border-t">
-            <Link
-              to="/notifications"
-              onClick={() => setOpen(false)}
-              className="text-xs text-blue-600 hover:underline"
+            {/* delete all button */}
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete all notifications? This cannot be undone.')) {
+                  notifications.forEach(n => deleteNotification(n.id).catch(() => { }));
+                  setNotifications([]);
+                  setUnreadCount(0);
+                }
+              }}
+              className="text-gray-300 hover:text-red-500 transition-colors"
             >
-              View all notifications
-            </Link>
+              Delete all
+            </button>
           </div>
         </div>
       )}
