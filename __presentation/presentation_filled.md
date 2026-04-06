@@ -49,7 +49,7 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 
 <!-- 
 VISUAL: Diagramme d'architecture avec 3 couches:
-- Frontend (React + Vite + Tailwind CSS)
+- Frontend (React + Tailwind CSS)
 - Backend (FastAPI + SQLAlchemy + WebSockets)
 - Database (PostgreSQL)
 - AI Layer (Ollama LLM)
@@ -57,10 +57,45 @@ VISUAL: Diagramme d'architecture avec 3 couches:
 
 ## 💻 Stack Technique
 
-**Backend**: FastAPI (Python) • PostgreSQL • JWT Auth • WebSockets • Alembic
-**Frontend**: React 18 • Vite • Tailwind CSS • Axios • React Router
-**IA**: Ollama (LLM local) • PyMuPDF • python-docx
-**DevOps**: Git • .env config • Batch scripts
+**Backend**: FastAPI (Python) • PostgreSQL • JWT Auth • WebSockets
+**Frontend**: React 18 • Tailwind CSS
+**IA**: Ollama (LLM local 1b) • PyMuPDF • python-docx
+**DevOps**: Git • au future: Docker • github actions(tests)
+
+---
+
+# **Choix Technologiques**
+
+## 🎯 Justifications Techniques
+
+**FastAPI** 
+- Architecture **async/await native** → Performance optimale avec WebSockets
+- Documentation auto (Swagger/OpenAPI) → Facilite le développement frontend
+- Validation Pydantic intégrée → Moins d'erreurs
+
+**PostgreSQL**
+- Relations complexes (projets ↔ tâches ↔ utilisateurs)
+- Support **SQLAlchemy async** → Cohérence avec FastAPI
+- Robustesse en production
+
+---
+
+# **Choix Technologiques** (suite)
+
+**React 18**
+- Composants réutilisables → Moins de duplication de code
+- Écosystème riche (React Router, Context API)
+- Virtual DOM → Interface réactive
+
+**Ollama (LLM local)**
+- **Aucune dépendance cloud** → Pas de coûts API
+- Confidentialité des données RH (RGPD)
+- Contrôle total sur le modèle
+
+**WebSockets**
+- Communication **bidirectionnelle temps réel**
+- Notifications instantanées + chat en direct
+- Alternative efficace au polling HTTP
 
 ---
 
@@ -69,7 +104,6 @@ VISUAL: Diagramme d'architecture avec 3 couches:
 ## 📊 Gestion de Projets
 - Création et configuration de projets
 - **Kanban Board** avec drag & drop
-- **Scrum Board** avec sprints
 - Gestion d'équipes et membres
 
 ## ✅ Gestion des Tâches
@@ -114,12 +148,6 @@ VISUAL: Screenshot du Dashboard avec les 4 modules visibles
 - Prise en compte de la **charge de travail**
 - Recommandations intelligentes
 
-## 💬 Chat LLM (Ollama)
-
-- Génération de descriptions
-- Résumés de texte
-- Chat conversationnel intégré
-
 <!-- 
 VISUAL: Exemple de scoring de CV avec barre de progression et détails
 -->
@@ -160,9 +188,9 @@ VISUAL: Exemple de scoring de CV avec barre de progression et détails
 - 📋 Diagramme de Gantt
 - 📋 Calendrier personnel
 - 📋 Départements et hiérarchie
-- 📋 Analytics et rapports
 - 📋 RAG pour analyse groupée de CV
-- 📋 @mentions dans les commentaires
+- 📋 Analytics et rapports
+- 📋 @mentions dans les commentaires a les conversations groupes 
 
 ---
 
@@ -196,16 +224,7 @@ VISUAL: Captures d'écran pour chaque partie si démo non disponible
 
 <!-- _class: lead -->
 
-# **Statistiques du Projet** 📊
 
-**Backend**: 8 modules • ~3500 lignes de code
-**Frontend**: 20+ pages • 40+ composants
-**Base de données**: 15+ tables
-**API**: 60+ endpoints REST + WebSocket
-**Tests**: Tests unitaires et d'intégration
-
-**Technologies maîtrisées**: 
-Python • FastAPI • React • PostgreSQL • WebSockets • LLM • TailwindCSS
 
 ---
 
@@ -215,7 +234,7 @@ Python • FastAPI • React • PostgreSQL • WebSockets • LLM • TailwindC
 
 ## Questions ?
 
-**Email**: chergui.moad@example.com
-**GitHub**: [Lien vers le repo si applicable]
+**Email**: moadchergui13@gmail.com
+**GitHub**: 
 
 ---
