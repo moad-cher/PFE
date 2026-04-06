@@ -11,7 +11,6 @@ footer: 'Stage de Fin d\'Études | 2026'
 <style>
 
 h1 {
-        color: #f80c0c;
     }
 </style>
 

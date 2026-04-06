@@ -30,6 +30,16 @@ class JobPostingRead(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+    
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        """Compute application_count from loaded applications if available"""
+        instance = super().model_validate(obj, **kwargs)
+        # Try to get count from loaded relationship, otherwise default to 0
+        if hasattr(obj, '__dict__') and 'applications' in obj.__dict__:
+            # Relationship is loaded, count it
+            instance.application_count = len(obj.applications)
+        return instance
 
 
 class JobPostingUpdate(BaseModel):

@@ -150,7 +150,7 @@ VISUAL: Exemple de scoring de CV avec barre de progression et détails
 
 ## 🚧 En Cours
 
-- 🚧 Scrum Board (raffinements UI)
+- 🚧 Scrum Board (gestion des sprints, backlogs ...etc) rien n'est encore implémenté
 - 🚧 Système de permissions avancé
 - 🚧 Bulk appraisal de CV pour un poste
 - 🚧 Visualisations (pie charts de progression)

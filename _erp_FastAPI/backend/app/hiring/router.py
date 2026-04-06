@@ -37,7 +37,7 @@ async def list_jobs(
     db: AsyncSession = Depends(get_db),
 ):
     """Public — anyone can list jobs."""
-    q = select(JobPosting).order_by(JobPosting.created_at.desc())
+    q = select(JobPosting).options(selectinload(JobPosting.applications)).order_by(JobPosting.created_at.desc())
     if status:
         q = q.where(JobPosting.status == status)
     result = await db.execute(q)
@@ -59,7 +59,9 @@ async def create_job(
 
 @router.get("/jobs/{job_id}", response_model=JobPostingRead)
 async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
+    result = await db.execute(
+        select(JobPosting).options(selectinload(JobPosting.applications)).where(JobPosting.id == job_id)
+    )
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(404, "Job not found")
