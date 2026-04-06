@@ -1,0 +1,48 @@
+Script de présentation ERP Intelligent
+
+---
+
+Bonjour à tous,
+
+Je vais vous présenter mon projet de stage : un système ERP intelligent pour la gestion des ressources humaines et des projets.
+
+1. **Contexte et Objectifs**
+   Les entreprises ont besoin d’outils intégrés pour gérer efficacement leurs RH et leurs projets. L’objectif est d’automatiser le recrutement grâce à l’IA et de fournir une gestion de projet complète, en temps réel.
+
+2. **Architecture & Technologies**
+   Le système repose sur une architecture 3-tiers :
+   - Frontend React
+   - Backend FastAPI
+   - Base de données PostgreSQL
+   - IA locale avec Ollama
+   - WebSockets pour la communication temps réel
+
+3. **Modules Implémentés**
+   - Gestion de projets : création, configuration, Kanban board, gestion d’équipes, deadlines, système de récompenses.
+   - Gestion des tâches : assignation multi-utilisateurs, priorités, commentaires en temps réel.
+   - Recrutement : publication d’offres, analyse IA des CV, planification d’entretiens.
+   - Communication : notifications en temps réel, chat projet et tâche.
+
+4. **Intégration de l’IA**
+   - Analyse automatique des CV : extraction de compétences, scoring, classement des candidats.
+   - Suggestions d’assignation : recommandations intelligentes basées sur les compétences et la charge de travail.
+
+5. **État d’Avancement**
+   - Backend : Authentification, gestion utilisateurs, CRUD complet, WebSocket manager, intégration IA.
+   - Frontend : Auth, dashboard, Kanban, recrutement, chat et notifications live.
+   - En cours : Scrum board, permissions avancées, analyse groupée de CV, visualisations.
+   - À venir : Gantt, calendrier, analytics, mentions, RAG pour l’analyse groupée.
+
+6. **Démonstration**
+   Je vais maintenant vous montrer le système en action :
+   - Connexion et dashboard
+   - Kanban board interactif
+   - Module recrutement et scoring IA
+   - Chat temps réel et notifications
+
+7. **Conclusion**
+   Ce projet montre comment l’IA et le temps réel peuvent transformer la gestion RH et projet. Merci pour votre attention, je suis prêt à répondre à vos questions.
+
+---
+
+(Adaptez chaque section selon le temps et le public. Utilisez des transitions comme « Pour approfondir… », « Comme vous pouvez le voir… » pour éviter les répétitions.)

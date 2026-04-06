@@ -175,9 +175,9 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 ## React
 - Composants réutilisables → Moins de duplication de code
 - Écosystème riche (React Router, Context API)
-- Virtual DOM → Interface réactive
+- Interface réactive
 
-## Ollama (LLM local)
+## Ollama3.2:1b (LLM local léger pour le moment)
 - **Aucune dépendance cloud** → Pas de coûts API
 - Confidentialité des données RH
 - Contrôle total sur le modèle
@@ -187,7 +187,6 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 ## WebSockets
 - Communication **bidirectionnelle temps réel**
 - Notifications instantanées + chat en direct
-- Alternative efficace au polling HTTP
 
 ---
 
@@ -243,7 +242,6 @@ VISUAL: Screenshot du Dashboard avec les 4 modules visibles
 
 - Analyse des compétences des membres
 - Prise en compte de la **charge de travail**
-- Recommandations intelligentes
 
 <!-- 
 VISUAL: Exemple de scoring de CV avec barre de progression et détails
@@ -271,7 +269,7 @@ VISUAL: Exemple de scoring de CV avec barre de progression et détails
 - Pages authentification + Dashboard
 - Kanban Board interactif (drag & drop)
 - Gestion projets/tâches/équipes
-- Module recrutement complet
+- Module recrutement presque complet
 - Chat temps réel + notifications live
 
 ---
@@ -279,7 +277,6 @@ VISUAL: Exemple de scoring de CV avec barre de progression et détails
 ## En Cours
 
 - Scrum Board (gestion des sprints, backlogs ...etc)
-- rafinement du système de permissions
 - Analyse groupée de CV pour un poste
 - Visualisations (graphiques de progression)
 
@@ -287,12 +284,13 @@ VISUAL: Exemple de scoring de CV avec barre de progression et détails
 
 ## Fonctionnalités Planifiées
 
+- @ mentions dans les commentaires et conversations
+- programation d'entretiens pour les candidats
 - Diagramme de Gantt
 - Calendrier personnel
 - Gestion des départements et hiérarchie
-- RAG pour analyse groupée de CV
+- rafinement du système de permissions
 - Analytics et rapports
-- @mentions dans les commentaires et conversations
 
 ---
 

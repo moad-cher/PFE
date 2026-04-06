@@ -21,18 +21,6 @@ async def _get_user(token: str) -> User | None:
 
 @router.websocket("/ws/notifications")
 async def ws_notifications(ws: WebSocket, token: str = ""):
-    """
-    Personal notification stream for the authenticated user.
-    Room name: "user_{user_id}"
-
-    On connect the server immediately pushes:
-      {"type": "unread_count", "count": N}
-
-    Subsequent pushes use:
-      {"type": "notification", "id", "notif_type", "title", "message", "link", "is_read", "created_at"}
-
-    Clients may send "ping" to keep the connection alive.
-    """
     user = await _get_user(token)
     if user is None:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)

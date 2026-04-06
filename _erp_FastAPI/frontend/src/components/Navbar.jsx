@@ -54,11 +54,11 @@ export default function Navbar() {
   const canManageProjects = user?.role === 'admin' || user?.role === 'project_manager';
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b h-16">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-lilac border-b border-purple-100/50 h-16">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="text-blue-600 font-bold text-xl tracking-tight">
+          <Link to="/dashboard" className="text-purple-600 font-bold text-xl tracking-tight hover:text-purple-500 transition-colors">
             ERP
           </Link>
 
@@ -66,14 +66,14 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-1">
             <Link
               to="/dashboard"
-              className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
             >
               Dashboard
             </Link>
             {canManageProjects && (
               <Link
                 to="/projects/new"
-                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
               >
                 New Project
               </Link>
@@ -81,7 +81,7 @@ export default function Navbar() {
             {canManageHiring && (
               <Link
                 to="/hiring/jobs"
-                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors"
+                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-colors"
               >
                 Hiring
               </Link>
@@ -89,7 +89,7 @@ export default function Navbar() {
             {!canManageHiring && (
               <Link
                 to="/hiring/jobs"
-                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors"
+                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-colors"
               >
                 Jobs
               </Link>
@@ -106,32 +106,32 @@ export default function Navbar() {
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
-              className="flex items-center gap-2 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 p-1 rounded-xl hover:bg-purple-50 transition-colors"
             >
               {user && <UserAvatar user={user} />}
               <span className="hidden sm:block text-sm font-medium text-gray-700">
                 {user?.first_name || user?.username}
               </span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-lg border py-1 z-50">
-                <div className="px-4 py-2 border-b">
-                  <p className="text-sm font-medium text-gray-900">
+              <div className="absolute right-0 top-full mt-1 w-52 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lilac border border-purple-100/50 py-1 z-50">
+                <div className="px-4 py-2 border-b border-purple-100/50">
+                  <p className="text-sm font-medium text-gray-800">
                     {user?.first_name} {user?.last_name}
                   </p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
-                  <span className="mt-1 inline-block text-xs bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5">
+                  <p className="text-xs text-purple-400">{user?.email}</p>
+                  <span className="mt-1 inline-block text-xs bg-violet-100 text-violet-600 rounded-full px-2 py-0.5">
                     {user?.reward_points || 0} pts
                   </span>
                 </div>
                 <Link
                   to="/profile"
                   onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

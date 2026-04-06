@@ -6,12 +6,31 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* Lilac/Mauve Palette */
+  --lilac-50: #faf8fc;
+  --lilac-100: #f3eef8;
+  --lilac-200: #e9e0f3;
+  --lilac-300: #d8c9e8;
+  --lilac-400: #c4a8d9;
+  --lilac-500: #a87bc4;
+  --lilac-600: #8b5ca8;
+  --lilac-700: #74498c;
+  --mauve-50: #fdf8fa;
+  --mauve-100: #f9ecf2;
+  --mauve-200: #f2d6e5;
+  --mauve-300: #e8b5cf;
+  --mauve-400: #d888b0;
+  --lavender: #e6e6fa;
+  --soft-white: #fefefe;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
+  background: linear-gradient(135deg, var(--lilac-50) 0%, #fafafa 50%, var(--mauve-50) 100%);
+  min-height: 100vh;
 }
 
 /* Kanban horizontal scroll */
@@ -26,18 +45,60 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - lilac theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--lilac-100);
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--lilac-300);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--lilac-400);
+}
+
+/* Micro-interactions */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px rgba(168, 123, 196, 0.25);
+}
+
+/* Subtle float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.float-subtle:hover {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* Soft pulse for notifications */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.pulse-soft {
+  animation: soft-pulse 2s ease-in-out infinite;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Varied shadows */
+.shadow-lilac {
+  box-shadow: 0 4px 14px -3px rgba(168, 123, 196, 0.15);
+}
+.shadow-mauve {
+  box-shadow: 0 4px 14px -3px rgba(216, 136, 176, 0.15);
 }

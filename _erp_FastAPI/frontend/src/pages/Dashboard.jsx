@@ -6,31 +6,38 @@ import Spinner from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
 
-function StatCard({ icon, label, value, color }) {
+function StatCard({ icon, label, value, color, index = 0 }) {
+  // Varied border-radius based on index
+  const radiusVariants = ['rounded-2xl', 'rounded-xl', 'rounded-3xl', 'rounded-lg'];
+  const radius = radiusVariants[index % radiusVariants.length];
+  
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-5">
+    <div className={`bg-white/90 ${radius} shadow-lilac border border-purple-100/50 p-5 card-hover`}>
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>
+        <div className={`w-10 h-10 ${radius} ${color} flex items-center justify-center`}>
           {icon}
         </div>
         <div>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500">{label}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+          <p className="text-sm text-purple-400">{label}</p>
         </div>
       </div>
     </div>
   );
 }
 
-function ProjectCard({ project }) {
+function ProjectCard({ project, index = 0 }) {
+  // Alternate between rounded styles
+  const isEven = index % 2 === 0;
+  
   return (
     <Link
       to={`/projects/${project.id}`}
-      className="block bg-white rounded-xl shadow-sm border p-5 hover:shadow-md hover:border-blue-200 transition-all group"
+      className={`block bg-white/95 ${isEven ? 'rounded-2xl' : 'rounded-xl'} shadow-lilac border border-purple-100/30 p-5 card-hover group`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 truncate">
+          <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 truncate transition-colors">
             {project.name}
           </h3>
           {project.description && (
@@ -38,12 +45,12 @@ function ProjectCard({ project }) {
           )}
         </div>
         {project.progress > 0 && (
-          <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 flex-shrink-0">
+          <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2.5 py-0.5 flex-shrink-0">
             {project.progress}%
           </span>
         )}
       </div>
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-gray-500">
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-purple-100/50 text-xs text-gray-400">
         <span>{project.tasks_count ?? 0} tasks</span>
         <span>{project.members_count ?? 0} members</span>
       </div>
@@ -51,14 +58,16 @@ function ProjectCard({ project }) {
   );
 }
 
-function TaskCard({ task }) {
+function TaskCard({ task, index = 0 }) {
+  const isOdd = index % 2 === 1;
+  
   return (
     <Link
       to={`/projects/${task.project_id}/tasks/${task.id}`}
-      className="block bg-white rounded-xl shadow-sm border p-4 hover:shadow-md hover:border-blue-200 transition-all group"
+      className={`block bg-white/95 ${isOdd ? 'rounded-2xl' : 'rounded-lg'} shadow-mauve border border-pink-100/30 p-4 card-hover group`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-gray-900 group-hover:text-blue-600 text-sm line-clamp-2 flex-1">
+        <h4 className="font-medium text-gray-800 group-hover:text-purple-600 text-sm line-clamp-2 flex-1 transition-colors">
           {task.title}
         </h4>
         <PriorityBadge priority={task.priority} className="flex-shrink-0" />
@@ -66,17 +75,17 @@ function TaskCard({ task }) {
       <div className="flex items-center gap-2 mt-2">
         <StatusBadge status={task.status} />
         {task.project_name && (
-          <span className="text-xs text-gray-400">{task.project_name}</span>
+          <span className="text-xs text-purple-300">{task.project_name}</span>
         )}
       </div>
       {task.deadline && (
-        <p className={`text-xs mt-2 ${task.is_overdue ? 'text-red-500' : 'text-gray-400'}`}>
+        <p className={`text-xs mt-2 ${task.is_overdue ? 'text-rose-400' : 'text-gray-400'}`}>
           {task.is_overdue ? 'Overdue: ' : 'Due: '}
           {new Date(task.deadline).toLocaleDateString()}
         </p>
       )}
       {task.points > 0 && (
-        <span className="mt-2 inline-block text-xs bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5">
+        <span className="mt-2 inline-block text-xs bg-violet-100 text-violet-600 rounded-full px-2.5 py-0.5">
           {task.points} pts
         </span>
       )}
