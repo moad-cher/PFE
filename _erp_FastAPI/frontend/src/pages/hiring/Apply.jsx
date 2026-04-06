@@ -19,14 +19,28 @@ export default function Apply() {
   const submit = async e => {
     e.preventDefault();
     if (!file) { setError('Please attach your resume.'); return; }
+    
+    console.log('Submitting application...');
+    console.log('File:', file);
+    console.log('Form data:', form);
+    
     setSaving(true); setError('');
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       fd.append('resume', file);
-      await applyToJob(id, fd);
+      
+      console.log('FormData contents:');
+      for (let [key, value] of fd.entries()) {
+        console.log(key, ':', value);
+      }
+      
+      const response = await applyToJob(id, fd);
+      console.log('Application submitted successfully:', response.data);
       navigate('/hiring/apply-success');
     } catch (err) {
+      console.error('Application submission error:', err);
+      console.error('Error response:', err.response);
       setError(err.response?.data?.detail || 'Submission failed. Please try again.');
       setSaving(false);
     }

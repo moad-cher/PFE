@@ -57,9 +57,17 @@ export default function JobDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to="/hiring/jobs" className="hover:text-blue-600">← Job Postings</Link>
-        <span>/</span><span className="text-gray-700 font-medium truncate max-w-xs">{job.title}</span>
+      {/* Breadcrumb with optional login link */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Link to="/hiring/jobs" className="hover:text-blue-600">← Job Postings</Link>
+          <span>/</span><span className="text-gray-700 font-medium truncate max-w-xs">{job.title}</span>
+        </div>
+        {!user && (
+          <Link to="/login" className="text-sm text-blue-600 hover:underline">
+            Sign in
+          </Link>
+        )}
       </div>
 
       {/* Job card */}
@@ -67,16 +75,30 @@ export default function JobDetail() {
         <div className="flex items-start justify-between gap-4 mb-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-            <p className="text-gray-500 text-sm mt-1">{job.contract_type}{job.location ? ` · ${job.location}` : ''}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-gray-500 text-sm">{job.contract_type}{job.location ? ` · ${job.location}` : ''}</p>
+              <span className={`text-xs rounded-full px-2 py-0.5 ${
+                job.status === 'published' ? 'bg-green-100 text-green-700' :
+                job.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                job.status === 'paused' ? 'bg-orange-100 text-orange-700' :
+                'bg-red-100 text-red-700'
+              }`}>
+                {job.status}
+              </span>
+            </div>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {isHR && (
               <Link to={`/hiring/jobs/${id}/edit`} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</Link>
             )}
-            {job.status === 'published' && (
-              <Link to={`/hiring/jobs/${id}/apply`} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
-                Apply link ↗
+            {job.status === 'published' ? (
+              <Link to={`/hiring/jobs/${id}/apply`} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
+                Apply Now
               </Link>
+            ) : (
+              <div className="px-4 py-2 bg-gray-300 text-gray-500 rounded-xl text-sm font-medium cursor-not-allowed" title={`Job is ${job.status}`}>
+                Not Open
+              </div>
             )}
           </div>
         </div>

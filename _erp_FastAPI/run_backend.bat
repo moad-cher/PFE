@@ -18,6 +18,6 @@ if not exist "%BACKEND_DIR%\app\main.py" (
 
 echo Starting backend on localhost:8001 ...
 cd /d "%BACKEND_DIR%"
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 
 pause

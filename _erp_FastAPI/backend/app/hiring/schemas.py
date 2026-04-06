@@ -66,6 +66,27 @@ class ApplicationRead(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+    
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        """Transform absolute resume paths to relative media URLs"""
+        instance = super().model_validate(obj, **kwargs)
+        if instance.resume:
+            # Convert absolute path to relative media URL
+            # C:\...\backend\media\resumes\file.pdf -> media/resumes/file.pdf
+            from pathlib import Path
+            from app.core.media import MEDIA_ROOT
+            
+            abs_path = Path(instance.resume)
+            if abs_path.is_absolute():
+                try:
+                    # Make path relative to MEDIA_ROOT itself
+                    rel_path = abs_path.relative_to(MEDIA_ROOT)
+                    instance.resume = f"media/{str(rel_path).replace(chr(92), '/')}"  # chr(92) is backslash
+                except ValueError:
+                    # Fallback: just use the filename with resumes prefix
+                    instance.resume = f"media/resumes/{abs_path.name}"
+        return instance
 
 
 class ApplicationDetailRead(ApplicationRead):

@@ -26,7 +26,7 @@ if not exist "%FRONTEND_DIR%\package.json" (
 )
 
 echo [1/2] Starting backend on localhost:8001 (external window) ...
-start "FastAPI Backend" cmd /k "cd /d "%BACKEND_DIR%" && python -m uvicorn app.main:app --host 127.0.0.1 --port 8001"
+start "FastAPI Backend" cmd /k "cd /d "%BACKEND_DIR%" && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001"
 
 timeout /t 2 /nobreak > nul
 

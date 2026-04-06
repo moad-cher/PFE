@@ -53,6 +53,10 @@ class JobPosting(Base):
         return self.status == JobStatusEnum.published and (self.deadline is None or self.deadline >= date.today())
 
     @property
+    def application_count(self) -> int:
+        return len(self.applications)
+
+    @property
     def skills_list(self) -> list[str]:
         return [s.strip() for s in self.required_skills.split(",") if s.strip()]
 

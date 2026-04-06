@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
@@ -43,9 +43,14 @@ function AppLayout() {
 }
 
 function PublicLayout() {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen bg-gray-50">
-      <Outlet />
+      {user && <Navbar />}
+      <div className={user ? "pt-16" : ""}>
+        <Outlet />
+      </div>
     </div>
   );
 }
@@ -59,6 +64,8 @@ export default function App() {
           <Route element={<PublicLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/hiring/jobs" element={<JobList />} />
+            <Route path="/hiring/jobs/:id" element={<JobDetail />} />
             <Route path="/hiring/jobs/:id/apply" element={<Apply />} />
             <Route path="/hiring/apply-success" element={<ApplySuccess />} />
           </Route>
@@ -90,10 +97,8 @@ export default function App() {
             <Route path="/projects/:pk/leaderboard" element={<Leaderboard />} />
             <Route path="/projects/:pk/chat" element={<ProjectChat />} />
 
-            {/* Hiring routes */}
-            <Route path="/hiring/jobs" element={<JobList />} />
+            {/* Hiring routes (HR/Admin only) */}
             <Route path="/hiring/jobs/new" element={<JobNew />} />
-            <Route path="/hiring/jobs/:id" element={<JobDetail />} />
             <Route path="/hiring/jobs/:id/edit" element={<JobEdit />} />
             <Route path="/hiring/applications/:id" element={<ApplicationDetail />} />
             <Route path="/hiring/applications/:id/interview" element={<InterviewSchedule />} />

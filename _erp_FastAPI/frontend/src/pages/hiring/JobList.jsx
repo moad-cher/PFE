@@ -34,8 +34,16 @@ export default function JobList() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Header with navigation */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
+          {/* {!user && (
+            <p className="text-sm text-gray-500 mt-1">
+              Browse open positions. <Link to="/login" className="text-blue-600 hover:underline">Sign in</Link> to manage jobs.
+            </p>
+          )} */}
+        </div>
         {isHR && (
           <Link to="/hiring/jobs/new" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             + New Job
@@ -43,9 +51,9 @@ export default function JobList() {
         )}
       </div>
 
-      {/* Filter pills */}
+      {/* Filter pills - only show draft/paused/closed to HR */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTERS.map(f => (
+        {FILTERS.filter(f => isHR || ['', 'published'].includes(f.value)).map(f => (
           <button key={f.value} onClick={() => setFilter(f.value)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               filter === f.value ? 'bg-blue-600 text-white' : 'bg-white border text-gray-600 hover:border-blue-300'
