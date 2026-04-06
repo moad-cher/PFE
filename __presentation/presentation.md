@@ -32,7 +32,7 @@ h1 {
 }
 
 h2 {
-  color: #60a9cb;
+  color: #3e7d9be9;
   
   font-size: 1.45em;
   font-weight: 600;
@@ -50,7 +50,8 @@ section.lead h1 {
   font-size: 3em;
   color: #9e3c3c;
   border: none;
-  text-shadow: 1px 1px 3px rgba(255,255,255,0.5);
+  border-bottom: 6px solid #9e3c3c;
+  text-shadow: 1px 5px 5px rgba(20, 91, 162, 0.64);
 }
 
 
@@ -61,7 +62,7 @@ li::marker { color: #c2564a; }
 
 /* Bold text - Teal blue to complement the light blue in background */
 strong {
-  color: #2d6a6a;
+  color: #439a9a;
   font-weight: 600;
 }
 
@@ -143,7 +144,7 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 **Backend**: FastAPI (Python) $\cdot$ PostgreSQL $\cdot$ JWT Auth $\cdot$ WebSockets
 **Frontend**: React $\cdot$ Tailwind CSS
 **IA**: Ollama (LLM local 1b) $\cdot$ PyMuPDF $\cdot$ python-docx
-**DevOps**: Git $\cdot$ Future: Docker $\cdot$ GitHub Actions
+**DevOps**: Git $\cdot$ (Future: Docker $\cdot$ GitHub Actions)
 
 ---
 <center>
@@ -156,6 +157,7 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 ---
 
 <!-- _class: section-title -->
+<!-- 
 
 # Choix Technologiques
 
@@ -189,6 +191,7 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 - Notifications instantanées + chat en direct
 
 ---
+-->
 
 <!-- _class: section-title -->
 
@@ -205,18 +208,17 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 - Assignation multi-utilisateurs
 - Priorités et deadlines
 - **Système de récompenses** (points)
-- Commentaires en temps réel
 
 ---
 
-## Recrutement (Hiring)
+## Recrutement
 - Publication d'offres d'emploi
 - Formulaire de candidature public
 - Upload et stockage de CV (PDF/DOCX)
-- Planification d'entretiens
 
 ## Communication
 - **Notifications en temps réel** (WebSockets)
+- Commentaires en temps réel
 - Chat projet et chat tâche
 - Alertes deadlines et updates
 
@@ -243,54 +245,16 @@ VISUAL: Screenshot du Dashboard avec les 4 modules visibles
 - Analyse des compétences des membres
 - Prise en compte de la **charge de travail**
 
-<!-- 
-VISUAL: Exemple de scoring de CV avec barre de progression et détails
--->
+---
+![classement des candidats](./imgs/classement-des-candidats.jpeg)
+
+---
+![scoring CV](./imgs/analyse-de-cv.jpeg)
+
 
 ---
 
-<!-- _class: section-title -->
-
-# État d'Avancement
-
----
-
-## Fonctionnalités Complétées (~50-60%)
-
-**Backend:**
-- Auth JWT + Gestion utilisateurs (rôles, profils, avatars)
-- CRUD complet (Projets, Tâches, Jobs, Applications)
-- WebSocket manager (notifications + chat temps réel)
-- Intégration IA Ollama (CV, suggestions)
-
----
-
-**Frontend:**
-- Pages authentification + Dashboard
-- Kanban Board interactif (drag & drop)
-- Gestion projets/tâches/équipes
-- Module recrutement presque complet
-- Chat temps réel + notifications live
-
----
-
-## En Cours
-
-- Scrum Board (gestion des sprints, backlogs ...etc)
-- Analyse groupée de CV pour un poste
-- Visualisations (graphiques de progression)
-
----
-
-## Fonctionnalités Planifiées
-
-- @ mentions dans les commentaires et conversations
-- programation d'entretiens pour les candidats
-- Diagramme de Gantt
-- Calendrier personnel
-- Gestion des départements et hiérarchie
-- rafinement du système de permissions
-- Analytics et rapports
+![suggestions d'assignation](./imgs/suggestion-d'assignation.jpeg)
 
 ---
 
@@ -326,17 +290,43 @@ VISUAL: Captures d'écran pour chaque partie si démo non disponible
 
 ---
 
+<!-- _class: section-title -->
+
+# À faire
+
+---
+
+## En Cours
+
+- Scrum Board (gestion des sprints, backlogs ...etc)
+- Analyse groupée de CV pour un poste
+- Visualisations (graphiques de progression)
+
+---
+
+## Fonctionnalités Planifiées
+
+- @ mentions dans les commentaires et conversations
+- Programmation d'entretiens pour les candidats
+- Diagramme de Gantt
+- Calendrier personnel
+- Gestion des départements et hiérarchie
+- Raffinement du système de permissions
+- Analytics et rapports
+
+---
+
 <!-- _class: lead -->
 
 # Merci pour votre attention
 
 ## Questions ?
 
-<br>
-<br>
-<br>
+<br><br>
+
 
 **Email**: moadchergui13@gmail.com
 **GitHub**: [moad-cher](https://github.com/moad-cher/PFE)
 
 ---
+<!-- paginate: false -->
