@@ -126,7 +126,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">
             Hello, {user?.first_name || user?.username}!
           </h1>
-          <p className="text-gray-500 mt-1">Here's what's happening today</p>
+          {/* <p className="text-gray-500 mt-1">Here's what's happening today</p> */}
         </div>
         {(user?.role === 'admin' || user?.role === 'project_manager') && (
           <Link
@@ -186,7 +186,7 @@ export default function Dashboard() {
       </div>
 
       {/* Points banner */}
-      {user?.reward_points > 0 && (
+      {/* {user?.reward_points > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8 flex items-center gap-3">
           <span className="text-2xl">🏆</span>
           <div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
             <p className="text-sm text-yellow-600">Keep completing tasks to earn more.</p>
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* My Tasks */}

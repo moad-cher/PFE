@@ -4,7 +4,7 @@ import { createJob } from '../../api';
 
 export default function JobNew() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', description: '', required_skills: '', contract_type: 'CDI', location: '', status: 'draft' });
+  const [form, setForm] = useState({ title: '', description: '', required_skills: '', contract_type: 'cdi', location: '', status: 'draft' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -14,7 +14,22 @@ export default function JobNew() {
       const res = await createJob(form);
       navigate(`/hiring/jobs/${res.data.id}`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create job');
+      console.error('Error creating job:', err);
+      console.error('Error response:', err.response);
+      
+      // Handle validation errors (422)
+      let errorMessage = 'Failed to create job';
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          // FastAPI validation errors
+          errorMessage = err.response.data.detail
+            .map(e => `${e.loc[e.loc.length - 1]}: ${e.msg}`)
+            .join(', ');
+        } else {
+          errorMessage = err.response.data.detail;
+        }
+      }
+      setError(errorMessage);
       setSaving(false);
     }
   };
@@ -50,7 +65,10 @@ export default function JobNew() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Contract</label>
               <select value={form.contract_type} onChange={e => setForm(f => ({ ...f, contract_type: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                {['CDI', 'CDD', 'Stage', 'Freelance'].map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="cdi">CDI</option>
+                <option value="cdd">CDD</option>
+                <option value="stage">Stage</option>
+                <option value="freelance">Freelance</option>
               </select>
             </div>
             <div>

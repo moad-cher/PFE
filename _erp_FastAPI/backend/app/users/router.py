@@ -164,7 +164,8 @@ dept_router = APIRouter(prefix="/departments", tags=["departments"])
 
 
 @dept_router.get("/", response_model=list[DepartmentRead])
-async def list_departments(db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def list_departments(db: AsyncSession = Depends(get_db)):
+    """Public endpoint - no auth required for registration page"""
     result = await db.execute(select(Department).order_by(Department.name))
     return result.scalars().all()
 
