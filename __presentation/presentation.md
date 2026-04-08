@@ -1,6 +1,10 @@
 ---
 marp: true
 paginate: true
+math: true
+meta:
+  title: "Système ERP Intelligent - État d'Avancement du Projet"
+  description: "Présentation de l'état d'avancement du projet de Système ERP Intelligent, couvrant les objectifs, l'architecture, les modules implémentés et les fonctionnalités IA."
 ---
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
@@ -218,9 +222,8 @@ Les entreprises ont besoin d'outils intégrés pour gérer efficacement leurs **
 
 ## Communication
 - **Notifications en temps réel** (WebSockets)
-- Commentaires en temps réel
+- Commentaires sur tâches
 - Chat projet et chat tâche
-- Alertes deadlines et updates
 
 <!-- 
 VISUAL: Screenshot du Dashboard avec les 4 modules visibles
@@ -285,7 +288,6 @@ DÉMONSTRATION LIVE:
    - Envoyer un message dans le chat projet
    - Notification instantanée
 
-VISUAL: Captures d'écran pour chaque partie si démo non disponible
 -->
 
 ---
