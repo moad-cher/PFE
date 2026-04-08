@@ -41,7 +41,10 @@ async def list_jobs(
     if status:
         q = q.where(JobPosting.status == status)
     result = await db.execute(q)
-    return result.scalars().all()
+    jobs = result.scalars().unique().all()
+    for job in jobs:
+        job.application_count = len(job.applications) if hasattr(job, "applications") else 0
+    return jobs
 
 
 @router.post("/jobs", response_model=JobPostingRead, status_code=201)

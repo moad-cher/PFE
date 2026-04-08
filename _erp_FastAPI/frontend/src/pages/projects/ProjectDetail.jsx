@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { getProject, listTasks, deleteProject } from '../../api';
+import { getProject, listTasks, deleteProject, getKanban } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
 import PriorityBadge from '../../components/PriorityBadge';
+import TaskDistributionChart from '../../components/TaskDistributionChart';
 
 function QuickCard({ to, icon, label, color }) {
   return (
@@ -26,6 +27,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [kanbanData, setKanbanData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -38,8 +40,41 @@ export default function ProjectDetail() {
       .then(([projRes, tasksRes]) => {
         setProject(projRes.data);
         setTasks(Array.isArray(tasksRes.data) ? tasksRes.data : tasksRes.data?.items || []);
+        
+        // Fetch kanban data separately (optional, won't break page if it fails)
+        getKanban(pk)
+          .then((kanbanRes) => {
+            console.log('Kanban response:', kanbanRes.data);
+            
+            // Check if columns exist and is an array
+            if (kanbanRes.data && Array.isArray(kanbanRes.data.columns)) {
+              const chartData = kanbanRes.data.columns.map(col => ({
+                name: col.status.name,
+                value: col.tasks.length,
+                fill: col.status.color
+              }));
+              setKanbanData(chartData);
+            } else if (Array.isArray(kanbanRes.data)) {
+              // If response is directly an array of columns
+              const chartData = kanbanRes.data.map(col => ({
+                name: col.status.name,
+                value: col.tasks.length,
+                fill: col.status.color
+              }));
+              setKanbanData(chartData);
+            } else {
+              console.warn('Unexpected kanban data structure:', kanbanRes.data);
+            }
+          })
+          .catch((err) => {
+            console.warn('Failed to load kanban data for chart:', err);
+            // Chart will show "No tasks to display" if data fails to load
+          });
       })
-      .catch(() => setError('Failed to load project'))
+      .catch((err) => {
+        console.error('Failed to load project:', err);
+        setError('Failed to load project');
+      })
       .finally(() => setLoading(false));
   }, [pk]);
 
@@ -82,14 +117,7 @@ export default function ProjectDetail() {
             </svg>
           </Link>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
-              {project?.progress > 0 && (
-                <span className="text-sm bg-blue-100 text-blue-700 rounded-full px-3 py-1">
-                  {project.progress}% complete
-                </span>
-              )}
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
             {project?.description && (
               <p className="text-gray-500 mt-1 max-w-xl">{project.description}</p>
             )}
@@ -156,8 +184,13 @@ export default function ProjectDetail() {
         </div>
       </div>
 
+      {/* Task Distribution Chart */}
+      <div className="mb-8 max-w-md">
+        <TaskDistributionChart data={kanbanData} />
+      </div>
+
       {/* Quick action cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <QuickCard
           to={`/projects/${pk}/kanban`}
           label="Kanban"

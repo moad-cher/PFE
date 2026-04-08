@@ -109,13 +109,21 @@ export default function NotificationDropdown() {
 
         ws.onclose = () => {
           clearInterval(pingInterval.current);
-          reconnectTimeout.current = setTimeout(connect, 3000);
+          // Only reconnect if we have a token (user still logged in)
+          if (localStorage.getItem('token')) {
+            reconnectTimeout.current = setTimeout(connect, 3000);
+          }
         };
 
-        ws.onerror = () => {
-          ws.close();
+        ws.onerror = (error) => {
+          // Silently handle WebSocket errors - connection will auto-reconnect
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
         };
-      } catch (_) { }
+      } catch (error) {
+        // Silently handle connection errors - will retry on next connect attempt
+      }
     };
 
     connect();
@@ -123,9 +131,12 @@ export default function NotificationDropdown() {
     return () => {
       clearTimeout(reconnectTimeout.current);
       clearInterval(pingInterval.current);
-      ws?.close();
+      // Safely close WebSocket if it exists and is open
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
     };
-  }, []);
+  }, [refreshUser]);
 
   const handleMarkAll = async () => {
     try {

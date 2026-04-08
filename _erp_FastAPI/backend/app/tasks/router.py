@@ -32,7 +32,7 @@ async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> 
     if not project:
         raise HTTPException(404, "Project not found")
     allowed = (
-        user.role in ("admin",)
+        user.role in ("admin", "project_manager")
         or project.manager_id == user.id
         or any(m.id == user.id for m in project.members)
     )

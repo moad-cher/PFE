@@ -47,7 +47,7 @@ def _can_access(project: Project, user: User) -> bool:
 
 
 def _is_manager(project: Project, user: User) -> bool:
-    return project.manager_id == user.id or user.role == "admin"
+    return project.manager_id == user.id or user.role in ("admin", "project_manager")
 
 
 async def _load_project(pk: int, db: AsyncSession) -> Project:

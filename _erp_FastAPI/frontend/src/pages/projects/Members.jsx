@@ -92,7 +92,7 @@ export default function Members() {
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
 
-  const isManager = user?.role === 'admin' || project?.manager?.id === user?.id;
+  const isManager = user?.role === 'admin' || user?.role === 'project_manager' || project?.manager?.id === user?.id;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
