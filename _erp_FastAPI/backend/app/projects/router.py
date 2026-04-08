@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import delete, select, func
+from sqlalchemy import delete, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from datetime import date
@@ -125,6 +125,95 @@ async def list_projects(
         )
     result = await db.execute(q.order_by(Project.created_at.desc()))
     return result.scalars().all()
+
+
+@router.get("/stats")
+async def project_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Project Manager stats: projects per manager, task completion rates, overdue tasks."""
+    print(f"[DEBUG] project_stats called by user: {current_user.username} (role: {current_user.role})")
+    try:
+        # For project managers, show only their projects
+        # For admins, show all projects
+        is_admin = current_user.role == "admin"
+        print(f"[DEBUG] is_admin: {is_admin}")
+        
+        if is_admin:
+            # Admin sees all projects
+            print("[DEBUG] Querying projects for admin")
+            projects_result = await db.execute(
+                select(Project).options(
+                    selectinload(Project.tasks),
+                    selectinload(Project.manager)
+                )
+            )
+            all_projects = projects_result.scalars().all()
+            print(f"[DEBUG] Admin found {len(all_projects)} projects")
+            
+            # Projects per manager
+            manager_result = await db.execute(
+                select(User.username, func.count(Project.id))
+                .select_from(Project)
+                .join(User, Project.manager_id == User.id)
+                .group_by(User.username)
+            )
+            projects_per_manager = {username: count for username, count in manager_result.all()}
+        else:
+            # Project manager sees only their projects
+            print(f"[DEBUG] Querying projects for project_manager: {current_user.id}")
+            projects_result = await db.execute(
+                select(Project)
+                .where(
+                    or_(
+                        Project.manager_id == current_user.id,
+                        Project.id.in_(
+                            select(project_members.c.project_id)
+                            .where(project_members.c.user_id == current_user.id)
+                        )
+                    )
+                )
+                .options(selectinload(Project.tasks))
+            )
+            all_projects = projects_result.scalars().all()
+            print(f"[DEBUG] Project manager found {len(all_projects)} projects")
+            projects_per_manager = {current_user.username: len([p for p in all_projects if p.manager_id == current_user.id])}
+        
+        # Calculate task completion rates
+        print(f"[DEBUG] Calculating stats for {len(all_projects)} projects")
+        total_tasks = 0
+        completed_tasks = 0
+        overdue_tasks = 0
+        today = date.today()
+        
+        for project in all_projects:
+            for task in project.tasks:
+                total_tasks += 1
+                if task.status == "done":
+                    completed_tasks += 1
+                elif task.deadline and task.deadline < today and task.status != "done":
+                    overdue_tasks += 1
+        
+        completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+        
+        result = {
+            "total_projects": len(all_projects),
+            "projects_per_manager": projects_per_manager,
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_tasks,
+            "completion_rate": round(completion_rate, 2),
+            "overdue_tasks": overdue_tasks,
+            "is_admin_view": is_admin,
+        }
+        print(f"[DEBUG] Returning stats: {result}")
+        return result
+    except Exception as e:
+        import traceback
+        error_msg = f"Error in project_stats: {e}"
+        print(f"[ERROR] {error_msg}")
+        print(traceback.format_exc())
+        raise HTTPException(500, f"Error generating stats: {str(e)}")
 
 
 @router.post("/", response_model=ProjectRead, status_code=201)
@@ -560,4 +649,7 @@ async def ai_suggest(
 
     result = await suggest_task_assignees(task.title, task.description, member_dicts)
     return AISuggestionRead(**result)
+
+
+
 

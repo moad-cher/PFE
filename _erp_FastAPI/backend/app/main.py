@@ -12,7 +12,7 @@ from app.notifications.scheduler import deadline_scheduler
 
 # Domain routers
 from app.auth.router import router as auth_router
-from app.users.router import router as users_router, dept_router
+from app.users.router import router as users_router, dept_router, admin_router
 from app.projects.router import router as projects_router
 from app.tasks.router import router as tasks_router
 from app.hiring.router import router as hiring_router
@@ -47,6 +47,7 @@ app.add_middleware(
 # REST API routers
 app.include_router(auth_router,          tags=["auth"])
 app.include_router(users_router,         tags=["users"])
+app.include_router(admin_router,         tags=["admin"])
 app.include_router(dept_router,          tags=["departments"])
 app.include_router(projects_router,      tags=["projects"])
 app.include_router(tasks_router,         tags=["tasks"])

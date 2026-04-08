@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Unauthorized from './pages/Unauthorized';
 
 import ProjectNew from './pages/projects/ProjectNew';
 import ProjectDetail from './pages/projects/ProjectDetail';
@@ -33,9 +34,11 @@ import InterviewSchedule from './pages/hiring/InterviewSchedule';
 
 function AppLayout() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-transparent">
+      {/* filter */}
+      <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
       <Navbar />
-      <div className="pt-16">
+      <div className="relative z-10 pt-16">
         <Outlet />
       </div>
     </div>
@@ -46,9 +49,11 @@ function PublicLayout() {
   const { user } = useAuth();
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-transparent">
+      {/* filter */}
+      <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
       {user && <Navbar />}
-      <div className={user ? "pt-16" : ""}>
+      <div className={`relative z-10 ${user ? 'pt-16' : ''}`}>
         <Outlet />
       </div>
     </div>
@@ -68,6 +73,7 @@ export default function App() {
             <Route path="/hiring/jobs/:id" element={<JobDetail />} />
             <Route path="/hiring/jobs/:id/apply" element={<Apply />} />
             <Route path="/hiring/apply-success" element={<ApplySuccess />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
           </Route>
 
           {/* Protected routes with Navbar */}
@@ -82,14 +88,28 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             
-            {/* Project routes */}
-            <Route path="/projects/new" element={<ProjectNew />} />
+            {/* Project routes - Admin and Project Manager can create/edit */}
+            <Route
+              path="/projects/new"
+              element={
+                <ProtectedRoute roles={['admin', 'project_manager']}>
+                  <ProjectNew />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/projects/:pk" element={<ProjectDetail />} />
             <Route path="/projects/:pk/edit" element={<ProjectEdit />} />
             <Route path="/projects/:pk/settings" element={<ProjectSettings />} />
             <Route path="/projects/:pk/kanban" element={<KanbanBoard />} />
             <Route path="/projects/:pk/scrum" element={<ScrumBoard />} />
-            <Route path="/projects/:pk/tasks/new" element={<TaskNew />} />
+            <Route
+              path="/projects/:pk/tasks/new"
+              element={
+                <ProtectedRoute roles={['admin', 'project_manager']}>
+                  <TaskNew />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/projects/:pk/tasks/:taskId" element={<TaskDetail />} />
             <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
             <Route path="/projects/:pk/tasks/:taskId/chat" element={<TaskChat />} />
@@ -97,11 +117,39 @@ export default function App() {
             <Route path="/projects/:pk/leaderboard" element={<Leaderboard />} />
             <Route path="/projects/:pk/chat" element={<ProjectChat />} />
 
-            {/* Hiring routes (HR/Admin only) */}
-            <Route path="/hiring/jobs/new" element={<JobNew />} />
-            <Route path="/hiring/jobs/:id/edit" element={<JobEdit />} />
-            <Route path="/hiring/applications/:id" element={<ApplicationDetail />} />
-            <Route path="/hiring/applications/:id/interview" element={<InterviewSchedule />} />
+            {/* Hiring routes - Admin and HR Manager only */}
+            <Route
+              path="/hiring/jobs/new"
+              element={
+                <ProtectedRoute roles={['admin', 'hr_manager']}>
+                  <JobNew />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hiring/jobs/:id/edit"
+              element={
+                <ProtectedRoute roles={['admin', 'hr_manager']}>
+                  <JobEdit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hiring/applications/:id"
+              element={
+                <ProtectedRoute roles={['admin', 'hr_manager']}>
+                  <ApplicationDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hiring/applications/:id/interview"
+              element={
+                <ProtectedRoute roles={['admin', 'hr_manager']}>
+                  <InterviewSchedule />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           {/* Catch-all */}

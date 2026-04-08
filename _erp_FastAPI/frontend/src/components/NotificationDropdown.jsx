@@ -65,6 +65,10 @@ export default function NotificationDropdown() {
 
   // WebSocket for live notifications
   useEffect(() => {
+    // Only connect if we have a token
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
     let ws;
     const connect = () => {
       try {

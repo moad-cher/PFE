@@ -51,8 +51,18 @@ export const updateUserAvatar = (file) => {
 export const changePassword = (data) => api.post('/users/me/password', data);
 export const listUsers = () => api.get('/users/');
 export const getUser = (id) => api.get(`/users/${id}`);
-export const adminListUsers = () => api.get('/users/admin/all');
+
+// Admin endpoints
+export const adminListUsers = () => api.get('/admin/users');
+export const adminChangeRole = (id, role) => api.patch(`/admin/users/${id}/role`, { role });
+export const adminAssignDepartment = (id, department_id) => api.patch(`/admin/users/${id}/department`, { department_id });
+export const adminDeactivateUser = (id) => api.delete(`/admin/users/${id}`);
+export const adminGetStats = () => api.get('/admin/stats');
+
+// Legacy admin endpoints (backward compatibility)
+export const adminListUsersLegacy = () => api.get('/users/admin/all');
 export const adminUpdateUser = (id, data) => api.patch(`/users/admin/${id}`, data);
+
 export const listDepartments = () => api.get('/departments/');
 export const createDepartment = (data) => api.post('/departments/', data);
 export const updateDepartment = (id, data) => api.patch(`/departments/${id}`, data);
@@ -60,6 +70,7 @@ export const deleteDepartment = (id) => api.delete(`/departments/${id}`);
 
 // ===================== Projects =====================
 export const getDashboard = () => api.get('/projects/dashboard');
+export const getProjectStats = () => api.get('/projects/stats');
 export const listProjects = () => api.get('/projects/');
 export const createProject = (data) => api.post('/projects/', data);
 export const getProject = (pk) => api.get(`/projects/${pk}`);
@@ -122,6 +133,7 @@ export const analyzeApplication = (id) =>
 export const scheduleInterview = (id, data) =>
   api.post(`/hiring/applications/${id}/interviews`, data);
 export const getInterviews = (id) => api.get(`/hiring/applications/${id}/interviews`);
+export const getHRStats = () => api.get('/hiring/stats');
 
 // ===================== Notifications =====================
 export const listNotifications = () => api.get('/notifications/');
@@ -153,16 +165,25 @@ export const aiGenerateDescription = (title, contextType) =>
 // ===================== WebSocket helpers =====================
 export const createChatWS = (roomType, pk) => {
   const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token available');
+  }
   return new WebSocket(`${WS_BASE}/ws/chat/${roomType}/${pk}?token=${token}`);
 };
 
 export const createNotificationsWS = () => {
   const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token available');
+  }
   return new WebSocket(`${WS_BASE}/ws/notifications?token=${token}`);
 };
 
 export const createAIStreamWS = () => {
   const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token available');
+  }
   return new WebSocket(`${WS_BASE}/ws/ai/stream?token=${token}`);
 };
 

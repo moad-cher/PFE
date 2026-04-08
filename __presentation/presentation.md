@@ -300,21 +300,19 @@ DÉMONSTRATION LIVE:
 
 ## En Cours
 
-- Scrum Board (gestion des sprints, backlogs ...etc)
 - Analyse groupée de CV pour un poste
 - Visualisations (graphiques de progression)
+- Raffinement du système de permissions et roles
 
 ---
 
 ## Fonctionnalités Planifiées
 
 - @ mentions dans les commentaires et conversations
-- Programmation d'entretiens pour les candidats
+- Scrum Board (gestion des sprints, backlogs ...etc)
 - Diagramme de Gantt
 - Calendrier personnel
 - Gestion des départements et hiérarchie
-- Raffinement du système de permissions
-- Analytics et rapports
 
 ---
 

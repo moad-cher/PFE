@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.deps import get_db, get_current_user, require_roles
 from app.core.security import hash_password, verify_password
 from app.core.media import ensure_media_dir, get_media_url, AVATARS_DIR
-from app.users.models import Department, User
+from app.users.models import Department, User, RoleEnum, RoleEnum
 from app.projects.models import Project, Task, project_members, task_assignees
 from app.users.schemas import (
     DepartmentCreate, DepartmentRead,
@@ -18,6 +18,7 @@ from app.users.schemas import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
+admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 # ── User list / detail ──────────────────────────────────────────────────────
@@ -212,4 +213,107 @@ async def delete_department(
     if not dept:
         raise HTTPException(404, "Department not found")
     await db.delete(dept)
+    await db.commit()
+
+
+# ── Admin Router ──────────────────────────────────────────────────────────────
+
+@admin_router.get("/users", response_model=list[UserRead])
+async def admin_list_all_users(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin")),
+):
+    """Admin-only: list all users including inactive."""
+    result = await db.execute(select(User).order_by(User.username))
+    return result.scalars().all()
+
+
+@admin_router.get("/stats")
+async def admin_get_stats(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin")),
+):
+    """Admin-only: get system statistics."""
+    # Total users
+    total_result = await db.execute(select(func.count(User.id)))
+    total_users = total_result.scalar_one()
+    
+    # Active users
+    active_result = await db.execute(
+        select(func.count(User.id)).where(User.is_active == True)
+    )
+    active_count = active_result.scalar_one()
+    
+    # Inactive users
+    inactive_count = total_users - active_count
+    
+    # Departments count
+    dept_result = await db.execute(select(func.count(Department.id)))
+    departments_count = dept_result.scalar_one()
+    
+    return {
+        "total_users": total_users,
+        "active_count": active_count,
+        "inactive_count": inactive_count,
+        "departments_count": departments_count,
+    }
+
+
+@admin_router.patch("/users/{user_id}/role", response_model=UserRead)
+async def admin_change_role(
+    user_id: int,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    """Admin-only: change user role."""
+    if user_id == current_user.id:
+        raise HTTPException(400, "Admins cannot modify their own role")
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    
+    user.role = data.get("role")
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@admin_router.patch("/users/{user_id}/department", response_model=UserRead)
+async def admin_assign_department(
+    user_id: int,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin")),
+):
+    """Admin-only: assign user to department."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    
+    user.department_id = data.get("department_id")
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@admin_router.delete("/users/{user_id}", status_code=204)
+async def admin_deactivate_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    """Admin-only: deactivate user."""
+    if user_id == current_user.id:
+        raise HTTPException(400, "Admins cannot deactivate themselves")
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    
+    user.is_active = False
     await db.commit()

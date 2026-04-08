@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 
 function TaskCard({ task, projectId, isDragging }) {
   return (
-    <div className={`bg-white/95 rounded-2xl border border-purple-100/40 shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 rotate-2 scale-105' : 'hover:shadow-md card-hover'}`}>
+    <div className={`bg-white/95 rounded-2xl border border-purple-100/40 shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 cursor-grabbing' : 'hover:shadow-md card-hover'}`}>
       <Link to={`/projects/${projectId}/tasks/${task.id}`} className="block">
         <p className="font-medium text-sm text-gray-800 hover:text-purple-600 line-clamp-2 mb-2 transition-colors">{task.title}</p>
       </Link>
@@ -115,7 +115,7 @@ export default function KanbanBoard() {
           </div>
         </div>
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
+          <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-10rem)]">
             {columns.map((col, colIndex) => (
               <div key={col.status.id} className="flex-shrink-0 w-72">
                 <div className={`${colIndex % 2 === 0 ? 'rounded-2xl' : 'rounded-xl'} p-3 backdrop-blur-sm`} style={{ background: col.status.color + '18' }}>
@@ -140,6 +140,7 @@ export default function KanbanBoard() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
+                                style={{ ...provided.draggableProps.style, userSelect: 'none' }}
                               >
                                 <TaskCard task={task} projectId={pk} isDragging={snapshot.isDragging} />
                               </div>
@@ -147,7 +148,7 @@ export default function KanbanBoard() {
                           </Draggable>
                         ))}
                         {provided.placeholder}
-                        {col.tasks.length === 0 && !snapshot.isDraggingOver && (
+                        {col.tasks.length === 0 && snapshot.isDraggingOver && (
                           <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">
                             Drop tasks here
                           </div>

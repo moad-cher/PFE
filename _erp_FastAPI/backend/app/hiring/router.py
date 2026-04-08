@@ -3,7 +3,7 @@ import os
 
 import aiofiles
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -293,3 +293,57 @@ async def list_interviews(
         .order_by(Interview.scheduled_at)
     )
     return result.scalars().all()
+
+
+# ── HR Stats ──────────────────────────────────────────────────────────────────
+
+@router.get("/stats")
+async def hr_stats(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles(*_HR_ROLES)),
+):
+    """HR Manager stats: job postings, applicants, candidates per posting, avg AI score."""
+    # Total job postings
+    jobs_result = await db.execute(select(func.count(JobPosting.id)))
+    total_job_postings = jobs_result.scalar_one()
+    
+    # Total applicants
+    apps_result = await db.execute(select(func.count(Application.id)))
+    total_applicants = apps_result.scalar_one()
+    
+    # Candidates per posting (average)
+    if total_job_postings > 0:
+        candidates_per_posting = total_applicants / total_job_postings
+    else:
+        candidates_per_posting = 0
+    
+    # Average AI score
+    avg_score_result = await db.execute(
+        select(func.avg(Application.ai_score))
+        .where(Application.ai_score.is_not(None))
+    )
+    avg_ai_score = avg_score_result.scalar_one() or 0
+    
+    # Applications by status
+    status_result = await db.execute(
+        select(Application.status, func.count(Application.id))
+        .group_by(Application.status)
+    )
+    applications_by_status = {status.value: count for status, count in status_result.all()}
+    
+    # Open job postings
+    open_jobs_result = await db.execute(
+        select(func.count(JobPosting.id))
+        .where(JobPosting.status == JobStatusEnum.published)
+    )
+    open_postings = open_jobs_result.scalar_one()
+    
+    return {
+        "total_job_postings": total_job_postings,
+        "open_postings": open_postings,
+        "total_applicants": total_applicants,
+        "candidates_per_posting": round(candidates_per_posting, 2),
+        "avg_ai_score": round(float(avg_ai_score), 2) if avg_ai_score else 0,
+        "applications_by_status": applications_by_status,
+    }
+
