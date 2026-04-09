@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { listJobs } from '../../api';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
+import CreateJobModal from '../../components/CreateJobModal';
 
 const STATUS_STYLES = {
   published: 'bg-green-100 text-green-700',
@@ -24,6 +25,7 @@ export default function JobList() {
   const [jobs, setJobs] = useState([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [createJobOpen, setCreateJobOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -45,9 +47,9 @@ export default function JobList() {
           )} */}
         </div>
         {isHR && (
-          <Link to="/hiring/jobs/new" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+          <button type="button" onClick={() => setCreateJobOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             + New Job
-          </Link>
+          </button>
         )}
       </div>
 
@@ -90,6 +92,7 @@ export default function JobList() {
           ))}
         </div>
       )}
+      <CreateJobModal open={createJobOpen} onClose={() => setCreateJobOpen(false)} />
     </div>
   );
 }

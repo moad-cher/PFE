@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, listDepartments, createUser } from '../api';
+import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
 import Spinner from '../components/Spinner';
 
@@ -74,13 +74,29 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeactivate = async (userId, username) => {
-    if (!window.confirm(`Deactivate user "${username}"? They will no longer be able to log in.`)) return;
+  const handleToggleActive = async (userId, isActive) => {
+    if (isActive) {
+      if (!window.confirm('Deactivate user? They will no longer be able to log in.')) return;
+    }
     try {
-      await adminDeactivateUser(userId);
+      if (isActive) {
+        await adminDeactivateUser(userId);
+      } else {
+        await adminActivateUser(userId);
+      }
       await loadData();
     } catch (err) {
-      alert('Failed to deactivate user: ' + (err.response?.data?.detail || 'Unknown error'));
+      alert('Failed to update status: ' + (err.response?.data?.detail || 'Unknown error'));
+    }
+  };
+
+  const handleActivate = async (userId, username) => {
+    if (!window.confirm(`Activate user "${username}"? They will be able to log in.`)) return;
+    try {
+      await adminActivateUser(userId);
+      await loadData();
+    } catch (err) {
+      alert('Failed to activate user: ' + (err.response?.data?.detail || 'Unknown error'));
     }
   };
 
@@ -337,28 +353,27 @@ export default function AdminDashboard() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Department</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredAndSortedUsers.map((user) => (
-                <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'opacity-50' : ''}`}>
+                <tr key={user.id} className={`hover:bg-gray-50`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="font-medium text-gray-900">
+                      <div className={`font-medium ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>
                         {user.first_name} {user.last_name}
                       </div>
-                      <div className="text-sm text-gray-500">@{user.username}</div>
+                      <div className={`text-sm ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>@{user.username}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>
                     {user.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
                       value={user.role}
                       onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                      className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
                       disabled={!user.is_active}
                     >
                       {roleOptions.map((opt) => (
@@ -370,7 +385,8 @@ export default function AdminDashboard() {
                     <select
                       value={user.department?.id || ''}
                       onChange={(e) => handleChangeDepartment(user.id, e.target.value)}
-                      className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      // className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
                       disabled={!user.is_active}
                     >
                       <option value="">No Department</option>
@@ -380,25 +396,11 @@ export default function AdminDashboard() {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {user.is_active ? (
-                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.is_active && (
-                      <button
-                        onClick={() => handleDeactivate(user.id, user.username)}
-                        className="text-sm text-red-600 hover:text-red-800 font-medium"
-                      >
-                        Deactivate
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleToggleActive(user.id, user.is_active)}
+                      className={`px-2 py-1 text-xs font-medium rounded-full opacity-100 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300 ${user.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900' : 'bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900'}`}>
+                      {user.is_active ? 'Active' : 'Inactive'}
+                    </button>
                   </td>
                 </tr>
               ))}

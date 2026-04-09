@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getJob, getJobApplications, updateApplicationStatus } from '../../api';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
+import EditJobModal from '../../components/EditJobModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {
@@ -35,6 +36,7 @@ export default function JobDetail() {
   const [loading, setLoading] = useState(true);
 
   const isHR = ['admin', 'hr_manager'].includes(user?.role);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const p = [getJob(id)];
@@ -89,7 +91,7 @@ export default function JobDetail() {
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {isHR && (
-              <Link to={`/hiring/jobs/${id}/edit`} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</Link>
+              <button type="button" onClick={() => setEditOpen(true)} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</button>
             )}
             {job.status === 'published' ? (
               <Link to={`/hiring/jobs/${id}/apply`} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
@@ -157,6 +159,7 @@ export default function JobDetail() {
           </div>
         </div>
       )}
+      <EditJobModal open={editOpen} onClose={() => setEditOpen(false)} jobId={id} onSaved={(updated) => setJob(updated)} />
     </div>
   );
 }

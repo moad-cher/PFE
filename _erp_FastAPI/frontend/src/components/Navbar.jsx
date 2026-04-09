@@ -58,7 +58,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link to="/dashboard" style={{ fontFamily: 'lucida handwriting' /*'impact' */ }} className="text-purple-600 font-bold text-xl tracking-tight hover:text-purple-500 transition-colors">
+          <Link to="/dashboard" style={{ fontFamily: 'lucida handwriting' /*'impact' */ }} className="text-purple-300 font-bold text-xl tracking-tight hover:text-purple-600 transition-colors">
             ERP
           </Link>
 
@@ -148,7 +148,8 @@ export default function Navbar() {
                   </svg>
                   Notifications
                 </Link> */}
-                {user?.role === 'admin' && (
+                {/* admin or hr */}
+                {user?.role === 'admin' || user?.role === 'hr_manager' && (
                   <Link
                     to="/hiring/jobs"
                     onClick={() => setUserMenuOpen(false)}

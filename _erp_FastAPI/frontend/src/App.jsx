@@ -23,9 +23,7 @@ import ProjectChat from './pages/projects/ProjectChat';
 import TaskChat from './pages/projects/TaskChat';
 
 import JobList from './pages/hiring/JobList';
-import JobNew from './pages/hiring/JobNew';
 import JobDetail from './pages/hiring/JobDetail';
-import JobEdit from './pages/hiring/JobEdit';
 import Apply from './pages/hiring/Apply';
 import ApplySuccess from './pages/hiring/ApplySuccess';
 import ApplicationDetail from './pages/hiring/ApplicationDetail';
@@ -122,22 +120,6 @@ export default function App() {
             <Route path="/projects/:pk/chat" element={<ProjectChat />} />
 
             {/* Hiring routes - Admin and HR Manager only */}
-            <Route
-              path="/hiring/jobs/new"
-              element={
-                <ProtectedRoute roles={['admin', 'hr_manager']}>
-                  <JobNew />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/hiring/jobs/:id/edit"
-              element={
-                <ProtectedRoute roles={['admin', 'hr_manager']}>
-                  <JobEdit />
-                </ProtectedRoute>
-              }
-            />
             <Route
               path="/hiring/applications/:id"
               element={

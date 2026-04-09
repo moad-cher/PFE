@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getHRStats, listApplications, listJobs, createUser } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
+import CreateJobModal from '../components/CreateJobModal';
 import Spinner from '../components/Spinner';
 
 function StatCard({ icon, label, value, color }) {
@@ -26,6 +27,7 @@ export default function HRDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [createJobOpen, setCreateJobOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -142,12 +144,30 @@ export default function HRDashboard() {
         <button
           type="button"
           onClick={() => setCreateUserOpen(true)}
-          className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white card-hover group text-left"
+          className="bg-purple-300 rounded-xl p-6 card-hover group text-left"
         >
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-lg mb-1">Create User</h3>
-              <p className="text-purple-100 text-sm">Add a new employee account</p>
+              <p className="text-purple-500 text-sm">Add a new employee account</p>
+            </div>
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCreateJobOpen(true)}
+          className="bg-purple-300 rounded-xl p-6 card-hover group text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg mb-1">Create Job Posting</h3>
+              <p className="text-purple-500 text-sm">Post a new job opportunity</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,30 +178,13 @@ export default function HRDashboard() {
         </button>
 
         <Link
-          to="/hiring/jobs/new"
-          className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white card-hover group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-lg mb-1">Create Job Posting</h3>
-              <p className="text-purple-100 text-sm">Post a new job opportunity</p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-          </div>
-        </Link>
-
-        <Link
           to="/hiring/jobs"
-          className="bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl p-6 text-white card-hover group"
+          className="bg-purple-300 rounded-xl p-6 card-hover group"
         >
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-lg mb-1">Manage Job Postings</h3>
-              <p className="text-blue-100 text-sm">View and edit all postings</p>
+              <p className="text-purple-500 text-sm">View and edit all postings</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,6 +200,11 @@ export default function HRDashboard() {
         onClose={() => setCreateUserOpen(false)}
         onSubmit={handleCreateUser}
         roleOptions={roleOptions}
+      />
+
+      <CreateJobModal
+        open={createJobOpen}
+        onClose={() => setCreateJobOpen(false)}
       />
 
       {/* Applications by Status */}

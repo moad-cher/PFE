@@ -57,6 +57,7 @@ export const adminListUsers = () => api.get('/admin/users');
 export const adminChangeRole = (id, role) => api.patch(`/admin/users/${id}/role`, { role });
 export const adminAssignDepartment = (id, department_id) => api.patch(`/admin/users/${id}/department`, { department_id });
 export const adminDeactivateUser = (id) => api.delete(`/admin/users/${id}`);
+export const adminActivateUser = (id) => api.patch(`/users/admin/${id}`, { is_active: true });
 export const adminGetStats = () => api.get('/admin/stats');
 
 // Legacy admin endpoints (backward compatibility)
