@@ -165,7 +165,7 @@ export const aiGenerateDescription = (title, contextType) =>
 // ===================== WebSocket helpers =====================
 export const createChatWS = (roomType, pk) => {
   const token = localStorage.getItem('token');
-  if (!token) {
+    if (!token) {
     throw new Error('No authentication token available');
   }
   return new WebSocket(`${WS_BASE}/ws/chat/${roomType}/${pk}?token=${token}`);

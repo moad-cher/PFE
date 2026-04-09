@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, listDepartments } from '../api';
 import Spinner from '../components/Spinner';
 
@@ -24,6 +24,12 @@ export default function AdminDashboard() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   useEffect(() => {
     loadData();
@@ -76,6 +82,64 @@ export default function AdminDashboard() {
     }
   };
 
+  const roleOptions = [
+    { value: 'team_member', label: 'Team Member' },
+    { value: 'project_manager', label: 'Project Manager' },
+    { value: 'hr_manager', label: 'HR Manager' },
+    { value: 'admin', label: 'Admin' },
+  ];
+
+  const filteredAndSortedUsers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const filtered = users.filter((user) => {
+      const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const departmentName = (user.department?.name || '').toLowerCase();
+
+      const matchesSearch = !normalizedSearch
+        || fullName.includes(normalizedSearch)
+        || username.includes(normalizedSearch)
+        || email.includes(normalizedSearch)
+        || departmentName.includes(normalizedSearch);
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'active' && user.is_active)
+        || (statusFilter === 'inactive' && !user.is_active);
+      const matchesDepartment = departmentFilter === 'all'
+        || String(user.department?.id || '') === departmentFilter;
+
+      return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
+    });
+
+    return [...filtered].sort((a, b) => {
+      let aValue = '';
+      let bValue = '';
+
+      if (sortBy === 'name') {
+        aValue = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+        bValue = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+      } else if (sortBy === 'email') {
+        aValue = (a.email || '').toLowerCase();
+        bValue = (b.email || '').toLowerCase();
+      } else if (sortBy === 'role') {
+        aValue = (a.role || '').toLowerCase();
+        bValue = (b.role || '').toLowerCase();
+      } else if (sortBy === 'department') {
+        aValue = (a.department?.name || '').toLowerCase();
+        bValue = (b.department?.name || '').toLowerCase();
+      } else if (sortBy === 'status') {
+        aValue = a.is_active ? 'active' : 'inactive';
+        bValue = b.is_active ? 'active' : 'inactive';
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [users, searchTerm, roleFilter, statusFilter, departmentFilter, sortBy, sortOrder]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -91,13 +155,6 @@ export default function AdminDashboard() {
       </div>
     );
   }
-
-  const roleOptions = [
-    { value: 'team_member', label: 'Team Member' },
-    { value: 'project_manager', label: 'Project Manager' },
-    { value: 'hr_manager', label: 'HR Manager' },
-    { value: 'admin', label: 'Admin' },
-  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -184,7 +241,72 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
-          <p className="text-sm text-gray-600 mt-1">{users.length} total users</p>
+          <p className="text-sm text-gray-600 mt-1">
+            {filteredAndSortedUsers.length} shown of {users.length} total users
+          </p>
+        </div>
+
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search name, username, email..."
+              className="lg:col-span-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Roles</option>
+              {roleOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Departments</option>
+              <option value="">No Department</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={String(dept.id)}>{dept.name}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="name">Sort: Name</option>
+                <option value="email">Sort: Email</option>
+                <option value="role">Sort: Role</option>
+                <option value="department">Sort: Department</option>
+                <option value="status">Sort: Status</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -200,7 +322,7 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {users.map((user) => (
+              {filteredAndSortedUsers.map((user) => (
                 <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'opacity-50' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
