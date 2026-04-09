@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getMe, authLogin, authRegister } from '../api';
+import { getMe, authLogin } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -35,11 +35,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const register = async (userData) => {
-    const res = await authRegister(userData);
-    return res.data;
-  };
-
   const refreshUser = async () => {
     const res = await getMe();
     setUser(res.data);
@@ -47,8 +42,8 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, setUser, loading, login, logout, register, refreshUser }}
+      <AuthContext.Provider
+      value={{ user, setUser, loading, login, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

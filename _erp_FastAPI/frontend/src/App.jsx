@@ -4,7 +4,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Unauthorized from './pages/Unauthorized';
@@ -73,7 +72,7 @@ export default function App() {
           {/* Public routes */}
           <Route element={<PublicLayout />}>
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<Navigate to="/login" replace />} />
             <Route path="/hiring/jobs" element={<JobList />} />
             <Route path="/hiring/jobs/:id" element={<JobDetail />} />
             <Route path="/hiring/jobs/:id/apply" element={<Apply />} />

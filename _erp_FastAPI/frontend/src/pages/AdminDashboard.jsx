@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, listDepartments } from '../api';
+import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, listDepartments, createUser } from '../api';
+import CreateUserModal from '../components/CreateUserModal';
 import Spinner from '../components/Spinner';
 
 function StatCard({ icon, label, value, color }) {
@@ -30,6 +31,7 @@ export default function AdminDashboard() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [createUserOpen, setCreateUserOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -88,6 +90,11 @@ export default function AdminDashboard() {
     { value: 'hr_manager', label: 'HR Manager' },
     { value: 'admin', label: 'Admin' },
   ];
+
+  const handleCreateUser = async (userData) => {
+    await createUser(userData);
+    await loadData();
+  };
 
   const filteredAndSortedUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -239,11 +246,23 @@ export default function AdminDashboard() {
 
       {/* User Management Table */}
       <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {filteredAndSortedUsers.length} shown of {users.length} total users
-          </p>
+        <div className="p-6 border-b border-gray-200 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {filteredAndSortedUsers.length} shown of {users.length} total users
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreateUserOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create User
+          </button>
         </div>
 
         <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -387,6 +406,13 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      <CreateUserModal
+        open={createUserOpen}
+        onClose={() => setCreateUserOpen(false)}
+        onSubmit={handleCreateUser}
+        roleOptions={roleOptions}
+      />
     </div>
   );
 }

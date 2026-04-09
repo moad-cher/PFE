@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getHRStats, listApplications, listJobs } from '../api';
+import { getHRStats, listApplications, listJobs, createUser } from '../api';
+import CreateUserModal from '../components/CreateUserModal';
 import Spinner from '../components/Spinner';
 
 function StatCard({ icon, label, value, color }) {
@@ -24,6 +25,7 @@ export default function HRDashboard() {
   const [recentApplications, setRecentApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [createUserOpen, setCreateUserOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -70,6 +72,17 @@ export default function HRDashboard() {
       rejected: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const roleOptions = [
+    { value: 'team_member', label: 'Team Member' },
+    { value: 'project_manager', label: 'Project Manager' },
+    { value: 'hr_manager', label: 'HR Manager' },
+    { value: 'admin', label: 'Admin' },
+  ];
+
+  const handleCreateUser = async (userData) => {
+    await createUser(userData);
   };
 
   return (
@@ -125,7 +138,25 @@ export default function HRDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <button
+          type="button"
+          onClick={() => setCreateUserOpen(true)}
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white card-hover group text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg mb-1">Create User</h3>
+              <p className="text-purple-100 text-sm">Add a new employee account</p>
+            </div>
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+          </div>
+        </button>
+
         <Link
           to="/hiring/jobs/new"
           className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white card-hover group"
@@ -160,6 +191,13 @@ export default function HRDashboard() {
           </div>
         </Link>
       </div>
+
+      <CreateUserModal
+        open={createUserOpen}
+        onClose={() => setCreateUserOpen(false)}
+        onSubmit={handleCreateUser}
+        roleOptions={roleOptions}
+      />
 
       {/* Applications by Status */}
       {stats?.applications_by_status && Object.keys(stats.applications_by_status).length > 0 && (

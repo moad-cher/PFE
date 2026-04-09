@@ -36,7 +36,7 @@ export const authLogin = (username, password) => {
   return api.post('/auth/token', params);
 };
 
-export const authRegister = (userData) => api.post('/auth/register', userData);
+export const createUser = (userData) => api.post('/auth/register', userData);
 export const getMe = () => api.get('/auth/me');
 
 // ===================== Users =====================

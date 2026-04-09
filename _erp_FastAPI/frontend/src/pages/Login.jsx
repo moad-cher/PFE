@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 
@@ -102,10 +102,7 @@ export default function Login() {
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 font-medium hover:underline">
-              Register
-            </Link>
+            Need an account? Contact an admin or HR manager.
           </p>
         </div>
       </div>
