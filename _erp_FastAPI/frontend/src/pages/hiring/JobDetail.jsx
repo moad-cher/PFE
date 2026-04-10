@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { getJob, getJobApplications, updateApplicationStatus } from '../../api';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { getJob, getJobApplications, updateApplicationStatus, deleteJob } from '../../api';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import EditJobModal from '../../components/EditJobModal';
@@ -47,9 +47,23 @@ export default function JobDetail() {
     }).finally(() => setLoading(false));
   }, [id, isHR]);
 
+  const navigate = useNavigate();
+
   const changeStatus = async (appId, status) => {
     await updateApplicationStatus(appId, status);
     setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+  };
+
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const handleDelete = async () => {
+    try {
+      await deleteJob(id);
+      navigate('/hiring/jobs');
+    } catch (err) {
+      console.error('Failed to delete job', err);
+      // Could show an error UI here
+      setDeleteConfirm(false);
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
@@ -91,7 +105,33 @@ export default function JobDetail() {
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {isHR && (
-              <button type="button" onClick={() => setEditOpen(true)} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</button>
+              <>
+                <button type="button" onClick={() => setEditOpen(true)} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</button>
+                {deleteConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-red-600">Sure?</span>
+                    <button
+                      onClick={handleDelete}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    className="px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors"
+                  >
+                    Delete
+                  </button>
+                )}
+              </>
             )}
             {job.status === 'published' ? (
               <Link to={`/hiring/jobs/${id}/apply`} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
