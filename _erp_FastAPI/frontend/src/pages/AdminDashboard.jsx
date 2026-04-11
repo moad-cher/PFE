@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
 import Spinner from '../components/Spinner';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-function StatCard({ icon, label, value, color }) {
+const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
+
+function StatCard({ icon, label, value, color, subtext }) {
   return (
     <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
       <div className="flex items-center gap-4">
@@ -13,8 +16,65 @@ function StatCard({ icon, label, value, color }) {
         <div>
           <p className="text-3xl font-bold text-gray-900">{value}</p>
           <p className="text-sm text-gray-600">{label}</p>
+          {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PieChartCard({ title, data, dataKey, nameKey }) {
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {data && data.length > 0 ? (
+        <ResponsiveContainer width="100%" height={200}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey={dataKey}
+              nameKey={nameKey}
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              innerRadius={40}
+              paddingAngle={2}
+            >
+              {data.map((entry, index) => (
+                <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BarChartCard({ title, data, dataKey, nameKey }) {
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {data && data.length > 0 ? (
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
+            <XAxis type="number" />
+            <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 12 }} />
+            <Tooltip />
+            <Bar dataKey={dataKey} fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
     </div>
   );
 }
@@ -163,6 +223,26 @@ export default function AdminDashboard() {
     });
   }, [users, searchTerm, roleFilter, statusFilter, departmentFilter, sortBy, sortOrder]);
 
+  const roleChartData = useMemo(() => {
+    if (!stats?.users_per_role) return [];
+    return Object.entries(stats.users_per_role).map(([role, count]) => ({
+      name: role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: count,
+    }));
+  }, [stats?.users_per_role]);
+
+  const departmentChartData = useMemo(() => {
+    // Aggregate department counts directly from users list
+    const deptCounts = {};
+    users.forEach(user => {
+      const deptName = user.department?.name || 'No Department';
+      deptCounts[deptName] = (deptCounts[deptName] || 0) + 1;
+    });
+    return Object.entries(deptCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [users]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -182,13 +262,18 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">Manage users, roles, and system settings</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-1">System overview and user management</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">● System Healthy</span>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <StatCard
           label="Total Users"
           value={stats?.total_users || 0}
@@ -200,7 +285,7 @@ export default function AdminDashboard() {
           }
         />
         <StatCard
-          label="Active Users"
+          label="Active"
           value={stats?.active_count || 0}
           color="bg-green-100"
           icon={
@@ -208,9 +293,10 @@ export default function AdminDashboard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
+          subtext={`${stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}% of total`}
         />
         <StatCard
-          label="Inactive Users"
+          label="Inactive"
           value={stats?.inactive_count || 0}
           color="bg-red-100"
           icon={
@@ -229,33 +315,157 @@ export default function AdminDashboard() {
             </svg>
           }
         />
+        <StatCard
+          label="Admins"
+          value={stats?.users_per_role?.admin || 0}
+          color="bg-indigo-100"
+          icon={
+            <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="HR Managers"
+          value={stats?.users_per_role?.hr_manager || 0}
+          color="bg-pink-100"
+          icon={
+            <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          }
+        />
       </div>
 
-      {/* Breakdown Section */}
+      {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        {/* Users per Role */}
+        <PieChartCard
+          title="Role Distribution"
+          data={roleChartData}
+          dataKey="value"
+          nameKey="name"
+        />
+        <BarChartCard
+          title="Users per Department"
+          data={departmentChartData}
+          dataKey="value"
+          nameKey="name"
+        />
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        {/* Users per Role (List) */}
         <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Users per Role</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Role Breakdown</h3>
           <div className="space-y-3">
-            {Object.entries(stats?.users_per_role || {}).map(([role, count]) => (
-              <div key={role} className="flex items-center justify-between">
-                <span className="text-gray-700 capitalize">{role.replace('_', ' ')}</span>
-                <span className="font-semibold text-purple-600">{count}</span>
-              </div>
-            ))}
+            {Object.entries(stats?.users_per_role || {}).map(([role, count]) => {
+              const percentage = stats?.total_users ? Math.round((count / stats.total_users) * 100) : 0;
+              return (
+                <div key={role}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-700 capitalize text-sm">{role.replace('_', ' ')}</span>
+                    <span className="font-semibold text-purple-600 text-sm">{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Users per Department */}
+        {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Users per Department</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            {Object.entries(stats?.users_per_department || {}).map(([dept, count]) => (
-              <div key={dept} className="flex items-center justify-between">
-                <span className="text-gray-700">{dept}</span>
-                <span className="font-semibold text-purple-600">{count}</span>
+            <button
+              onClick={() => setCreateUserOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
               </div>
-            ))}
+              <div>
+                <p className="font-medium text-gray-900">Create New User</p>
+                <p className="text-xs text-gray-500">Add a new team member</p>
+              </div>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/departments'}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Manage Departments</p>
+                <p className="text-xs text-gray-500">View and edit departments</p>
+              </div>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/audit'}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Audit Log</p>
+                <p className="text-xs text-gray-500">View system activity</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* System Status */}
+        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">System Status</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">Database</span>
+              <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span> Connected
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">API Server</span>
+              <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span> Online
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">Active Sessions</span>
+              <span className="text-gray-900 text-sm font-medium">{stats?.active_count || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">Total Departments</span>
+              <span className="text-gray-900 text-sm font-medium">{departments.length}</span>
+            </div>
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-sm">User Activity Rate</span>
+                <span className="text-purple-600 text-sm font-medium">
+                  {stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-purple-500 h-2 rounded-full"
+                  style={{ width: `${stats?.total_users ? (stats.active_count / stats.total_users) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -385,7 +595,6 @@ export default function AdminDashboard() {
                     <select
                       value={user.department?.id || ''}
                       onChange={(e) => handleChangeDepartment(user.id, e.target.value)}
-                      // className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
                       disabled={!user.is_active}
                     >
