@@ -1,3 +1,4 @@
+REM filepath: c:\Users\acer\Desktop\stage\_erp_FastAPI\run_project.bat
 @echo off
 setlocal
 
@@ -30,8 +31,13 @@ start "FastAPI Backend" cmd /k "cd /d "%BACKEND_DIR%" && python -m uvicorn app.m
 
 timeout /t 2 /nobreak > nul
 
-echo [2/2] Starting frontend on localhost:5173 (integrated terminal) ...
-cd /d "%FRONTEND_DIR%"
-npm run dev
+echo [2/2] Starting frontend on localhost:5173 (external window) ...
+start "React Frontend" cmd /k "cd /d "%FRONTEND_DIR%" && npm run dev"
+
+echo.
+echo Both services are starting in separate windows.
+echo Backend: http://localhost:8001
+echo Frontend: http://localhost:5173
+echo.
 
 exit /b 0
