@@ -92,16 +92,19 @@ async def get_hr_pipeline(
         .order_by(JobPosting.created_at.desc())
     )
 
+    # Bulk status breakdown — one query instead of N per-job queries
+    status_bulk = await db.execute(
+        select(Application.job_id, Application.status, func.count(Application.id))
+        .group_by(Application.job_id, Application.status)
+    )
+    # Map: job_id -> {status_value: count}
+    status_map: dict[int, dict[str, int]] = {}
+    for job_id, status, cnt in status_bulk.all():
+        status_map.setdefault(job_id, {})[str(status.value)] = cnt
+
     jobs_data = []
     for row in jobs_result.all():
-        # Get status breakdown for this job
-        status_result = await db.execute(
-            select(Application.status, func.count(Application.id))
-            .where(Application.job_id == row.id)
-            .group_by(Application.status)
-        )
-        status_breakdown = {str(s.value): c for s, c in status_result.all()}
-
+        status_breakdown = status_map.get(row.id, {})
         jobs_data.append({
             "id": row.id,
             "title": row.title,
@@ -331,8 +334,11 @@ async def get_team_member_performance(
     active_tasks = [t for t in all_tasks if t.status != "done"]
 
     # On-time vs late completions
-    today = date.today()
-    on_time = sum(1 for t in done_tasks if t.deadline and t.deadline >= today)
+    on_time = sum(
+        1
+        for t in done_tasks
+        if t.deadline and t.completed_at and t.completed_at.date() <= t.deadline
+    )
     late = len(done_tasks) - on_time
 
     # Points history (last 30 days)
@@ -357,11 +363,18 @@ async def get_team_member_performance(
     for t in all_tasks:
         status_counts[t.status] = status_counts.get(t.status, 0) + 1
 
-    # Project distribution
-    project_counts = {}
+    # Project × Status distribution — one pass, grouped
+    project_status_map: dict[str, dict[str, int]] = {}
     for t in all_tasks:
         proj_name = t.project.name if t.project else "Unknown"
-        project_counts[proj_name] = project_counts.get(proj_name, 0) + 1
+        project_status_map.setdefault(proj_name, {})
+        project_status_map[proj_name][t.status] = project_status_map[proj_name].get(t.status, 0) + 1
+
+    # Build ordered list for chart: top 5 projects by total, include all known statuses
+    project_distribution = [
+        {"project": p, "total": sum(v.values()), **v}
+        for p, v in sorted(project_status_map.items(), key=lambda x: sum(x[1].values()), reverse=True)[:5]
+    ]
 
     return {
         "summary": {
@@ -374,5 +387,5 @@ async def get_team_member_performance(
         },
         "points_history": points_history,
         "status_distribution": status_counts,
-        "project_distribution": project_counts,
+        "project_distribution": project_distribution,
     }

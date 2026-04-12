@@ -78,7 +78,7 @@ function PieChartCard({ title, data, dataKey, nameKey, colorByName = {} }) {
   );
 }
 
-function BarChartCard({ title, data, dataKey, nameKey, color = KANBAN_STATUS_COLORS.review }) {
+function BarChartCard({ title, data, dataKey, nameKey, color = KANBAN_STATUS_COLORS.review, stacked = false }) {
   const chartData = (data || []).map(item => ({
     ...item,
     [dataKey]: Number(item?.[dataKey]) || 0,
@@ -90,10 +90,20 @@ function BarChartCard({ title, data, dataKey, nameKey, color = KANBAN_STATUS_COL
       {chartData.length > 0 ? (
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ left: 20 }}>
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 11 }} />
+            <XAxis type="category" dataKey={nameKey} tick={{ fontSize: 11 }} />
+            <YAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip />
-            <Bar dataKey={dataKey} fill={color} radius={[0, 4, 4, 0]} minPointSize={2} />
+            <Legend />
+            {stacked ? (
+              <>
+                <Bar dataKey="todo" stackId="status" fill={KANBAN_STATUS_COLORS.todo} name="To Do" radius={[0, 0, 0, 0]} minPointSize={2} />
+                <Bar dataKey="in_progress" stackId="status" fill={KANBAN_STATUS_COLORS.in_progress} name="In Progress" radius={[0, 0, 0, 0]} minPointSize={2} />
+                <Bar dataKey="review" stackId="status" fill={KANBAN_STATUS_COLORS.review} name="Review" radius={[0, 0, 0, 0]} minPointSize={2} />
+                <Bar dataKey="done" stackId="status" fill={KANBAN_STATUS_COLORS.done} name="Done" radius={[0, 4, 4, 0]} minPointSize={2} />
+              </>
+            ) : (
+              <Bar dataKey={dataKey} fill={color} radius={[0, 4, 4, 0]} minPointSize={2} />
+            )}
           </BarChart>
         </ResponsiveContainer>
       ) : (
@@ -201,13 +211,17 @@ export default function TeamMemberDashboard() {
     }));
   }, [performance?.status_distribution]);
 
-  // Project distribution for chart
+  // Project distribution for chart — new shape: [{project, total, todo, in_progress, review, done}, ...]
   const projectData = useMemo(() => {
     if (!performance?.project_distribution) return [];
-    return Object.entries(performance.project_distribution)
-      .map(([name, value]) => ({ name, value: Number(value) || 0 }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+    return performance.project_distribution.map(d => ({
+      project: d.project,
+      total: d.total,
+      todo: d.todo || 0,
+      in_progress: d.in_progress || 0,
+      review: d.review || 0,
+      done: d.done || 0,
+    }));
   }, [performance?.project_distribution]);
 
   // Points history for line chart
@@ -395,9 +409,8 @@ export default function TeamMemberDashboard() {
         <BarChartCard
           title="Projects"
           data={projectData}
-          dataKey="value"
-          nameKey="name"
-          color={KANBAN_STATUS_COLORS.review}
+          nameKey="project"
+          stacked={true}
         />
         <LineChartCard
           title="Points History"
