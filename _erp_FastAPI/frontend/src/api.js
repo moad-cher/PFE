@@ -188,6 +188,13 @@ export const createAIStreamWS = () => {
   return new WebSocket(`${WS_BASE}/ws/ai/stream?token=${token}`);
 };
 
+// ===================== Analytics =====================
+export const getAdminActivityTrend = (days = 30) => api.get(`/analytics/admin/activity-trend?days=${days}`);
+export const getHRPipeline = () => api.get('/analytics/hr/pipeline');
+export const getProjectOverview = (projectId) => api.get(`/analytics/project/${projectId}/overview`);
+export const getProjectManagerOverview = () => api.get('/analytics/project-manager/overview');
+export const getTeamMemberPerformance = () => api.get('/analytics/team-member/performance');
+
 // ===================== Utility =====================
 export const relativeTime = (dateStr) => {
   if (!dateStr) return '';

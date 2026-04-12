@@ -1,29 +1,157 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getHRStats, listApplications, listJobs, createUser } from '../api';
+import { getHRStats, listApplications, listJobs, createUser, getHRPipeline } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
 import CreateJobModal from '../components/CreateJobModal';
 import Spinner from '../components/Spinner';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, FunnelChart, Funnel, LabelList } from 'recharts';
 
-function StatCard({ icon, label, value, color }) {
+const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
+const HR_PIPELINE_COLORS = {
+  pending: '#e74c3c',
+  reviewed: '#3498db',
+  interview: '#f39c12',
+  accepted: '#2ecc71',
+  rejected: '#6b7280',
+};
+
+function StatCard({ icon, label, value, color, trend }) {
   return (
     <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-          {icon}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
+            {icon}
+          </div>
+          <div>
+            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-gray-600">{label}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-600">{label}</p>
-        </div>
+        {trend && (
+          <span className={`text-sm font-medium ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {trend > 0 ? '+' : ''}{trend}%
+          </span>
+        )}
       </div>
+    </div>
+  );
+}
+
+function PieChartCard({ title, data, dataKey, nameKey }) {
+  const chartData = (data || []).map(item => ({
+    ...item,
+    [dataKey]: Number(item?.[dataKey]) || 0,
+  }));
+
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey={dataKey}
+              nameKey={nameKey}
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              innerRadius={40}
+              paddingAngle={2}
+              label={({ payload }) => `${payload?.[nameKey] || ''}: ${payload?.[dataKey] || 0}`}
+              labelLine={false}
+            >
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`${entry?.[nameKey] || index}`}
+                  fill={entry.fill || CHART_COLORS[index % CHART_COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BarChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
+  const chartData = (data || []).map(item => ({
+    ...item,
+    [dataKey]: Number(item?.[dataKey]) || 0,
+  }));
+
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} angle={-10} textAnchor="end" height={60} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} minPointSize={2} />
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunnelChartCard({ title, data }) {
+  const chartData = (data || []).map(item => ({
+    ...item,
+    value: Number(item?.value) || 0,
+  }));
+
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <FunnelChart>
+            <Funnel
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              isAnimationActive={true}
+              labelLine={false}
+            >
+              <LabelList position="right" fill="#000" stroke="none" dataKey="name" style={{ fontSize: 12 }} />
+              <LabelList position="center" fill="#fff" stroke="none" dataKey="value" style={{ fontSize: 14, fontWeight: 'bold' }} />
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill || CHART_COLORS[index % CHART_COLORS.length]} />
+              ))}
+            </Funnel>
+            <Tooltip />
+          </FunnelChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
     </div>
   );
 }
 
 export default function HRDashboard() {
   const [stats, setStats] = useState(null);
+  const [pipeline, setPipeline] = useState(null);
   const [recentApplications, setRecentApplications] = useState([]);
+  const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -35,12 +163,16 @@ export default function HRDashboard() {
 
   const loadData = async () => {
     try {
-      const [statsRes, appsRes] = await Promise.all([
+      const [statsRes, appsRes, jobsRes, pipelineRes] = await Promise.all([
         getHRStats(),
         listApplications(),
+        listJobs(),
+        getHRPipeline(),
       ]);
       setStats(statsRes.data);
-      setRecentApplications(appsRes.data.slice(0, 10)); // Get 10 most recent
+      setRecentApplications(appsRes.data.slice(0, 10));
+      setRecentJobs(jobsRes.data.slice(0, 5));
+      setPipeline(pipelineRes.data);
     } catch (err) {
       setError('Failed to load HR dashboard');
       console.error(err);
@@ -48,22 +180,6 @@ export default function HRDashboard() {
       setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">{error}</div>
-      </div>
-    );
-  }
 
   const getStatusColor = (status) => {
     const colors = {
@@ -87,12 +203,59 @@ export default function HRDashboard() {
     await createUser(userData);
   };
 
+  // AI Score distribution chart data
+  const aiScoreData = useMemo(() => {
+    if (!pipeline?.ai_score_distribution) return [];
+    return pipeline.ai_score_distribution.map(item => ({
+      category: item.category,
+      count: Number(item.count) || 0,
+    }));
+  }, [pipeline?.ai_score_distribution]);
+
+  // Application status funnel data
+  const funnelData = useMemo(() => {
+    if (!stats?.applications_by_status) return [];
+    const statusOrder = ['pending', 'reviewed', 'interview', 'accepted'];
+    return statusOrder
+      .map(status => ({
+        name: status.charAt(0).toUpperCase() + status.slice(1),
+        value: Number(stats.applications_by_status[status]) || 0,
+        fill: HR_PIPELINE_COLORS[status],
+      }))
+      .filter(d => d.value > 0);
+  }, [stats?.applications_by_status]);
+
+  // Jobs with applications bar chart
+  const jobsChartData = useMemo(() => {
+    if (!pipeline?.jobs) return [];
+    return pipeline.jobs.slice(0, 8).map(job => ({
+      name: job.title.length > 20 ? job.title.slice(0, 20) + '...' : job.title,
+      applications: Number(job.total_applications) || 0,
+    }));
+  }, [pipeline?.jobs]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">{error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">HR Manager Dashboard</h1>
-        <p className="text-gray-600 mt-1">Manage job postings and candidate applications</p>
+        <p className="text-gray-600 mt-1">Manage recruiting pipeline and candidate applications</p>
       </div>
 
       {/* Stats Cards */}
@@ -138,6 +301,33 @@ export default function HRDashboard() {
           }
         />
       </div>
+
+      {/* Conversion Metrics */}
+      {pipeline?.conversion_metrics && (
+        <div className="bg-white rounded-2xl p-6 border border-purple-100/50 shadow-lilac mb-8">
+          <h2 className="text-xl font-semibold mb-4">Recruiting Conversion Metrics</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-gray-500 text-sm">Total Applications</p>
+              <p className="text-3xl font-bold">{pipeline.conversion_metrics.total_applications}</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Interviews</p>
+              <p className="text-3xl font-bold">{pipeline.conversion_metrics.interviewed}</p>
+              <p className="text-xs text-gray-500">{pipeline.conversion_metrics.interview_rate}% rate</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Accepted</p>
+              <p className="text-3xl font-bold">{pipeline.conversion_metrics.accepted}</p>
+              <p className="text-xs text-gray-500">{pipeline.conversion_metrics.conversion_rate}% rate</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Avg per Job</p>
+              <p className="text-3xl font-bold">{stats?.candidates_per_posting?.toFixed(1) || '0.0'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -207,16 +397,70 @@ export default function HRDashboard() {
         onClose={() => setCreateJobOpen(false)}
       />
 
+      {/* Charts Row */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        <BarChartCard
+          title="AI Score Distribution"
+          data={aiScoreData}
+          dataKey="count"
+          nameKey="category"
+          color="#3498db"
+        />
+        <BarChartCard
+          title="Applications per Job"
+          data={jobsChartData}
+          dataKey="applications"
+          nameKey="name"
+          color="#10B981"
+        />
+        <FunnelChartCard
+          title="Recruitment Funnel"
+          data={funnelData}
+        />
+      </div>
+
       {/* Applications by Status */}
       {stats?.applications_by_status && Object.keys(stats.applications_by_status).length > 0 && (
         <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
           <h3 className="font-semibold text-gray-900 mb-4">Applications by Status</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {Object.entries(stats.applications_by_status).map(([status, count]) => (
-              <div key={status} className="text-center">
+              <div key={status} className="text-center p-4 rounded-lg bg-gray-50">
                 <p className="text-2xl font-bold text-gray-900">{count}</p>
                 <p className="text-sm text-gray-600 capitalize">{status}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Jobs */}
+      {recentJobs.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Active Job Postings</h2>
+            <Link to="/hiring/jobs" className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+              View all
+            </Link>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentJobs.map((job) => (
+              <Link
+                key={job.id}
+                to={`/hiring/jobs/${job.id}`}
+                className="block p-4 rounded-xl border border-purple-100 bg-purple-50 hover:bg-purple-100 transition-colors"
+              >
+                <h4 className="font-semibold text-gray-900 truncate">{job.title}</h4>
+                <p className="text-sm text-gray-600 mt-1">{job.department || 'All Departments'}</p>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs bg-white px-2 py-1 rounded-full text-purple-600">
+                    {job.applications_count || 0} applicants
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${job.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {job.status}
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         </div>

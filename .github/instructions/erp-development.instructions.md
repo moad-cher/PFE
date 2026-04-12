@@ -18,7 +18,7 @@ applyTo: "_erp_FastAPI/{frontend,backend}/**"
 - Frontend API helper: `frontend/src/api.js`
 
 ## Backend layout (`_erp_FastAPI/backend/app`)
-- Domains: `auth`, `users`, `projects`, `tasks`, `hiring`, `notifications`, `messaging`, `ai`
+- Domains: `auth`, `users` (includes `admin_router`, `dept_router`), `projects`, `tasks`, `hiring`, `notifications`, `messaging`, `ai`, `analytics`
 - Shared infra: `core`, `websockets`
 - Entry point: `main.py`
 

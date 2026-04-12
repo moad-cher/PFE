@@ -134,7 +134,11 @@ async def admin_list_all_users(
     _=Depends(require_roles("admin")),
 ):
     """Admin-only: list all users including inactive."""
-    result = await db.execute(select(User).order_by(User.username))
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.department))
+        .order_by(User.username)
+    )
     return result.scalars().all()
 
 
@@ -224,38 +228,93 @@ async def admin_list_all_users(
     _=Depends(require_roles("admin")),
 ):
     """Admin-only: list all users including inactive."""
-    result = await db.execute(select(User).order_by(User.username))
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.department))
+        .order_by(User.username)
+    )
     return result.scalars().all()
 
 
 @admin_router.get("/stats")
 async def admin_get_stats(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    current_user: User = Depends(require_roles("admin")),
 ):
     """Admin-only: get system statistics."""
+    from sqlalchemy import case
+
     # Total users
     total_result = await db.execute(select(func.count(User.id)))
     total_users = total_result.scalar_one()
-    
+
     # Active users
     active_result = await db.execute(
         select(func.count(User.id)).where(User.is_active == True)
     )
     active_count = active_result.scalar_one()
-    
+
     # Inactive users
     inactive_count = total_users - active_count
-    
+
+    # Users per role
+    role_result = await db.execute(
+        select(User.role, func.count(User.id)).group_by(User.role)
+    )
+    users_per_role = {role or "unknown": count for role, count in role_result.all()}
+
     # Departments count
     dept_result = await db.execute(select(func.count(Department.id)))
     departments_count = dept_result.scalar_one()
-    
+
+    # Users per department (for chart)
+    dept_users_result = await db.execute(
+        select(Department.name, func.count(User.id))
+        .outerjoin(User, Department.id == User.department_id)
+        .group_by(Department.name)
+        .order_by(func.count(User.id).desc())
+    )
+    users_per_department = [{"name": name or "No Department", "value": count} for name, count in dept_users_result.all()]
+
+    # New users this week
+    from datetime import datetime, timedelta
+    week_ago = datetime.now() - timedelta(days=7)
+    new_users_week = await db.execute(
+        select(func.count(User.id)).where(User.created_at >= week_ago)
+    )
+    new_users_week = new_users_week.scalar_one() or 0
+
+    # Task completion stats (across all projects)
+    from app.projects.models import Task
+    task_stats_result = await db.execute(
+        select(
+            func.count(Task.id),
+            func.sum(case((Task.status == "done", 1), else_=0)),
+            func.sum(case((Task.status != "done", 1), else_=0)),
+        )
+    )
+    task_row = task_stats_result.first()
+    total_tasks = task_row[0] if task_row else 0
+    completed_tasks = task_row[1] if task_row and task_row[1] else 0
+    active_tasks = total_tasks - (completed_tasks or 0)
+
+    # Projects count
+    from app.projects.models import Project
+    projects_result = await db.execute(select(func.count(Project.id)))
+    total_projects = projects_result.scalar_one() or 0
+
     return {
         "total_users": total_users,
         "active_count": active_count,
         "inactive_count": inactive_count,
         "departments_count": departments_count,
+        "users_per_role": users_per_role,
+        "users_per_department": users_per_department,
+        "new_users_this_week": new_users_week,
+        "total_projects": total_projects,
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "active_tasks": active_tasks,
     }
 
 

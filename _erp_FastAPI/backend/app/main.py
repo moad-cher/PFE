@@ -19,6 +19,7 @@ from app.hiring.router import router as hiring_router
 from app.notifications.router import router as notifications_router
 from app.messaging.router import router as messaging_router
 from app.ai.router import router as ai_router
+from app.analytics.router import router as analytics_router
 
 # WebSocket routes
 from app.messaging.websocket import router as ws_chat_router
@@ -38,8 +39,11 @@ app = FastAPI(title="ERP API", version="1.0.0", lifespan=lifespan)
 # CORS configuration - allow local network access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for local development/LAN
-    allow_credentials=True,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=False,  # Must be False when allow_origins uses "*", but JWT auth uses headers not cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -55,6 +59,7 @@ app.include_router(hiring_router,        tags=["hiring"])
 app.include_router(notifications_router, tags=["notifications"])
 app.include_router(messaging_router,     tags=["chat"])
 app.include_router(ai_router,            tags=["ai"])
+app.include_router(analytics_router,     tags=["analytics"])
 
 # WebSocket routers
 app.include_router(ws_chat_router)

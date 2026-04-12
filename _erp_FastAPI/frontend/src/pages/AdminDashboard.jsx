@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser } from '../api';
+import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
 import Spinner from '../components/Spinner';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts';
 
-const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
+const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899', '#06B6D4', '#F97316'];
 
 function StatCard({ icon, label, value, color, subtext }) {
   return (
@@ -28,7 +28,7 @@ function PieChartCard({ title, data, dataKey, nameKey }) {
     <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
       <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
       {data && data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie
               data={data}
@@ -36,9 +36,11 @@ function PieChartCard({ title, data, dataKey, nameKey }) {
               nameKey={nameKey}
               cx="50%"
               cy="50%"
-              outerRadius={70}
+              outerRadius={80}
               innerRadius={40}
               paddingAngle={2}
+              label={({ name, value }) => `${name}: ${value}`}
+              labelLine={false}
             >
               {data.map((entry, index) => (
                 <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -49,7 +51,7 @@ function PieChartCard({ title, data, dataKey, nameKey }) {
           </PieChart>
         </ResponsiveContainer>
       ) : (
-        <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
           No data available
         </div>
       )}
@@ -58,20 +60,86 @@ function PieChartCard({ title, data, dataKey, nameKey }) {
 }
 
 function BarChartCard({ title, data, dataKey, nameKey }) {
+  const chartData = (data || []).map((item) => {
+    const numericValue = Number(item?.[dataKey]);
+    return {
+      ...item,
+      [dataKey]: Number.isFinite(numericValue) ? numericValue : 0,
+      [nameKey]: item?.[nameKey] ?? 'Unknown',
+    };
+  });
+
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
+            <XAxis type="number" />
+            <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Bar dataKey={dataKey} fill="#8B5CF6" radius={[0, 4, 4, 0]} minPointSize={2} />
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LineChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
   return (
     <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
       <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
       {data && data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
-            <XAxis type="number" />
-            <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 12 }} />
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Bar dataKey={dataKey} fill="#8B5CF6" radius={[0, 4, 4, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} />
+          </LineChart>
         </ResponsiveContainer>
       ) : (
-        <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+          No data available
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AreaChartCard({ title, data, dataKeys, colors }) {
+  return (
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      {data && data.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Legend />
+            {dataKeys.map((key, i) => (
+              <Area
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={colors[i]}
+                fill={colors[i]}
+                fillOpacity={0.2}
+                strokeWidth={2}
+              />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
           No data available
         </div>
       )}
@@ -83,6 +151,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [departments, setDepartments] = useState([]);
+  const [activityTrend, setActivityTrend] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,14 +168,16 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      const [usersRes, statsRes, deptsRes] = await Promise.all([
+      const [usersRes, statsRes, deptsRes, trendRes] = await Promise.all([
         adminListUsers(),
         adminGetStats(),
         listDepartments(),
+        getAdminActivityTrend(30),
       ]);
       setUsers(usersRes.data);
       setStats(statsRes.data);
       setDepartments(deptsRes.data);
+      setActivityTrend(trendRes.data);
     } catch (err) {
       setError('Failed to load admin dashboard');
       console.error(err);
@@ -232,7 +303,22 @@ export default function AdminDashboard() {
   }, [stats?.users_per_role]);
 
   const departmentChartData = useMemo(() => {
-    // Aggregate department counts directly from users list
+    if (stats?.users_per_department) {
+      if (Array.isArray(stats.users_per_department)) {
+        return stats.users_per_department.map((row, index) => ({
+          name: row?.name || row?.department || row?.department_name || `Department ${index + 1}`,
+          value: Number(row?.value ?? row?.count ?? row?.users ?? row?.total ?? 0) || 0,
+        }));
+      }
+
+      if (typeof stats.users_per_department === 'object') {
+        return Object.entries(stats.users_per_department).map(([name, value]) => ({
+          name,
+          value: Number(value) || 0,
+        }));
+      }
+    }
+
     const deptCounts = {};
     users.forEach(user => {
       const deptName = user.department?.name || 'No Department';
@@ -241,7 +327,36 @@ export default function AdminDashboard() {
     return Object.entries(deptCounts)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [users]);
+  }, [stats?.users_per_department, users]);
+
+  const activityTrendData = useMemo(() => {
+    if (!activityTrend) return [];
+    // Merge users, tasks, and applications by day
+    const allDays = new Set();
+    activityTrend.users?.forEach(d => allDays.add(d.day));
+    activityTrend.tasks?.forEach(d => allDays.add(d.day));
+    activityTrend.applications?.forEach(d => allDays.add(d.day));
+
+    return Array.from(allDays).sort((a, b) => a - b).map(day => {
+      const userEntry = activityTrend.users?.find(d => d.day === day);
+      const taskEntry = activityTrend.tasks?.find(d => d.day === day);
+      const appEntry = activityTrend.applications?.find(d => d.day === day);
+      return {
+        day,
+        users: userEntry?.users || 0,
+        tasks: taskEntry?.tasks || 0,
+        applications: appEntry?.applications || 0,
+      };
+    });
+  }, [activityTrend]);
+
+  const taskStatsData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { name: 'Completed', value: stats.completed_tasks || 0 },
+      { name: 'Active', value: stats.active_tasks || 0 },
+    ];
+  }, [stats]);
 
   if (loading) {
     return (
@@ -307,7 +422,7 @@ export default function AdminDashboard() {
         />
         <StatCard
           label="Departments"
-          value={departments.length}
+          value={stats?.departments_count || departments.length}
           color="bg-purple-100"
           icon={
             <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,29 +431,40 @@ export default function AdminDashboard() {
           }
         />
         <StatCard
-          label="Admins"
-          value={stats?.users_per_role?.admin || 0}
+          label="Projects"
+          value={stats?.total_projects || 0}
           color="bg-indigo-100"
           icon={
             <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           }
         />
         <StatCard
-          label="HR Managers"
-          value={stats?.users_per_role?.hr_manager || 0}
+          label="New (7d)"
+          value={stats?.new_users_this_week || 0}
           color="bg-pink-100"
           icon={
             <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           }
         />
       </div>
 
+      {/* Activity Trend Chart */}
+      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
+        <h3 className="font-semibold text-gray-900 mb-4">Activity Trends (Last 30 Days)</h3>
+        <AreaChartCard
+          title=""
+          data={activityTrendData}
+          dataKeys={['users', 'tasks', 'applications']}
+          colors={['#8B5CF6', '#10B981', '#F59E0B']}
+        />
+      </div>
+
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
         <PieChartCard
           title="Role Distribution"
           data={roleChartData}
@@ -348,6 +474,12 @@ export default function AdminDashboard() {
         <BarChartCard
           title="Users per Department"
           data={departmentChartData}
+          dataKey="value"
+          nameKey="name"
+        />
+        <PieChartCard
+          title="Task Status"
+          data={taskStatsData}
           dataKey="value"
           nameKey="name"
         />
@@ -445,12 +577,14 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">Active Sessions</span>
-              <span className="text-gray-900 text-sm font-medium">{stats?.active_count || 0}</span>
+              <span className="text-gray-600 text-sm">Total Tasks</span>
+              <span className="text-gray-900 text-sm font-medium">{stats?.total_tasks || 0}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">Total Departments</span>
-              <span className="text-gray-900 text-sm font-medium">{departments.length}</span>
+              <span className="text-gray-600 text-sm">Completion Rate</span>
+              <span className="text-purple-600 text-sm font-medium">
+                {stats?.total_tasks ? Math.round((stats.completed_tasks / stats.total_tasks) * 100) : 0}%
+              </span>
             </div>
             <div className="pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between mb-2">
@@ -567,7 +701,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredAndSortedUsers.map((user) => (
-                <tr key={user.id} className={`hover:bg-gray-50`}>
+                <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className={`font-medium ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>
