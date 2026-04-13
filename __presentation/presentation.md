@@ -301,7 +301,6 @@ DÉMONSTRATION LIVE:
 ## En Cours
 
 - Analyse groupée de CV pour un poste
-- Visualisations (graphiques de progression)
 - Raffinement du système de permissions et roles
 
 ---

@@ -13,8 +13,8 @@ from alembic import context
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.models.base import Base
-import app.models  # noqa: F401 — registers all models on Base.metadata
+from app.core.base import Base
+# import app.models  # noqa: F401 — registers all models on Base.metadata
 
 # ------------------------------------------------------------------ #
 #  Alembic config                                                      #
