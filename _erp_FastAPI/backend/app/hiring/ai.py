@@ -3,18 +3,23 @@ Async Ollama-based resume analysis — FastAPI port of Django's hiring/ai.py.
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import os
 
-import httpx
+from app.ai.service import ollama_chat
 
-from app.core.config import settings
+logger = logging.getLogger(__name__)
 
 
 # ── Text extraction ────────────────────────────────────────────────────────── #
 
 def extract_text_from_file(file_path: str) -> str:
-    """Extract plain text from a resume file (PDF, TXT, DOCX)."""
+    """
+    Extract plain text from a resume file (PDF, TXT, DOCX).
+    Synchronous function intended to be run in a thread.
+    """
     ext = os.path.splitext(file_path)[1].lower()
     text = ""
     try:
@@ -40,37 +45,10 @@ def extract_text_from_file(file_path: str) -> str:
             text = f"[Unsupported format: {ext}]"
 
     except Exception as exc:
+        logger.error(f"Error reading file {file_path}: {exc}")
         text = f"[Error reading file: {exc}]"
 
     return text
-
-
-# ── Ollama call ────────────────────────────────────────────────────────────── #
-
-async def _call_ollama(prompt: str, system_prompt: str = "") -> str:
-    """Call Ollama /api/chat asynchronously and return the raw response string."""
-    url = f"{settings.OLLAMA_BASE_URL}/api/chat"
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": prompt})
-
-    payload = {
-        "model": settings.OLLAMA_MODEL,
-        "messages": messages,
-        "stream": False,
-        "format": "json",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return data.get("message", {}).get("content", "")
-    except httpx.ConnectError:
-        return '[{"error": "Ollama not reachable. Start it with: ollama serve"}]'
-    except Exception as exc:
-        return f'[{{"error": "{exc}"}}]'
 
 
 # ── Main analysis function ─────────────────────────────────────────────────── #
@@ -96,9 +74,9 @@ async def analyze_resume(application_id: int) -> None:
         if app is None:
             return
 
-        # Extract text if not yet done
+        # Extract text if not yet done — run in thread to avoid blocking event loop
         if not app.resume_text and app.resume and os.path.exists(app.resume):
-            app.resume_text = extract_text_from_file(app.resume)
+            app.resume_text = await asyncio.to_thread(extract_text_from_file, app.resume)
             await db.commit()
             await db.refresh(app)
 
@@ -123,21 +101,32 @@ Candidate:
 - Cover letter: {app.cover_letter or 'Not provided'}
 """
 
-        raw = await _call_ollama(prompt, system_prompt)
-
-        # Parse JSON from response
         try:
-            start = raw.find("{")
-            end = raw.rfind("}") + 1
-            if start >= 0 and end > start:
-                data = json.loads(raw[start:end])
-                app.ai_score = min(100.0, max(0.0, float(data.get("score", 0))))
-                app.ai_analysis = json.dumps(data, ensure_ascii=False, indent=2)
-            else:
+            raw = await ollama_chat(
+                [{"role": "user", "content": prompt}],
+                system_prompt=system_prompt,
+                json_mode=True
+            )
+
+            # Parse JSON from response
+            try:
+                start = raw.find("{")
+                end = raw.rfind("}") + 1
+                if start >= 0 and end > start:
+                    data = json.loads(raw[start:end])
+                    app.ai_score = min(100.0, max(0.0, float(data.get("score", 0))))
+                    app.ai_analysis = json.dumps(data, ensure_ascii=False, indent=2)
+                else:
+                    app.ai_score = 0.0
+                    app.ai_analysis = f"Invalid AI response format: {raw}"
+            except (json.JSONDecodeError, ValueError) as exc:
+                logger.warning(f"Failed to parse AI JSON for application {application_id}: {exc}")
                 app.ai_score = 0.0
                 app.ai_analysis = raw
-        except (json.JSONDecodeError, ValueError):
+
+        except Exception as exc:
+            logger.error(f"AI analysis failed for application {application_id}: {exc}")
             app.ai_score = 0.0
-            app.ai_analysis = raw
+            app.ai_analysis = f"Error: {exc}"
 
         await db.commit()

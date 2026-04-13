@@ -307,7 +307,7 @@ DÉMONSTRATION LIVE:
 
 ## Fonctionnalités Planifiées
 
-- @ mentions dans les commentaires et conversations
+- @mentions dans les commentaires et conversations
 - Scrum Board (gestion des sprints, backlogs ...etc)
 - Diagramme de Gantt
 - Calendrier personnel

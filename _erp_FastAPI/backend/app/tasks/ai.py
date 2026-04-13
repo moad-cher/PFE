@@ -72,7 +72,9 @@ async def suggest_task_assignees(
         end = raw.rfind("}") + 1
         data = json.loads(raw[start:end]) if start >= 0 and end > start else {}
         ranked = data.get("ranked_members", [])
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(f"Task assignment suggestion failed: {exc}")
         return {"members": [], "error": str(exc)}
 
     member_by_username = {m["username"]: m for m in members}

@@ -5,12 +5,15 @@ Provides chat, streaming, and health-check utilities.
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 _CHAT_URL = f"{settings.OLLAMA_BASE_URL}/api/chat"
 _GEN_URL  = f"{settings.OLLAMA_BASE_URL}/api/generate"
@@ -28,7 +31,7 @@ async def ollama_chat(
 ) -> str:
     """
     Non-streaming chat call.  Returns the full assistant reply as a string.
-    ``messages`` is a list of {"role": "user"|"assistant", "content": "..."}
+    Raises exceptions (httpx.HTTPError, etc.) on failure.
     """
     full_messages: list[dict[str, str]] = []
     if system_prompt:
@@ -49,9 +52,11 @@ async def ollama_chat(
             resp.raise_for_status()
             return resp.json().get("message", {}).get("content", "")
     except httpx.ConnectError:
-        return '{"error": "Ollama unreachable — run: ollama serve"}'
-    except Exception as exc:  # noqa: BLE001
-        return f'{{"error": "{exc}"}}'
+        logger.error("Ollama connection error — is it running?")
+        raise
+    except Exception as exc:
+        logger.exception("Ollama chat error")
+        raise
 
 
 async def ollama_stream(
@@ -61,7 +66,7 @@ async def ollama_stream(
 ) -> AsyncIterator[str]:
     """
     Streaming chat call.  Yields each token string as it arrives.
-    Last yielded item is the empty string (signals end of stream) or raises.
+    Raises on failure.
     """
     full_messages: list[dict[str, str]] = []
     if system_prompt:
@@ -91,9 +96,11 @@ async def ollama_stream(
                     if chunk.get("done"):
                         return
     except httpx.ConnectError:
-        yield '[ERROR: Ollama unreachable — run: ollama serve]'
-    except Exception as exc:  # noqa: BLE001
-        yield f"[ERROR: {exc}]"
+        logger.error("Ollama connection error (streaming)")
+        raise
+    except Exception as exc:
+        logger.exception("Ollama streaming error")
+        raise
 
 
 async def ollama_status() -> dict[str, Any]:

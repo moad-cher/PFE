@@ -57,10 +57,15 @@ async def _run_deadline_check() -> None:
 
 
 async def deadline_scheduler() -> None:
-    """Loop: wait one interval, then run the deadline check."""
+    """Loop: wait one interval (accounting for task execution time), then run the deadline check."""
     while True:
-        await asyncio.sleep(_CHECK_INTERVAL_SECONDS)
+        start_time = asyncio.get_event_loop().time()
         try:
             await _run_deadline_check()
         except Exception:
             logger.exception("Deadline scheduler error")
+        
+        # Calculate next run time
+        elapsed = asyncio.get_event_loop().time() - start_time
+        sleep_for = max(0, _CHECK_INTERVAL_SECONDS - elapsed)
+        await asyncio.sleep(sleep_for)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
@@ -87,19 +87,14 @@ async def ai_chat(
 
     Pass the full conversation history in `messages` on each request.
     The last message should have role "user".
-
-    Example:
-        POST /ai/chat
-        {
-            "messages": [
-                {"role": "user", "content": "How do I assign a task?"}
-            ]
-        }
     """
     system = req.system_prompt or _ERP_SYSTEM_PROMPT
     messages = [m.model_dump() for m in req.messages]
-    reply = await ollama_chat(messages, system_prompt=system)
-    return ChatResponse(reply=reply, model=settings.OLLAMA_MODEL)
+    try:
+        reply = await ollama_chat(messages, system_prompt=system)
+        return ChatResponse(reply=reply, model=settings.OLLAMA_MODEL)
+    except Exception as exc:
+        raise HTTPException(500, detail=f"AI Chat failed: {exc}")
 
 
 @router.post("/summarize", response_model=SummarizeResponse)
@@ -118,11 +113,14 @@ async def ai_summarize(
         f"Stay under {req.max_words} words. "
         "Reply with the summary only — no preamble, no labels."
     )
-    reply = await ollama_chat(
-        [{"role": "user", "content": req.text}],
-        system_prompt=system,
-    )
-    return SummarizeResponse(summary=reply.strip(), model=settings.OLLAMA_MODEL)
+    try:
+        reply = await ollama_chat(
+            [{"role": "user", "content": req.text}],
+            system_prompt=system,
+        )
+        return SummarizeResponse(summary=reply.strip(), model=settings.OLLAMA_MODEL)
+    except Exception as exc:
+        raise HTTPException(500, detail=f"Summarization failed: {exc}")
 
 
 @router.post("/generate-description", response_model=DescriptionResponse)
@@ -133,13 +131,6 @@ async def ai_generate_description(
     """
     Generate a professional description for a project, task, or job posting
     based on its title.
-
-    Example:
-        {
-            "title": "Migrate database to PostgreSQL",
-            "context": "project",
-            "language": "French"
-        }
     """
     context_label = req.context or "item"
     system = (
@@ -149,8 +140,11 @@ async def ai_generate_description(
         "Reply with the description only."
     )
     prompt = f"Write a description for this {context_label}: {req.title}"
-    reply = await ollama_chat(
-        [{"role": "user", "content": prompt}],
-        system_prompt=system,
-    )
-    return DescriptionResponse(description=reply.strip(), model=settings.OLLAMA_MODEL)
+    try:
+        reply = await ollama_chat(
+            [{"role": "user", "content": prompt}],
+            system_prompt=system,
+        )
+        return DescriptionResponse(description=reply.strip(), model=settings.OLLAMA_MODEL)
+    except Exception as exc:
+        raise HTTPException(500, detail=f"Description generation failed: {exc}")
