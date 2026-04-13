@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.deps import get_db, get_current_user, require_roles
 from app.core.security import hash_password, verify_password
 from app.core.media import ensure_media_dir, get_media_url, AVATARS_DIR
-from app.users.models import Department, User, RoleEnum, RoleEnum
+from app.users.models import Department, User
 from app.projects.models import Project, Task, project_members, task_assignees
 from app.users.schemas import (
     DepartmentCreate, DepartmentRead,
@@ -129,7 +129,7 @@ async def change_password(
 # ── Admin: manage all users ───────────────────────────────────────────────────
 
 @router.get("/admin/all", response_model=list[UserRead])
-async def admin_list_all_users(
+async def admin_list_all_users_legacy(
     db: AsyncSession = Depends(get_db),
     _=Depends(require_roles("admin")),
 ):

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
 import Spinner from '../components/Spinner';
@@ -148,6 +149,7 @@ function AreaChartCard({ title, data, dataKeys, colors }) {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [departments, setDepartments] = useState([]);
@@ -530,7 +532,7 @@ export default function AdminDashboard() {
               </div>
             </button>
             <button
-              onClick={() => window.location.href = '/admin/departments'}
+              onClick={() => navigate('/admin/departments')}
               className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -544,7 +546,7 @@ export default function AdminDashboard() {
               </div>
             </button>
             <button
-              onClick={() => window.location.href = '/admin/audit'}
+              onClick={() => navigate('/admin/audit')}
               className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
