@@ -34,26 +34,6 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Listen for deletions/mark-read from other components
-  useEffect(() => {
-    const handleNotifDeleted = (e) => {
-      const { id } = e.detail;
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    };
-    const handleNotifMarkedRead = (e) => {
-      const { id } = e.detail;
-      setNotifications((prev) => 
-        prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
-      );
-    };
-    window.addEventListener('notification-deleted', handleNotifDeleted);
-    window.addEventListener('notification-marked-read', handleNotifMarkedRead);
-    return () => {
-      window.removeEventListener('notification-deleted', handleNotifDeleted);
-      window.removeEventListener('notification-marked-read', handleNotifMarkedRead);
-    };
-  }, []);
-
   // Load initial notifications
   useEffect(() => {
     listNotifications()
@@ -99,7 +79,6 @@ export default function NotificationDropdown() {
                 refreshUser().catch(() => { });
               }
             }
-            // type: 'unread_count' is ignored as we derive count from the list
           } catch (_) { }
         };
 
@@ -140,7 +119,6 @@ export default function NotificationDropdown() {
       setNotifications((prev) => 
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
-      window.dispatchEvent(new CustomEvent('notification-marked-read', { detail: { id } }));
     } catch (_) { }
   };
 
@@ -149,7 +127,6 @@ export default function NotificationDropdown() {
     try {
       await deleteNotification(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      window.dispatchEvent(new CustomEvent('notification-deleted', { detail: { id } }));
     } catch (_) { }
   };
 

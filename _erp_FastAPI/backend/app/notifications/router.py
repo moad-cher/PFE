@@ -24,20 +24,6 @@ async def list_notifications(
     return result.scalars().all()
 
 
-@router.get("/unread-count")
-async def unread_count(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    count = await db.scalar(
-        select(func.count()).where(
-            Notification.recipient_id == current_user.id,
-            Notification.is_read.is_(False),
-        )
-    )
-    return {"count": count or 0}
-
-
 @router.post("/mark-all-read", status_code=204)
 async def mark_all_read(
     db: AsyncSession = Depends(get_db),

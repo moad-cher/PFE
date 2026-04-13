@@ -138,7 +138,6 @@ export const getHRStats = () => api.get('/hiring/stats');
 
 // ===================== Notifications =====================
 export const listNotifications = () => api.get('/notifications/');
-export const getUnreadCount = () => api.get('/notifications/unread-count');
 export const markAllRead = () => api.post('/notifications/mark-all-read');
 export const markNotificationRead = (id) => api.patch(`/notifications/${id}/read`);
 export const deleteNotification = (id) => api.delete(`/notifications/${id}`);
