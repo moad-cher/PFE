@@ -35,7 +35,7 @@ export default function JobDetail() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const isHR = ['admin', 'hr_manager'].includes(user?.role);
+  const isHR = user?.role === 'hr_manager';
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {

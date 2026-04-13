@@ -123,7 +123,7 @@ export default function App() {
             <Route
               path="/hiring/applications/:id"
               element={
-                <ProtectedRoute roles={['admin', 'hr_manager']}>
+                <ProtectedRoute roles={['hr_manager']}>
                   <ApplicationDetail />
                 </ProtectedRoute>
               }
@@ -131,7 +131,7 @@ export default function App() {
             <Route
               path="/hiring/applications/:id/interview"
               element={
-                <ProtectedRoute roles={['admin', 'hr_manager']}>
+                <ProtectedRoute roles={['hr_manager']}>
                   <InterviewSchedule />
                 </ProtectedRoute>
               }

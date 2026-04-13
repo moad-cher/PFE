@@ -26,7 +26,7 @@ from app.hiring.schemas import (
 
 router = APIRouter(prefix="/hiring", tags=["hiring"])
 
-_HR_ROLES = ("admin", "hr_manager")
+_HR_ROLES = ("hr_manager",)
 
 
 # ── Job Postings ──────────────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ async def apply(
     # Notify all HR managers and admins of the new application
     hr_res = await db.execute(
         select(User).where(
-            User.role.in_([RoleEnum.hr_manager, RoleEnum.admin]),
+            User.role.in_([RoleEnum.hr_manager]),
             User.is_active.is_(True),
         )
     )
