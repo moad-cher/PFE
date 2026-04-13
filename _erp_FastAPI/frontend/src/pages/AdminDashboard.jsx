@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
+import DepartmentModal from '../components/DepartmentModal';
 import Spinner from '../components/Spinner';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts';
 
@@ -163,6 +164,7 @@ export default function AdminDashboard() {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -532,7 +534,7 @@ export default function AdminDashboard() {
               </div>
             </button>
             <button
-              onClick={() => navigate('/admin/departments')}
+              onClick={() => setDepartmentModalOpen(true)}
               className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -759,6 +761,14 @@ export default function AdminDashboard() {
         onClose={() => setCreateUserOpen(false)}
         onSubmit={handleCreateUser}
         roleOptions={roleOptions}
+      />
+
+      <DepartmentModal
+        open={departmentModalOpen}
+        onClose={() => setDepartmentModalOpen(false)}
+        departments={departments}
+        users={users}
+        onRefresh={loadData}
       />
     </div>
   );

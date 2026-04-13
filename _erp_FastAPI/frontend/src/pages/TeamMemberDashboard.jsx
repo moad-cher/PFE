@@ -254,9 +254,8 @@ export default function TeamMemberDashboard() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Hello, {user?.first_name || user?.username}! 👋
+          Hello {user?.first_name || user?.username}
         </h1>
-        <p className="text-gray-600 mt-1">Here's what's on your plate today</p>
       </div>
 
       {/* Stats Cards */}
