@@ -334,7 +334,7 @@ export default function HRDashboard() {
         <button
           type="button"
           onClick={() => setCreateUserOpen(true)}
-          className="bg-purple-300 rounded-xl p-6 card-hover group text-left"
+          className="bg-white rounded-xl p-6 card-hover group text-left"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -352,7 +352,7 @@ export default function HRDashboard() {
         <button
           type="button"
           onClick={() => setCreateJobOpen(true)}
-          className="bg-purple-300 rounded-xl p-6 card-hover group text-left"
+          className="bg-white rounded-xl p-6 card-hover group text-left"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -369,7 +369,7 @@ export default function HRDashboard() {
 
         <Link
           to="/hiring/jobs"
-          className="bg-purple-300 rounded-xl p-6 card-hover group"
+          className="bg-white rounded-xl p-6 card-hover group"
         >
           <div className="flex items-center justify-between">
             <div>

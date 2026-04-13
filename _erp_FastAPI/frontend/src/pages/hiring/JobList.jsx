@@ -31,7 +31,7 @@ export default function JobList() {
     setLoading(true);
     listJobs(filter || undefined).then(r => setJobs(r.data)).finally(() => setLoading(false));
   }, [filter]);
-
+  
   const isHR = ['admin', 'hr_manager'].includes(user?.role);
 
   return (
@@ -40,11 +40,11 @@ export default function JobList() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
-          {/* {!user && (
+          {!user && (
             <p className="text-sm text-gray-500 mt-1">
               Browse open positions. <Link to="/login" className="text-blue-600 hover:underline">Sign in</Link> to manage jobs.
             </p>
-          )} */}
+          )}
         </div>
         {isHR && (
           <button type="button" onClick={() => setCreateJobOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">

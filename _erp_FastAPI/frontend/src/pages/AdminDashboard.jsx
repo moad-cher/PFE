@@ -386,9 +386,6 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-1">System overview and user management</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">● System Healthy</span>
-        </div>
       </div>
 
       {/* Stats Cards */}
@@ -456,7 +453,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Activity Trend Chart */}
+      {/* Activity Trend Chart 
       <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
         <h3 className="font-semibold text-gray-900 mb-4">Activity Trends (Last 30 Days)</h3>
         <AreaChartCard
@@ -466,6 +463,7 @@ export default function AdminDashboard() {
           colors={['#8B5CF6', '#10B981', '#F59E0B']}
         />
       </div>
+      */}
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
@@ -548,17 +546,17 @@ export default function AdminDashboard() {
               </div>
             </button>
             <button
-              onClick={() => navigate('/admin/audit')}
+              onClick={() => navigate('/admin/')}
               className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  {/* <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /> */}
                 </svg>
               </div>
               <div>
-                <p className="font-medium text-gray-900">Audit Log</p>
-                <p className="text-xs text-gray-500">View system activity</p>
+                <p className="font-medium text-gray-900"></p>
+                <p className="text-xs text-gray-500"></p>
               </div>
             </button>
           </div>
