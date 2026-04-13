@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db, get_current_user
@@ -43,14 +43,14 @@ async def mark_all_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(
-        select(Notification).where(
+    await db.execute(
+        update(Notification)
+        .where(
             Notification.recipient_id == current_user.id,
             Notification.is_read.is_(False),
         )
+        .values(is_read=True)
     )
-    for notif in result.scalars().all():
-        notif.is_read = True
     await db.commit()
 
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import delete, select, func, or_
+from sqlalchemy import Integer, delete, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from datetime import date
@@ -9,7 +9,7 @@ from app.messaging.models import ChatMessage
 from app.notifications.service import notify_task_assigned
 from app.tasks.ai import suggest_task_assignees
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Task, TaskStatus, project_members
+from app.projects.models import Project, ProjectConfig, RewardLog, Task, TaskStatus, project_members, task_assignees
 from app.projects.schemas import (
     AISuggestionRead,
     KanbanColumnRead,
@@ -495,17 +495,64 @@ async def member_stats(
         raise HTTPException(403, "Access denied")
 
     all_members = list({project.manager, *project.members})
+    member_ids = [m.id for m in all_members]
+
+    # Single query: counts per member via the task_assignees secondary table
+    if member_ids:
+        count_result = await db.execute(
+            select(
+                task_assignees.c.user_id,
+                func.count(Task.id).label("total"),
+                func.sum(func.cast(Task.status == "done", Integer)).label("done"),
+            )
+            .join(Task, task_assignees.c.task_id == Task.id)
+            .where(
+                task_assignees.c.user_id.in_(member_ids),
+                Task.project_id == pk,
+            )
+            .group_by(task_assignees.c.user_id)
+        )
+        stats_map = {row.user_id: {"total": row.total, "done": row.done or 0} for row in count_result.all()}
+    else:
+        stats_map = {}
+
+    # Fetch active tasks per member in a single query (not loaded eagerly)
+    active_result = await db.execute(
+        select(Task.id, task_assignees.c.user_id)
+        .join(task_assignees, Task.id == task_assignees.c.task_id)
+        .where(
+            task_assignees.c.user_id.in_(member_ids),
+            Task.project_id == pk,
+            Task.status != "done",
+        )
+    )
+    active_by_user: dict[int, list[int]] = {m.id: [] for m in all_members}
+    for row in active_result.all():
+        active_by_user[row.user_id].append(row.id)
+
+    # Load active tasks in one query by IDs
+    if any(active_by_user.values()):
+        all_active_ids = [tid for tids in active_by_user.values() for tid in tids]
+        tasks_result = await db.execute(
+            select(Task).where(Task.id.in_(all_active_ids)).options(selectinload(Task.assigned_to))
+        )
+        tasks_by_id = {t.id: t for t in tasks_result.scalars().all()}
+        active_tasks_by_user = {
+            uid: [TaskRead.model_validate(tasks_by_id[tid]) for tid in tids]
+            for uid, tids in active_by_user.items()
+        }
+    else:
+        active_tasks_by_user = {m.id: [] for m in all_members}
+
     result = []
     for member in all_members:
-        member_tasks = [t for t in project.tasks if any(a.id == member.id for a in t.assigned_to)]
-        done = [t for t in member_tasks if t.status == "done"]
-        active = [t for t in member_tasks if t.status != "done"]
+        stats = stats_map.get(member.id, {"total": 0, "done": 0})
         result.append(
             MemberStatsRead(
                 user=member,
-                tasks_count=len(member_tasks),
-                done_count=len(done),
-                active_tasks=[TaskRead.model_validate(t) for t in active],
+                tasks_count=stats["total"],
+                done_count=stats["done"],
+                active_tasks=active_tasks_by_user.get(member.id, []),
             )
         )
     return result
@@ -568,28 +615,19 @@ async def leaderboard(
         raise HTTPException(403, "Access denied")
 
     all_members = list({project.manager, *project.members})
-    
-    # Calculate project-specific points from RewardLog joined with Tasks
-    member_points = {}
-    for member in all_members:
-        result = await db.execute(
-            select(func.sum(RewardLog.points))
-            .join(Task, RewardLog.task_id == Task.id)
-            .where(
-                RewardLog.user_id == member.id,
-                Task.project_id == pk
-            )
-        )
-        points = result.scalar() or 0
-        member_points[member.id] = points
-    
-    # Sort by project-specific points
-    board = sorted(
-        all_members,
-        key=lambda u: member_points.get(u.id, 0),
-        reverse=True
+    member_ids = [m.id for m in all_members]
+
+    # Single query: sum points per user for this project, using GROUP BY
+    result = await db.execute(
+        select(RewardLog.user_id, func.coalesce(func.sum(RewardLog.points), 0).label("total"))
+        .join(Task, RewardLog.task_id == Task.id)
+        .where(Task.project_id == pk)
+        .group_by(RewardLog.user_id)
     )
-    
+    member_points = {row.user_id: row.total for row in result.all()}
+
+    board = sorted(all_members, key=lambda u: member_points.get(u.id, 0), reverse=True)
+
     return [
         {
             "rank": i + 1,
@@ -626,14 +664,23 @@ async def ai_suggest(
     if not task:
         raise HTTPException(404, "Task not found")
 
-    # Build active task counts per member
+    # Build active task counts per member via GROUP BY query
     all_members = list({project.manager, *project.members})
+    member_ids = [m.id for m in all_members]
     active_counts: dict[int, int] = {m.id: 0 for m in all_members}
-    for t in project.tasks:
-        if t.status != "done":
-            for a in t.assigned_to:
-                if a.id in active_counts:
-                    active_counts[a.id] += 1
+    if member_ids:
+        result = await db.execute(
+            select(task_assignees.c.user_id, func.count(Task.id).label("count"))
+            .join(Task, task_assignees.c.task_id == Task.id)
+            .where(
+                task_assignees.c.user_id.in_(member_ids),
+                Task.project_id == pk,
+                Task.status != "done",
+            )
+            .group_by(task_assignees.c.user_id)
+        )
+        for row in result.all():
+            active_counts[row.user_id] = row.count
 
     member_dicts = [
         {
