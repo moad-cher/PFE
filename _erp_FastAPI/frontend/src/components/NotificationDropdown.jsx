@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   createNotificationsWS,
@@ -14,11 +13,15 @@ export default function NotificationDropdown() {
   const { refreshUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
   const wsRef = useRef(null);
   const reconnectTimeout = useRef(null);
   const pingInterval = useRef(null);
+
+  // Derived state: recompute unread count whenever notifications list changes
+  const unreadCount = useMemo(() => 
+    notifications.filter((n) => !n.is_read).length, 
+  [notifications]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -31,41 +34,37 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Listen for deletions from other components
+  // Listen for deletions/mark-read from other components
   useEffect(() => {
-    const handleDelete = (e) => {
+    const handleNotifDeleted = (e) => {
       const { id } = e.detail;
-      const notif = notifications.find((n) => n.id === id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      if (notif && !notif.is_read) setUnreadCount((c) => Math.max(0, c - 1));
     };
-    const handleMarkRead = (e) => {
+    const handleNotifMarkedRead = (e) => {
       const { id } = e.detail;
-      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
-      setUnreadCount((c) => Math.max(0, c - 1));
+      setNotifications((prev) => 
+        prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
+      );
     };
-    window.addEventListener('notification-deleted', handleDelete);
-    window.addEventListener('notification-marked-read', handleMarkRead);
+    window.addEventListener('notification-deleted', handleNotifDeleted);
+    window.addEventListener('notification-marked-read', handleNotifMarkedRead);
     return () => {
-      window.removeEventListener('notification-deleted', handleDelete);
-      window.removeEventListener('notification-marked-read', handleMarkRead);
+      window.removeEventListener('notification-deleted', handleNotifDeleted);
+      window.removeEventListener('notification-marked-read', handleNotifMarkedRead);
     };
-  }, [notifications]);
+  }, []);
 
   // Load initial notifications
   useEffect(() => {
     listNotifications()
       .then((res) => {
-        const notifs = res.data || [];
-        setNotifications(notifs);
-        setUnreadCount(notifs.filter((n) => !n.is_read).length);
+        setNotifications(res.data || []);
       })
       .catch(() => { });
   }, []);
 
   // WebSocket for live notifications
   useEffect(() => {
-    // Only connect if we have a token
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -92,38 +91,29 @@ export default function NotificationDropdown() {
                 if (prev.some((n) => n.id === data.id)) return prev;
                 return [data, ...prev.slice(0, 49)];
               });
-              setUnreadCount((c) => c + 1);
 
               // Refresh user data if this is a reward notification
               const message = (data.message || data.content || '').toLowerCase();
               const isReward = message.includes('point') || message.includes('reward') || message.includes('earned');
-
               if (isReward) {
                 refreshUser().catch(() => { });
               }
-            } else if (data.type === 'unread_count') {
-              setUnreadCount(data.count);
             }
+            // type: 'unread_count' is ignored as we derive count from the list
           } catch (_) { }
         };
 
         ws.onclose = () => {
           clearInterval(pingInterval.current);
-          // Only reconnect if we have a token (user still logged in)
           if (localStorage.getItem('token')) {
             reconnectTimeout.current = setTimeout(connect, 3000);
           }
         };
 
-        ws.onerror = (error) => {
-          // Silently handle WebSocket errors - connection will auto-reconnect
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.close();
-          }
+        ws.onerror = () => {
+          if (ws && ws.readyState === WebSocket.OPEN) ws.close();
         };
-      } catch (error) {
-        // Silently handle connection errors - will retry on next connect attempt
-      }
+      } catch (error) { }
     };
 
     connect();
@@ -131,7 +121,6 @@ export default function NotificationDropdown() {
     return () => {
       clearTimeout(reconnectTimeout.current);
       clearInterval(pingInterval.current);
-      // Safely close WebSocket if it exists and is open
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
       }
@@ -142,32 +131,24 @@ export default function NotificationDropdown() {
     try {
       await markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
     } catch (_) { }
   };
 
-  const handleMarkRead = async (id) => {
+  const onMarkRead = async (id) => {
     try {
       await markNotificationRead(id);
-      setNotifications((prev) =>
+      setNotifications((prev) => 
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
-      setUnreadCount((c) => Math.max(0, c - 1));
-      // Broadcast mark as read to other components
       window.dispatchEvent(new CustomEvent('notification-marked-read', { detail: { id } }));
     } catch (_) { }
   };
 
-
-  const handleDelete = async (id, e) => {
+  const onDelete = async (id, e) => {
     e.stopPropagation();
     try {
       await deleteNotification(id);
-      const notif = notifications.find((n) => n.id === id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      if (notif && !notif.is_read) setUnreadCount((c) => Math.max(0, c - 1));
-
-      // Broadcast deletion to other components
       window.dispatchEvent(new CustomEvent('notification-deleted', { detail: { id } }));
     } catch (_) { }
   };
@@ -212,7 +193,7 @@ export default function NotificationDropdown() {
               notifications.slice(0, 10).map((notif) => (
                 <div
                   key={notif.id}
-                  onClick={() => !notif.is_read && handleMarkRead(notif.id)}
+                  onClick={() => !notif.is_read && onMarkRead(notif.id)}
                   className={`flex items-start gap-3 px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.is_read ? 'bg-blue-50' : ''
                     }`}
                 >
@@ -222,7 +203,7 @@ export default function NotificationDropdown() {
                     <p className="text-xs text-gray-400 mt-0.5">{relativeTime(notif.created_at)}</p>
                   </div>
                   <button
-                    onClick={(e) => handleDelete(notif.id, e)}
+                    onClick={(e) => onDelete(notif.id, e)}
                     className="text-gray-300 hover:text-red-500 flex-shrink-0"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,14 +215,12 @@ export default function NotificationDropdown() {
             )}
           </div>
 
-          <div className="px-4 py-2 border-t">
-            {/* delete all button */}
+          <div className="px-4 py-2 border-t text-right">
             <button
               onClick={() => {
                 if (window.confirm('Are you sure you want to delete all notifications? This cannot be undone.')) {
-                  notifications.forEach(n => deleteNotification(n.id).catch(() => { }));
                   setNotifications([]);
-                  setUnreadCount(0);
+                  notifications.forEach(n => deleteNotification(n.id).catch(() => { }));
                 }
               }}
               className="text-gray-300 hover:text-red-500 transition-colors"
