@@ -3,6 +3,7 @@ from sqlalchemy import Integer, delete, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from datetime import date
+import logging
 
 from app.core.deps import get_db, get_current_user
 from app.messaging.models import ChatMessage
@@ -23,6 +24,8 @@ from app.projects.schemas import (
     TaskStatusCreate,
     TaskStatusRead,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -133,16 +136,16 @@ async def project_stats(
     current_user: User = Depends(get_current_user),
 ):
     """Project Manager stats: projects per manager, task completion rates, overdue tasks."""
-    print(f"[DEBUG] project_stats called by user: {current_user.username} (role: {current_user.role})")
+    logger.info(f"project_stats called by user: {current_user.username} (role: {current_user.role})")
     try:
         # For project managers, show only their projects
         # For admins, show all projects
         is_admin = current_user.role == "admin"
-        print(f"[DEBUG] is_admin: {is_admin}")
+        logger.debug(f"is_admin: {is_admin}")
         
         if is_admin:
             # Admin sees all projects
-            print("[DEBUG] Querying projects for admin")
+            logger.debug("Querying projects for admin")
             projects_result = await db.execute(
                 select(Project).options(
                     selectinload(Project.tasks),
@@ -150,7 +153,7 @@ async def project_stats(
                 )
             )
             all_projects = projects_result.scalars().all()
-            print(f"[DEBUG] Admin found {len(all_projects)} projects")
+            logger.debug(f"Admin found {len(all_projects)} projects")
             
             # Projects per manager
             manager_result = await db.execute(
@@ -162,7 +165,7 @@ async def project_stats(
             projects_per_manager = {username: count for username, count in manager_result.all()}
         else:
             # Project manager sees only their projects
-            print(f"[DEBUG] Querying projects for project_manager: {current_user.id}")
+            logger.debug(f"Querying projects for project_manager: {current_user.id}")
             projects_result = await db.execute(
                 select(Project)
                 .where(
@@ -177,11 +180,11 @@ async def project_stats(
                 .options(selectinload(Project.tasks))
             )
             all_projects = projects_result.scalars().all()
-            print(f"[DEBUG] Project manager found {len(all_projects)} projects")
+            logger.debug(f"Project manager found {len(all_projects)} projects")
             projects_per_manager = {current_user.username: len([p for p in all_projects if p.manager_id == current_user.id])}
         
         # Calculate task completion rates
-        print(f"[DEBUG] Calculating stats for {len(all_projects)} projects")
+        logger.debug(f"Calculating stats for {len(all_projects)} projects")
         total_tasks = 0
         completed_tasks = 0
         overdue_tasks = 0
