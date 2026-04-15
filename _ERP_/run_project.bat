@@ -1,4 +1,4 @@
-REM filepath: c:\Users\acer\Desktop\stage\_erp_FastAPI\run_project.bat
+REM filepath: c:\Users\acer\Desktop\stage\_ERP_\run_project.bat
 @echo off
 setlocal
 
