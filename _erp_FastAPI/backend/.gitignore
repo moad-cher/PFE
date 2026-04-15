@@ -19,10 +19,6 @@ ENV/
 .env
 .env.local
 
-# Database
-*.db
-*.sqlite3
-
 # IDE
 .vscode/
 .idea/
@@ -35,8 +31,7 @@ ENV/
 Thumbs.db
 
 # Media uploads (optional - remove this line if you want to track uploads)
-media/*
-!media/.gitkeep
+app/media/**
 
 # Alembic
 alembic/versions/__pycache__/

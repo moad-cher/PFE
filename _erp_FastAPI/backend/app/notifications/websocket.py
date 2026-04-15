@@ -29,6 +29,17 @@ async def ws_notifications(ws: WebSocket, token: str = ""):
     room = f"user_{user.id}"
     await ws_manager.connect(ws, room, user_id=user.id)
 
+    # Send initial unread count
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(func.count(Notification.id)).where(
+                Notification.recipient_id == user.id,
+                Notification.is_read.is_(False),
+            )
+        )
+        count = result.scalar_one()
+        await ws.send_json({"type": "unread_count", "count": count})
+
     try:
         # Keep-alive: clients can send "ping", we reply "pong"
         while True:

@@ -26,7 +26,7 @@ from app.hiring.schemas import (
 
 router = APIRouter(prefix="/hiring", tags=["hiring"])
 
-_HR_ROLES = ("hr_manager",)
+_HR_ROLES = ("hr_manager", "admin")
 
 
 # ── Job Postings ──────────────────────────────────────────────────────────────
