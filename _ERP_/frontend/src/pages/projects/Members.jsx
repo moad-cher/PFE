@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember } from '../../api';
+import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, listDepartments } from '../../api';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
 
@@ -57,6 +57,8 @@ export default function Members() {
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
   const [searchQ, setSearchQ] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [departments, setDepartments] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,18 +67,22 @@ export default function Members() {
   }, [pk]);
 
   useEffect(() => {
-    Promise.all([getProject(pk), getProjectMembers(pk)])
-      .then(([p, m]) => { setProject(p.data); setMembers(m.data); })
+    Promise.all([getProject(pk), getProjectMembers(pk), listDepartments()])
+      .then(([p, m, d]) => { 
+        setProject(p.data); 
+        setMembers(m.data); 
+        setDepartments(d.data);
+      })
       .finally(() => setLoading(false));
   }, [pk]);
 
   useEffect(() => {
-    if (searchQ.length < 1) { setSearchResults([]); return; }
+    if (searchQ.length < 1 && !departmentFilter) { setSearchResults([]); return; }
     const t = setTimeout(() => {
-      searchProjectMembers(pk, searchQ).then(r => setSearchResults(r.data));
+      searchProjectMembers(pk, searchQ, departmentFilter || undefined).then(r => setSearchResults(r.data));
     }, 300);
     return () => clearTimeout(t);
-  }, [searchQ, pk]);
+  }, [searchQ, departmentFilter, pk]);
 
   const addMember = async userId => {
     await addProjectMember(pk, userId);
@@ -107,28 +113,48 @@ export default function Members() {
       {isManager && (
         <div className="bg-white rounded-2xl shadow p-5 mb-6">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Add Member</h2>
-          <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
-            placeholder="Search by username or name…"
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          {searchResults.length > 0 && (
-            <div className="mt-2 border rounded-xl divide-y shadow-sm">
-              {searchResults.map(u => (
-                <div key={u.id} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-                      {u.username?.[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{u.full_name || u.username}</p>
-                      <p className="text-xs text-gray-400">{u.username}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => addMember(u.id)}
-                    className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700">
-                    + Add
-                  </button>
-                </div>
+          <div className="flex flex-col md:flex-row gap-3">
+            <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
+              placeholder="Search by username or name…"
+              className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            
+            <select 
+              value={departmentFilter} 
+              onChange={e => setDepartmentFilter(e.target.value)}
+              className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            >
+              <option value="">All Departments</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
               ))}
+            </select>
+          </div>
+
+          {(searchResults.length > 0 || (searchQ.length >= 1 || departmentFilter)) && (
+            <div className="mt-4 border rounded-xl divide-y shadow-sm max-h-60 overflow-y-auto">
+              {searchResults.length > 0 ? (
+                searchResults.map(u => (
+                  <div key={u.id} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                        {u.username?.[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{u.full_name || u.username}</p>
+                        <p className="text-xs text-gray-400">{u.username}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => addMember(u.id)}
+                      className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700">
+                      + Add
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-center text-sm text-gray-500">
+                  {searchQ.length >= 1 || departmentFilter ? 'No users found' : 'Start typing to search…'}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -142,3 +168,4 @@ export default function Members() {
     </div>
   );
 }
+

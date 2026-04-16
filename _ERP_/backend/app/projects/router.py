@@ -473,6 +473,7 @@ async def scrum_board(
 async def search_members(
     pk: int,
     q: str = Query("", min_length=0),
+    department_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -490,6 +491,8 @@ async def search_members(
             | User.first_name.ilike(pattern)
             | User.last_name.ilike(pattern)
         )
+    if department_id is not None:
+        query = query.where(User.department_id == department_id)
     users = (await db.execute(query.limit(20))).scalars().all()
     return [
         {"id": u.id, "username": u.username, "full_name": f"{u.first_name} {u.last_name}".strip()}

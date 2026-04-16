@@ -61,7 +61,7 @@ export default function Navbar() {
           <Link
             to="/dashboard"
             style={{ fontFamily: 'lucida handwriting' /*'impact' */ }}
-            className="inline-flex items-center gap-2 text-purple-300 font-bold text-xl tracking-tight hover:text-purple-600 transition-colors"
+            className="inline-flex items-center gap-2 text-purple-300 font-bold text-xl tracking-tight hover:text-[#7C529A] transition-colors"
           >
             <img
               src="/log.png"

@@ -1,3 +1,9 @@
+# as soon as possible
+~~1. Kanban permissions (backend + frontend)~~
+2. Sprint model + scrum board redesign    — biggest remaining feature
+3. Inline assignment suggestions          — polish the existing AI feature
+
+
 # ERP System requirements and features
 <!-- (cahier de charges summary) -->
 
@@ -6,7 +12,6 @@
 - [x] condidats can apply for job postings via a web form
 - [x] resumes are stored
 - [x] AI will analyse resumes and rank candidates based on qualifications
-    - [ ] bulk appraisal of candidates for a job posting
 - [x] HR manager can review ranked candidates and schedule interviews
 
 ## project management
@@ -21,7 +26,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
 - [x] reward team members with points for completing tasks on time
 - [ ] proper permissions system with roles (admin, manager, employee)
     - [x] rh and admin can manage accounts
-    - [ ] kanban permissions (only the concerned who shall update the task status)
+    - [x] kanban permissions (only the concerned who shall update the task status)
     - [ ] scrum roles (a whole other story)
 
 - [x] AI suggests task assignments based on team members' skills and workload
@@ -52,32 +57,12 @@ what to search for:
 
 ## high priority
 
-<!-- 
-### my supervisors recommendations (to do ASAP):
-- [x] each role with its own dashboard and features
-
-    - admin
-        - [x] dashboards avec tous les statistiques (hiérarchie, projets, employés ...etc)
-        - [x] gestion des utilisateurs et leurs roles
-            - [x] CRUD des comptes utilisateurs
-               - [x] création de compte par admin
-               - [x] activation/désactivation de comptes
-            - [x] assignation des rôles
-        - [x] gestion des départements
-
-    - RH
-        - [x] dashboard des statistiques CVs , **utilisateurs** ...etc
-
-    - chef de projet 
-        - [x] dashboard (charts and all stats related to projects and teams) 
--->
-
 - scrum
     - [ ] actual scrum board view with sprints and story points
     - [ ] kanban board shows current sprint tasks
 
 - kanban permissions:
-    - [ ] only assigned members can update task status
+    - [x] only assigned members can update task status
     - [ ] only project manager can reassign tasks and adjust deadlines
 
 
@@ -107,18 +92,18 @@ what to search for:
 
 # role permissions matrix
 
-| Action | admin | hr_manager | project_manager | team_member |
-|--------|-------|------------|-----------------|-------------|
-| View all users | ✓ | ✓ | ✕ | ✕ |
-| Edit user profile (own) | ✓ | ✓ | ✓ | ✓ |
-| Edit user profile (others) | ✓ | ✓ | ✕ | ✕ |
-| Change roles | ✓ | ✕ | ✕ | ✕ |
-| Activate/deactivate | ✓ | ✓ | ✕ | ✕ |
-| Delete user (hard) | ✓ | ✕ | ✕ | ✕ |
-| Manage departments | ✓ | ✓ | ✕ | ✕ |
-| Create job posting | ✓ | ✓ | ✕ | ✕ |
-| View applications | ✓ | ✓ | ✕ | ✕ |
-| Create project | ✓ | ✕ | ✓ | ✕ |
-| Assign tasks | ✓ | ✕ | ✓ | ✕ |
-| View own tasks | ✓ | ✓ | ✓ | ✓ |
+| Action                     | admin | hr_manager | project_manager | team_member |
+| -------------------------- | :---: | :--------: | :-------------: | :---------: |
+| View all users             |  ✓   |     ✓     |       ✕        |     ✕      |
+| Edit user profile (own)    |  ✓   |     ✓     |       ✓        |     ✓      |
+| Edit user profile (others) |  ✓   |     ✓     |       ✕        |     ✕      |
+| Change roles               |  ✓   |     ✕     |       ✕        |     ✕      |
+| Activate/deactivate        |  ✓   |     ✓     |       ✕        |     ✕      |
+| Delete user (hard)         |  ✓   |     ✕     |       ✕        |     ✕      |
+| Manage departments         |  ✓   |     ✓     |       ✕        |     ✕      |
+| Create job posting         |  ✓   |     ✓     |       ✕        |     ✕      |
+| View applications          |  ✓   |     ✓     |       ✕        |     ✕      |
+| Create project             |  ✓   |     ✕     |       ✓        |     ✕      |
+| Assign tasks               |  ✓   |     ✕     |       ✓        |     ✕      |
+| View own tasks             |  ✓   |     ✓     |       ✓        |     ✓      |
 

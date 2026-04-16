@@ -80,7 +80,7 @@ export const createProjectStatus = (pk, data) => api.post(`/projects/${pk}/statu
 export const deleteProjectStatus = (pk, id) => api.delete(`/projects/${pk}/statuses/${id}`);
 export const getKanban = (pk) => api.get(`/projects/${pk}/kanban`);
 export const getScrum = (pk, params) => api.get(`/projects/${pk}/scrum`, { params });
-export const searchProjectMembers = (pk, q) => api.get(`/projects/${pk}/members/search`, { params: { q } });
+export const searchProjectMembers = (pk, q, departmentId) => api.get(`/projects/${pk}/members/search`, { params: { q, department_id: departmentId } });
 export const getProjectMembers = (pk) => api.get(`/projects/${pk}/members`);
 export const addProjectMember = (pk, userId) => api.post(`/projects/${pk}/members/${userId}`);
 export const removeProjectMember = (pk, userId) => api.delete(`/projects/${pk}/members/${userId}`);
