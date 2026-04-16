@@ -152,6 +152,12 @@ async def update_task(
     assignee_ids = payload.pop("assigned_to_ids", None)
     old_status = task.status
 
+    if "status" in payload and payload["status"] != old_status:
+        is_manager = current_user.role == "admin" or project.manager_id == current_user.id
+        is_assignee = any(u.id == current_user.id for u in task.assigned_to)
+        if not (is_manager or is_assignee):
+            raise HTTPException(403, "Only assignees or project managers can change task status")
+
     for field, value in payload.items():
         setattr(task, field, value)
 
@@ -225,6 +231,12 @@ async def move_task(
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(404, "Task not found")
+
+    # Permission check: Only admin, project owner, or assignees can change status
+    is_manager = current_user.role == "admin" or project.manager_id == current_user.id
+    is_assignee = any(u.id == current_user.id for u in task.assigned_to)
+    if not (is_manager or is_assignee):
+        raise HTTPException(403, "Only assignees or project managers can change task status")
 
     old_status = task.status
     task.status = data.status

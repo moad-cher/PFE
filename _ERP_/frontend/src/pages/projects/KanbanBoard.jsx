@@ -6,9 +6,16 @@ import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
 
-function TaskCard({ task, projectId, isDragging }) {
+function TaskCard({ task, projectId, isDragging, isLocked }) {
   return (
-    <div className={`bg-white/95 rounded-2xl border border-purple-100/40 shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 rotate-2 scale-105 cursor-grabbing' : 'hover:shadow-md card-hover'}`}>
+    <div className={`bg-white/95 rounded-2xl border border-purple-100/40 shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 rotate-2 scale-105 cursor-grabbing' : 'hover:shadow-md card-hover'} ${isLocked ? 'opacity-75 grayscale-[0.2]' : ''}`}>
+      {isLocked && (
+        <div className="absolute top-3 right-3 text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )}
       <Link to={`/projects/${projectId}/tasks/${task.id}`} className="block">
         <p className="font-medium text-sm text-gray-800 hover:text-purple-600 line-clamp-2 mb-2 transition-colors">{task.title}</p>
       </Link>
@@ -133,26 +140,43 @@ export default function KanbanBoard() {
                         {...provided.droppableProps}
                         className={`space-y-2 min-h-[100px] rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-purple-50/50 ring-2 ring-purple-200 ring-dashed' : ''}`}
                       >
-                        {col.tasks.map((task, index) => (
-                          <Draggable key={task.id} draggableId={`task-${task.id}`} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                style={{
-                                  ...provided.draggableProps.style,
-                                  userSelect: 'none',
-                                  position: 'relative',
-                                  left: 0,
-                                  top: 0
-                                }}
-                              >
-                                <TaskCard task={task} projectId={pk} isDragging={snapshot.isDragging} />
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
+                        {col.tasks.map((task, index) => {
+                          const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
+                          const canDrag = isManager || isAssignee;
+                          
+                          return (
+                            <Draggable 
+                              key={task.id} 
+                              draggableId={`task-${task.id}`} 
+                              index={index}
+                              isDragDisabled={!canDrag}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={!canDrag ? 'cursor-not-allowed' : ''}
+                                  title={!canDrag ? 'Only assignees can move this task' : ''}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    userSelect: 'none',
+                                    position: 'relative',
+                                    left: 0,
+                                    top: 0
+                                  }}
+                                >
+                                  <TaskCard 
+                                    task={task} 
+                                    projectId={pk} 
+                                    isDragging={snapshot.isDragging} 
+                                    isLocked={!canDrag}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
                         {provided.placeholder}
                         {col.tasks.length === 0 && snapshot.isDraggingOver && (
                           <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">
