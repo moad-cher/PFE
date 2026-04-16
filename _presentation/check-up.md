@@ -183,62 +183,15 @@ table {
 ---
 
 ## Livré
+- Authentification JWT + gestion utilisateurs (admin/RH/PM/membre).
+- dashboards personnalisés par role (statistiques CV, projets, utilisateurs). 
 - Recrutement: creation d'offres, candidatures web, stockage CV, scoring IA, tri des candidats.
-- Projet/Taches: assignation, suivi par membre, commentaires, notifications deadline, recompenses.
-- IA Projet: suggestions d'assignation selon competences et charge.
-- Comptes: RH/Admin peuvent gerer les utilisateurs.
+- Projet/Taches: assignation, suivi par membre, commentaires, group-chat, notifications deadline, recompenses.
+- IA: suggestions d'assignation selon competences et charge , classification unitaire des CV.
 
 ---
-
-## Partiellement livré
-- Permissions par role: base en place, règles kanban à finaliser.
-
-## Non livré
-- Evaluation groupee des CV pour une offre.
-- Scrum board (sprints, story points) + vue sprint dans kanban.
-
----
-
-# 5) Difficultés rencontrées
-
----
-
-
-- **Permissions complexes** selon rôles (admin, RH, manager, membre).
-- **Erreurs backend intermittentes** après mutation (sérialisation relationnelle).
-- **Problèmes de cohérence API** entre endpoints legacy et nouveaux endpoints.
-- **Intégration IA**: qualité variable des CV selon format (PDF/DOCX).
-
----
-
-## Actions prises
-- Harmonisation des routes critiques.
-- Chargement explicite des relations avant réponse API.
-- Renforcement des tests de flux dashboard/admin.
-
----
-
-# Priorités produit (alignées README)
-
-## Haute priorité
-- Scrum board reel (sprints + story points).
-- Kanban filtre par sprint courant.
-- Permissions kanban strictes:
-  - seul le membre assigne modifie le statut.
-  - seul le chef de projet re-assigne et change les deadlines.
-
-## Moyenne priorité
-- Bulk appraisal CV par offre.
-- Diagramme de Gantt projet.
-- Integration des suggestions IA dans le composant d'assignation.
-
-## Basse priorité
-- Calendrier (entretiens RH + suivi temps taches).
-- Mentions @ dans commentaires et chat.
-
----
-
-# Matrice des permissions (cible court terme)
+ 
+**Matrice des permissions**
 
 ---
 
@@ -259,6 +212,60 @@ table {
 
 ---
 
+## Partiellement livré
+- Permissions par role: règles kanban à finaliser.
+
+## Non livré
+- Evaluation groupee des CV pour une offre.
+- Scrum board (sprints, story points) + vue sprint dans kanban.
+
+---
+
+# 5) Difficultés rencontrées
+
+---
+
+- Permissions metier plus complexes que prevu (cas admin/RH/PM/membre).
+- Incoherences entre certains endpoints (formats de reponse differents).
+- Qualite des CV variable (PDF scannes, DOCX mal structures).
+
+
+---
+
+## Actions prises
+
+- Matrice permissions explicite par role et par action critique.
+- Standardisation progressive des reponses API (codes et messages).
+- Pipeline d'analyse CV avec controles de format et fallback.
+
+
+---
+
+# Priorités produit
+
+---
+
+## Haute priorité
+- Scrum board reel (sprints + story points).
+- Kanban filtre par sprint courant.
+- Permissions kanban strictes:
+  - seul le membre assigne modifie le statut.
+  - seul le chef de projet re-assigne et change les deadlines.
+
+---
+
+## Moyenne priorité
+- Bulk appraisal CV par offre.
+- Diagramme de Gantt projet.
+- Integration des suggestions IA dans le composant d'assignation.
+
+## Basse priorité
+- Calendrier (entretiens RH + suivi temps taches).
+- Mentions @ dans commentaires et chat.
+
+---
+
+
 # l'objectif PFE (IA/ML/Agents)
 
 | Axe | Ce qui est deja fait | Prochaine etape demonstrable |
@@ -266,13 +273,6 @@ table {
 | Parsing semantique CV | Extraction + scoring IA unitaire | Normaliser en features structurees |
 | ML comme outil d'agent | Suggestions d'assignation | Boucle agentique multi-outils (profil, charge, historique) |
 | Evaluation a l'echelle | Classement candidat par candidat | Bulk appraisal d'une offre complete |
-
----
-
-# Prochaines étapes (court terme)
-
-- Finaliser matrice permissions par module.
-- Terminer analyse groupée des CV pour un poste.
 
 ---
 
