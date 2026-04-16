@@ -49,10 +49,10 @@ section.lead {
 
 section.lead h1 {
   font-size: 3em;
-  color: #9e3c3c;
+  color: #cf4949;
   border: none;
-  border-bottom: 6px solid #9e3c3c;
-  text-shadow: 1px 5px 5px rgba(20, 91, 162, 0.64);
+  border-bottom: 6px solid #d74f4f;
+  text-shadow: 1px 5px 5px rgba(189, 43, 43, 0.64);
 }
 
 
@@ -67,19 +67,6 @@ strong {
   font-weight: 600;
 }
 
-
-/* Section title slides */
-section.section-title {
-  text-align: center;
-  justify-content: center;
-}
-
-section.section-title h1 {
-  font-size: 3em;
-  color: #9e3c3c;
-  border: none;
-  text-shadow: 2px 2px 4px rgba(255,255,255,0.6);
-}
 
 /* Footer/Header */
 footer, header {
@@ -108,6 +95,14 @@ td:has(n)::before {
   margin-right: 0.25em;
 }
 
+table {
+  font-size: 0.8em;
+  background: rgba(255, 255, 255, 0.8);
+  /* center */
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid;
+}
 
 </style>
 
@@ -148,11 +143,12 @@ td:has(n)::before {
 ---
 
 
-- ERP web modulaire avec 2 blocs cœur:
-  - **Recrutement intelligent** (offres, candidatures, scoring IA).
-  - **Gestion de projets** (projets, tâches, collaboration temps réel).
+- ERP web modulaire avec 2 blocs coeur:
+  - **Recrutement intelligent**: offres, candidatures, parsing CV, scoring IA.
+  - **Gestion de projets**: projets, taches, assignation, notifications, chat.
 - Architecture 3 tiers: **React** + **FastAPI** + **PostgreSQL**.
-- Objectif: fluidifier du recrutement jusqu'à la livraison projet.
+- Logique IA: outils ML/LLM pour aide a la decision (RH + PM).
+- Objectif: fluidifier le flux de travail du recrutement jusqu'a la livraison.
 
 ---
 
@@ -175,20 +171,31 @@ td:has(n)::before {
 - **IA**: Ollama local, PyMuPDF, python-docx.
 - **Qualité/Outillage**: Alembic, Pytest, Git.
 
+## Pourquoi ce choix
+- Stack async coherente pour le temps reel.
+- Base relationnelle robuste pour roles, projets, taches, candidatures.
+- IA locale pour confidentialite des donnees RH.
+
 ---
 
 # 4) État d'avancement de l'implémentation
 
 ---
 
-## Déjà implémenté
-- Auth JWT + gestion des rôles.
-- Recrutement: offres, candidatures, upload CV, analyse IA.
-- Projets: dashboard, kanban, tâches, assignation, notifications, chat.
+## Livré
+- Recrutement: creation d'offres, candidatures web, stockage CV, scoring IA, tri des candidats.
+- Projet/Taches: assignation, suivi par membre, commentaires, notifications deadline, recompenses.
+- IA Projet: suggestions d'assignation selon competences et charge.
+- Comptes: RH/Admin peuvent gerer les utilisateurs.
 
-## En cours
-- Stabilisation des permissions selon rôle.
-- Fiabilisation UX/API (erreurs 500, retours API cohérents).
+---
+
+## Partiellement livré
+- Permissions par role: base en place, règles kanban à finaliser.
+
+## Non livré
+- Evaluation groupee des CV pour une offre.
+- Scrum board (sprints, story points) + vue sprint dans kanban.
 
 ---
 
@@ -202,6 +209,8 @@ td:has(n)::before {
 - **Problèmes de cohérence API** entre endpoints legacy et nouveaux endpoints.
 - **Intégration IA**: qualité variable des CV selon format (PDF/DOCX).
 
+---
+
 ## Actions prises
 - Harmonisation des routes critiques.
 - Chargement explicite des relations avant réponse API.
@@ -209,12 +218,61 @@ td:has(n)::before {
 
 ---
 
+# Priorités produit (alignées README)
+
+## Haute priorité
+- Scrum board reel (sprints + story points).
+- Kanban filtre par sprint courant.
+- Permissions kanban strictes:
+  - seul le membre assigne modifie le statut.
+  - seul le chef de projet re-assigne et change les deadlines.
+
+## Moyenne priorité
+- Bulk appraisal CV par offre.
+- Diagramme de Gantt projet.
+- Integration des suggestions IA dans le composant d'assignation.
+
+## Basse priorité
+- Calendrier (entretiens RH + suivi temps taches).
+- Mentions @ dans commentaires et chat.
+
+---
+
+# Matrice des permissions (cible court terme)
+
+---
+
+| Action | admin | HR | PM | team_member |
+|--------|-------|------------|-----------------|-------------|
+| View all users | <y/> | <y/> | <n/> | <n/> |
+| Edit user profile (own) | <y/> | <y/> | <y/> | <y/> |
+| Edit user profile (others) | <y/> | <y/> | <n/> | <n/> |
+| Change roles | <y/> | <n/> | <n/> | <n/> |
+| Activate/deactivate | <y/> | <y/> | <n/> | <n/> |
+| Delete user (hard) | <y/> | <n/> | <n/> | <n/> |
+| Manage departments | <y/> | <y/> | <n/> | <n/> |
+| Create job posting | <y/> | <y/> | <n/> | <n/> |
+| View applications | <y/> | <y/> | <n/> | <n/> |
+| Create project | <y/> | <n/> | <y/> | <n/> |
+| Assign tasks | <y/> | <n/> | <y/> | <n/> |
+| View own tasks | <y/> | <y/> | <y/> | <y/> |
+
+---
+
+# l'objectif PFE (IA/ML/Agents)
+
+| Axe | Ce qui est deja fait | Prochaine etape demonstrable |
+|-----|-----------------------|-------------------------------|
+| Parsing semantique CV | Extraction + scoring IA unitaire | Normaliser en features structurees |
+| ML comme outil d'agent | Suggestions d'assignation | Boucle agentique multi-outils (profil, charge, historique) |
+| Evaluation a l'echelle | Classement candidat par candidat | Bulk appraisal d'une offre complete |
+
+---
+
 # Prochaines étapes (court terme)
 
 - Finaliser matrice permissions par module.
-- Ajouter tests de non-régression sur endpoints critiques.
 - Terminer analyse groupée des CV pour un poste.
-- Préparer mini démonstration stable orientée métier.
 
 ---
 
@@ -232,26 +290,3 @@ td:has(n)::before {
 
 ---
 <!-- paginate: false -->
-
-```python
-print("hello world")
-```
-
----
-stuff  i don't know where to put but want to mention:
-*matrice des permissions*
-
-| Action | admin | hr_manager | project_manager | team_member |
-|--------|-------|------------|-----------------|-------------|
-| View all users | <y/> | <y/> | <n/> | <n/> |
-| Edit user profile (own) | <y/> | <y/> | <y/> | <y/> |
-| Edit user profile (others) | <y/> | <y/> | <n/> | <n/> |
-| Change roles | <y/> | <n/> | <n/> | <n/> |
-| Activate/deactivate | <y/> | <y/> | <n/> | <n/> |
-| Delete user (hard) | <y/> | <n/> | <n/> | <n/> |
-| Manage departments | <y/> | <y/> | <n/> | <n/> |
-| Create job posting | <y/> | <y/> | <n/> | <n/> |
-| View applications | <y/> | <y/> | <n/> | <n/> |
-| Create project | <y/> | <n/> | <y/> | <n/> |
-| Assign tasks | <y/> | <n/> | <y/> | <n/> |
-| View own tasks | <y/> | <y/> | <y/> | <y/> |
