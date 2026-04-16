@@ -20,12 +20,19 @@ async def _get_user(token: str) -> User | None:
 
 
 @router.websocket("/ws/notifications")
-async def ws_notifications(ws: WebSocket, token: str = ""):
+async def ws_notifications(ws: WebSocket):
+    # Retrieve token from Sec-WebSocket-Protocol header (more secure than query params)
+    subprotocols = ws.scope.get("subprotocols", [])
+    token = subprotocols[0] if subprotocols else ""
+    
     user = await _get_user(token)
     if user is None:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
+    # Accept with the subprotocol we found
+    await ws.accept(subprotocol=token)
+    
     room = f"user_{user.id}"
     await ws_manager.connect(ws, room, user_id=user.id)
 
@@ -47,4 +54,4 @@ async def ws_notifications(ws: WebSocket, token: str = ""):
             if msg.strip() == "ping":
                 await ws.send_json({"type": "pong"})
     except WebSocketDisconnect:
-        ws_manager.disconnect(ws, room)
+        await ws_manager.disconnect(ws, room)

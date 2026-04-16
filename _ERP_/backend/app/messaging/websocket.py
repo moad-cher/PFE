@@ -42,28 +42,21 @@ def _msg_payload(msg: ChatMessage, user: User) -> dict:
 
 
 @router.websocket("/ws/chat/{room_type}/{pk}")
-async def ws_chat(ws: WebSocket, room_type: str, pk: int, token: str = ""):
+async def ws_chat(ws: WebSocket, room_type: str, pk: int):
     """
     room_type : "project" | "task"
     pk        : the project or task id
-    token     : JWT passed as query param  ?token=<jwt>
-
-    JSON protocol (client → server):
-      {"type": "message", "content": "Hello!"}
-      {"type": "typing"}
-      {"type": "ping"}
-
-    JSON protocol (server → client):
-      {"type": "message",  "id", "author_id", "author", "avatar", "content", "created_at"}
-      {"type": "history",  "messages": [...]}
-      {"type": "presence", "event": "join"|"leave", "user_id", "username", "online_count"}
-      {"type": "typing",   "user_id", "username"}
-      {"type": "pong"}
     """
+    subprotocols = ws.scope.get("subprotocols", [])
+    token = subprotocols[0] if subprotocols else ""
+    
     user = await _get_user(token)
     if user is None:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return
+
+    # Accept the subprotocol
+    await ws.accept(subprotocol=token)
 
     if room_type not in ("project", "task"):
         await ws.close(code=status.WS_1003_UNSUPPORTED_DATA)
@@ -189,7 +182,7 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int, token: str = ""):
                 await ws_manager.broadcast(room, _msg_payload(msg, user))
 
     except WebSocketDisconnect:
-        ws_manager.disconnect(ws, room)
+        await ws_manager.disconnect(ws, room)
         online = ws_manager.get_users_in_room(room)
         await ws_manager.broadcast(room, {
             "type": "presence",

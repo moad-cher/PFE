@@ -44,9 +44,9 @@ async def ws_context():
 
 async def test_notifications_ws(ws_context):
     token = ws_context["token"]
-    uri = f"{BASE_WS}/ws/notifications?token={token}"
+    uri = f"{BASE_WS}/ws/notifications"
 
-    async with websockets.connect(uri) as ws:
+    async with websockets.connect(uri, subprotocols=[token]) as ws:
         msg = await _recv_json(ws)
         assert msg["type"] == "unread_count", f"Expected unread_count, got: {msg}"
         assert "count" in msg
@@ -59,9 +59,9 @@ async def test_notifications_ws(ws_context):
 async def test_chat_ws_basic_flow(ws_context):
     token = ws_context["token"]
     project_id = ws_context["project_id"]
-    uri = f"{BASE_WS}/ws/chat/project/{project_id}?token={token}"
+    uri = f"{BASE_WS}/ws/chat/project/{project_id}"
 
-    async with websockets.connect(uri) as ws:
+    async with websockets.connect(uri, subprotocols=[token]) as ws:
         history = await _recv_json(ws)
         assert history["type"] == "history", f"Expected history, got: {history}"
         assert "messages" in history
@@ -88,13 +88,13 @@ async def test_chat_ws_basic_flow(ws_context):
 async def test_chat_ws_presence_leave(ws_context):
     token = ws_context["token"]
     project_id = ws_context["project_id"]
-    uri = f"{BASE_WS}/ws/chat/project/{project_id}?token={token}"
+    uri = f"{BASE_WS}/ws/chat/project/{project_id}"
 
-    async with websockets.connect(uri) as ws1:
+    async with websockets.connect(uri, subprotocols=[token]) as ws1:
         await _recv_json(ws1)  # history
         await _recv_json(ws1)  # own join
 
-        async with websockets.connect(uri) as ws2:
+        async with websockets.connect(uri, subprotocols=[token]) as ws2:
             await _recv_json(ws2)  # history
             await _recv_json(ws2)  # own join
 

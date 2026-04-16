@@ -219,14 +219,11 @@ async def project_stats(
             "overdue_tasks": overdue_tasks,
             "is_admin_view": can_see_all,
         }
-        print(f"[DEBUG] Returning stats: {result}")
+        logger.debug(f"Returning stats: {result}")
         return result
-    except Exception as e:
-        import traceback
-        error_msg = f"Error in project_stats: {e}"
-        print(f"[ERROR] {error_msg}")
-        print(traceback.format_exc())
-        raise HTTPException(500, f"Error generating stats: {str(e)}")
+    except Exception:
+        logger.exception("Error in project_stats")
+        raise HTTPException(500, "Error generating project statistics")
 
 
 @router.post("/", response_model=ProjectRead, status_code=201)

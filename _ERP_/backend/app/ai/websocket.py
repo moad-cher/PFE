@@ -40,18 +40,18 @@ async def _authenticate(websocket: WebSocket, token: str) -> bool:
 
 
 @router.websocket("/ws/ai/stream")
-async def ws_ai_stream(websocket: WebSocket, token: str = ""):
+async def ws_ai_stream(websocket: WebSocket):
     """
     Streaming AI chat over WebSocket.
-
-    Authenticate with ?token=<jwt>.
-    Send a JSON object with "prompt" (required) and optional "system".
-    Receive token-by-token streaming responses.
+    Authenticate with token passed in Sec-WebSocket-Protocol.
     """
+    subprotocols = websocket.scope.get("subprotocols", [])
+    token = subprotocols[0] if subprotocols else ""
+    
     # ── Auth ──────────────────────────────────────────────────────────────────
     if not await _authenticate(websocket, token):
         return
-    await websocket.accept()
+    await websocket.accept(subprotocol=token)
 
     try:
         while True:
