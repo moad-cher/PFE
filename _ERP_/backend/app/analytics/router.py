@@ -201,20 +201,39 @@ async def get_project_overview(
         priority_counts[priority] = priority_counts.get(priority, 0) + 1
 
     # Team workload
-    members = list({project.manager, *project.members})
+    members = list({project.manager, *project.members} - {None})
+    member_ids = [m.id for m in members]
+    
     workload = []
-    for member in members:
-        member_tasks = [t for t in tasks if any(a.id == member.id for a in t.assigned_to)]
-        active = sum(1 for t in member_tasks if t.status != "done")
-        done = sum(1 for t in member_tasks if t.status == "done")
-        workload.append({
-            "user_id": member.id,
-            "username": member.username,
-            "full_name": f"{member.first_name} {member.last_name}".strip(),
-            "active_tasks": active,
-            "completed_tasks": done,
-            "total_tasks": len(member_tasks),
-        })
+    if member_ids:
+        # Get counts for active, done and total tasks per member in this project
+        result = await db.execute(
+            select(
+                task_assignees.c.user_id,
+                func.count(Task.id).label("total"),
+                func.sum(case((Task.status != "done", 1), else_=0)).label("active"),
+                func.sum(case((Task.status == "done", 1), else_=0)).label("done")
+            )
+            .join(Task, task_assignees.c.task_id == Task.id)
+            .where(
+                task_assignees.c.user_id.in_(member_ids),
+                Task.project_id == project_id
+            )
+            .group_by(task_assignees.c.user_id)
+        )
+        
+        counts_map = {row.user_id: row for row in result.all()}
+        
+        for member in members:
+            m_stats = counts_map.get(member.id)
+            workload.append({
+                "user_id": member.id,
+                "username": member.username,
+                "full_name": f"{member.first_name} {member.last_name}".strip(),
+                "active_tasks": int(m_stats.active) if m_stats else 0,
+                "completed_tasks": int(m_stats.done) if m_stats else 0,
+                "total_tasks": int(m_stats.total) if m_stats else 0,
+            })
 
     workload.sort(key=lambda x: x["active_tasks"], reverse=True)
 
