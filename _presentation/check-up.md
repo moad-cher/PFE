@@ -67,14 +67,6 @@ strong {
   font-weight: 600;
 }
 
-/* Code */
-code {
-  background: rgba(255, 255, 255, 0.7);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #9e3c3c;
-  font-size: 0.9em;
-}
 
 /* Section title slides */
 section.section-title {
@@ -94,10 +86,35 @@ footer, header {
   color: #7a8a8a;
   font-size: 0.75em;
 }
+
+/* other */
+/* Prefer parent selectors when available, with fallback */
+td:has(y) {
+  color: #1ad270 !important;
+  font-weight: 600;
+  background: rgba(0, 255, 0, 0.1) !important;
+}
+td:has(n) {
+  color: #ff4c4c !important;
+  font-weight: 600;
+  background: rgba(255, 0, 0, 0.1) !important;
+}
+td:has(y)::before {
+  content: "✓";
+  margin-right: 0.25em;
+}
+td:has(n)::before {
+  content: "✕";
+  margin-right: 0.25em;
+}
+
+
 </style>
 
+<!-- _paginate: false -->
+
 # Système ERP Intelligent
-## Point d'avancement - Réunion du jour
+## Point d'avancement
 
 **Stagiaire**: Moad CHERGUI
 **Encadrant**: prof Mourad JABRANE
@@ -105,17 +122,20 @@ footer, header {
 
 ---
 
-## Plan rapide
-
+# Plan rapide
+<!-- don't touch -->
 - La problématique abordée
 - La solution proposée
-- L'état d'avancement
 - Les technologies utilisées
+- L'état d'avancement
 - Les difficultés rencontrées
 
 ---
 
-## 1) Problématique abordée
+# 1) Problématique abordée
+
+---
+
 
 - Les équipes utilisent outils séparés pour RH, projets et communication.
 - Résultat: suivi fragmenté, duplication des données, décisions lentes.
@@ -123,7 +143,10 @@ footer, header {
 
 ---
 
-## 2) Solution proposée
+# 2) Solution proposée
+
+---
+
 
 - ERP web modulaire avec 2 blocs cœur:
   - **Recrutement intelligent** (offres, candidatures, scoring IA).
@@ -142,20 +165,10 @@ footer, header {
 
 ---
 
-## 3) État d'avancement de l'implémentation
-
-### Déjà implémenté
-- Auth JWT + gestion des rôles.
-- Recrutement: offres, candidatures, upload CV, analyse IA.
-- Projets: dashboard, kanban, tâches, assignation, notifications.
-
-### En cours
-- Stabilisation des permissions selon rôle.
-- Fiabilisation UX/API (erreurs 500, retours API cohérents).
+# 3) Technologies utilisées
 
 ---
 
-## 4) Technologies utilisées
 
 - **Backend**: FastAPI, SQLAlchemy async, PostgreSQL, WebSockets.
 - **Frontend**: React, Tailwind CSS, Axios, Recharts.
@@ -164,21 +177,39 @@ footer, header {
 
 ---
 
-## 5) Difficultés rencontrées
+# 4) État d'avancement de l'implémentation
+
+---
+
+## Déjà implémenté
+- Auth JWT + gestion des rôles.
+- Recrutement: offres, candidatures, upload CV, analyse IA.
+- Projets: dashboard, kanban, tâches, assignation, notifications, chat.
+
+## En cours
+- Stabilisation des permissions selon rôle.
+- Fiabilisation UX/API (erreurs 500, retours API cohérents).
+
+---
+
+# 5) Difficultés rencontrées
+
+---
+
 
 - **Permissions complexes** selon rôles (admin, RH, manager, membre).
 - **Erreurs backend intermittentes** après mutation (sérialisation relationnelle).
 - **Problèmes de cohérence API** entre endpoints legacy et nouveaux endpoints.
 - **Intégration IA**: qualité variable des CV selon format (PDF/DOCX).
 
-### Actions prises
+## Actions prises
 - Harmonisation des routes critiques.
 - Chargement explicite des relations avant réponse API.
 - Renforcement des tests de flux dashboard/admin.
 
 ---
 
-## Prochaines étapes (court terme)
+# Prochaines étapes (court terme)
 
 - Finaliser matrice permissions par module.
 - Ajouter tests de non-régression sur endpoints critiques.
@@ -201,3 +232,26 @@ footer, header {
 
 ---
 <!-- paginate: false -->
+
+```python
+print("hello world")
+```
+
+---
+stuff  i don't know where to put but want to mention:
+*matrice des permissions*
+
+| Action | admin | hr_manager | project_manager | team_member |
+|--------|-------|------------|-----------------|-------------|
+| View all users | <y/> | <y/> | <n/> | <n/> |
+| Edit user profile (own) | <y/> | <y/> | <y/> | <y/> |
+| Edit user profile (others) | <y/> | <y/> | <n/> | <n/> |
+| Change roles | <y/> | <n/> | <n/> | <n/> |
+| Activate/deactivate | <y/> | <y/> | <n/> | <n/> |
+| Delete user (hard) | <y/> | <n/> | <n/> | <n/> |
+| Manage departments | <y/> | <y/> | <n/> | <n/> |
+| Create job posting | <y/> | <y/> | <n/> | <n/> |
+| View applications | <y/> | <y/> | <n/> | <n/> |
+| Create project | <y/> | <n/> | <y/> | <n/> |
+| Assign tasks | <y/> | <n/> | <y/> | <n/> |
+| View own tasks | <y/> | <y/> | <y/> | <y/> |
