@@ -37,7 +37,7 @@ function AISuggestPanel({ pk, taskId, onAssigned }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow p-5">
+    <div className="bg-white rounded-2xl shadow p-5 font-mono">
       <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <span className="text-purple-500">✦</span> AI Suggestion
       </h3>

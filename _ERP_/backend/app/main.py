@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import asyncio
@@ -42,7 +42,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
     ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?$",
     allow_credentials=False,  # Must be False when allow_origins uses "*", but JWT auth uses headers not cookies
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,21 +77,3 @@ app.mount("/media", StaticFiles(directory=str(MEDIA_ROOT)), name="media")
 @app.get("/")
 async def health():
     return {"status": "ok"}
-
-
-# Fallback middleware: ensure CORS headers are present on responses.
-# This helps development setups where a response can sometimes be returned
-# without the CORS header (causing the browser to block it) even though the
-# server processed the request. It echoes back the `Origin` header when
-# present so the browser accepts the response.
-@app.middleware("http")
-async def ensure_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    origin = request.headers.get("origin")
-    if origin and "access-control-allow-origin" not in (h.lower() for h in response.headers.keys()):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        # Allow common request headers and methods used by the SPA
-        response.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
-        response.headers.setdefault("Access-Control-Allow-Headers", "Authorization,Content-Type")
-        response.headers.setdefault("Vary", "Origin")
-    return response

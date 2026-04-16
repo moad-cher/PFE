@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getHRStats, listApplications, listJobs, createUser, getHRPipeline } from '../api';
+import { getHRStats, listApplications, listJobs, createUser, getHRPipeline, adminListUsers, listDepartments } from '../api';
 import CreateUserModal from '../components/CreateUserModal';
 import CreateJobModal from '../components/CreateJobModal';
+import DepartmentModal from '../components/DepartmentModal';
 import Spinner from '../components/Spinner';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, FunnelChart, Funnel, LabelList } from 'recharts';
 
@@ -150,12 +151,15 @@ function FunnelChartCard({ title, data }) {
 export default function HRDashboard() {
   const [stats, setStats] = useState(null);
   const [pipeline, setPipeline] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [recentApplications, setRecentApplications] = useState([]);
   const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [createJobOpen, setCreateJobOpen] = useState(false);
+  const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -163,16 +167,20 @@ export default function HRDashboard() {
 
   const loadData = async () => {
     try {
-      const [statsRes, appsRes, jobsRes, pipelineRes] = await Promise.all([
+      const [statsRes, appsRes, jobsRes, pipelineRes, usersRes, deptsRes] = await Promise.all([
         getHRStats(),
         listApplications(),
         listJobs(),
         getHRPipeline(),
+        adminListUsers(),
+        listDepartments(),
       ]);
       setStats(statsRes.data);
       setRecentApplications(appsRes.data.slice(0, 10));
       setRecentJobs(jobsRes.data.slice(0, 5));
       setPipeline(pipelineRes.data);
+      setUsers(usersRes.data);
+      setDepartments(deptsRes.data);
     } catch (err) {
       setError('Failed to load HR dashboard');
       console.error(err);
@@ -330,7 +338,7 @@ export default function HRDashboard() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <button
           type="button"
           onClick={() => setCreateUserOpen(true)}
@@ -383,6 +391,24 @@ export default function HRDashboard() {
             </div>
           </div>
         </Link>
+
+        <button
+          type="button"
+          onClick={() => setDepartmentModalOpen(true)}
+          className="bg-white rounded-xl p-6 card-hover group text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg mb-1">Manage Departments</h3>
+              <p className="text-purple-500 text-sm">View and edit departments</p>
+            </div>
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+          </div>
+        </button>
       </div>
 
       <CreateUserModal
@@ -395,6 +421,14 @@ export default function HRDashboard() {
       <CreateJobModal
         open={createJobOpen}
         onClose={() => setCreateJobOpen(false)}
+      />
+
+      <DepartmentModal
+        open={departmentModalOpen}
+        onClose={() => setDepartmentModalOpen(false)}
+        departments={departments}
+        users={users}
+        onRefresh={loadData}
       />
 
       {/* Charts Row */}

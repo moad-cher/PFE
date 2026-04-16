@@ -1,20 +1,16 @@
 import axios from 'axios';
 
-// Auto-detect API base URL based on current host
-// When accessed from LAN, use the same host with backend port
-const getApiBase = () => {
-  const hostname = window.location.hostname;
-  // If accessing from localhost, use localhost; otherwise use the current host IP
-  return `http://${hostname}:8001`;
+// Prefer same-origin through Vite proxy in development to avoid CORS issues.
+// You can override via VITE_API_BASE / VITE_WS_BASE when needed.
+const normalizeBase = (value, fallback) => {
+  const base = (value || fallback).trim();
+  return base.endsWith('/') ? base.slice(0, -1) : base;
 };
 
-const getWsBase = () => {
-  const hostname = window.location.hostname;
-  return `ws://${hostname}:8001`;
-};
+export const API_BASE = normalizeBase(import.meta.env.VITE_API_BASE, '/api');
 
-export const API_BASE = getApiBase();
-export const WS_BASE = getWsBase();
+const defaultWsBase = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+export const WS_BASE = normalizeBase(import.meta.env.VITE_WS_BASE, defaultWsBase);
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -56,8 +52,8 @@ export const getUser = (id) => api.get(`/users/${id}`);
 export const adminListUsers = () => api.get('/admin/users');
 export const adminChangeRole = (id, role) => api.patch(`/admin/users/${id}/role`, { role });
 export const adminAssignDepartment = (id, department_id) => api.patch(`/admin/users/${id}/department`, { department_id });
-export const adminDeactivateUser = (id) => api.delete(`/admin/users/${id}`);
-export const adminActivateUser = (id) => api.patch(`/users/admin/${id}`, { is_active: true });
+export const adminDeactivateUser = (id) => api.patch(`/admin/users/${id}/status`, { is_active: false });
+export const adminActivateUser = (id) => api.patch(`/admin/users/${id}/status`, { is_active: true });
 export const adminGetStats = () => api.get('/admin/stats');
 
 // Legacy admin endpoints (backward compatibility)

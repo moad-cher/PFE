@@ -24,7 +24,7 @@ function AIPanel({ app, onReanalyze }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow p-6">
+    <div className="bg-white rounded-2xl shadow p-6 font-mono">
       <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <span className="text-purple-500">✦</span> AI Analysis
       </h3>

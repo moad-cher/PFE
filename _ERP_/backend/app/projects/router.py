@@ -50,7 +50,12 @@ def _can_access(project: Project, user: User) -> bool:
 
 
 def _is_manager(project: Project, user: User) -> bool:
-    return project.manager_id == user.id or user.role in ("admin", "project_manager")
+    """Check if user can manage this project. Admin/HR see all. PM manages own projects."""
+    return (
+        user.role in ("admin", "hr_manager")
+        or project.manager_id == user.id
+        or user.role == "project_manager"
+    )
 
 
 async def _load_project(pk: int, db: AsyncSession) -> Project:
@@ -90,7 +95,8 @@ async def dashboard(
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
     )
-    if current_user.role not in ("admin", "hr_manager"):
+    # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
+    if current_user.role not in ("admin", "hr_manager", "project_manager"):
         q = q.where(
             (Project.manager_id == current_user.id)
             | Project.members.any(User.id == current_user.id)
@@ -121,7 +127,8 @@ async def list_projects(
         selectinload(Project.members),
         selectinload(Project.tasks),
     )
-    if current_user.role not in ("admin", "hr_manager"):
+    # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
+    if current_user.role not in ("admin", "hr_manager", "project_manager"):
         q = q.where(
             (Project.manager_id == current_user.id)
             | Project.members.any(User.id == current_user.id)
@@ -135,17 +142,20 @@ async def project_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Project Manager stats: projects per manager, task completion rates, overdue tasks."""
+    """Project Manager stats: projects per manager, task completion rates, overdue tasks.
+
+    Admin/HR/PM: see all projects for resource allocation.
+    Others: see only their projects.
+    """
     logger.info(f"project_stats called by user: {current_user.username} (role: {current_user.role})")
     try:
-        # For project managers, show only their projects
-        # For admins, show all projects
-        is_admin = current_user.role == "admin"
-        logger.debug(f"is_admin: {is_admin}")
-        
-        if is_admin:
-            # Admin sees all projects
-            logger.debug("Querying projects for admin")
+        # Admin/HR/PM see all projects. Others see only their own.
+        can_see_all = current_user.role in ("admin", "hr_manager", "project_manager")
+        logger.debug(f"can_see_all: {can_see_all}")
+
+        if can_see_all:
+            # Admin/HR/PM sees all projects
+            logger.debug("Querying projects for admin/hr/pm")
             projects_result = await db.execute(
                 select(Project).options(
                     selectinload(Project.tasks),
@@ -153,8 +163,8 @@ async def project_stats(
                 )
             )
             all_projects = projects_result.scalars().all()
-            logger.debug(f"Admin found {len(all_projects)} projects")
-            
+            logger.debug(f"Found {len(all_projects)} projects")
+
             # Projects per manager
             manager_result = await db.execute(
                 select(User.username, func.count(Project.id))
@@ -164,8 +174,8 @@ async def project_stats(
             )
             projects_per_manager = {username: count for username, count in manager_result.all()}
         else:
-            # Project manager sees only their projects
-            logger.debug(f"Querying projects for project_manager: {current_user.id}")
+            # Regular user sees only their projects
+            logger.debug(f"Querying projects for user: {current_user.id}")
             projects_result = await db.execute(
                 select(Project)
                 .where(
@@ -180,7 +190,7 @@ async def project_stats(
                 .options(selectinload(Project.tasks))
             )
             all_projects = projects_result.scalars().all()
-            logger.debug(f"Project manager found {len(all_projects)} projects")
+            logger.debug(f"User found {len(all_projects)} projects")
             projects_per_manager = {current_user.username: len([p for p in all_projects if p.manager_id == current_user.id])}
         
         # Calculate task completion rates
@@ -207,7 +217,7 @@ async def project_stats(
             "completed_tasks": completed_tasks,
             "completion_rate": round(completion_rate, 2),
             "overdue_tasks": overdue_tasks,
-            "is_admin_view": is_admin,
+            "is_admin_view": can_see_all,
         }
         print(f"[DEBUG] Returning stats: {result}")
         return result

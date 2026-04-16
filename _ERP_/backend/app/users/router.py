@@ -131,9 +131,9 @@ async def change_password(
 @router.get("/admin/all", response_model=list[UserRead])
 async def admin_list_all_users_legacy(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_roles("admin", "hr_manager")),
 ):
-    """Admin-only: list all users including inactive."""
+    """Admin/HR: list all users including inactive."""
     result = await db.execute(
         select(User)
         .options(selectinload(User.department))
@@ -152,14 +152,18 @@ async def admin_update_user(
     """Admin-only: update role, is_active, department."""
     if user_id == current_user.id:
         raise HTTPException(400, "Admins cannot modify their own role or status via this endpoint")
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.department))
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(user, field, value)
     await db.commit()
-    await db.refresh(user)
+    await db.refresh(user, ["department"])
     return user
 
 
@@ -179,7 +183,7 @@ async def list_departments(db: AsyncSession = Depends(get_db)):
 async def create_department(
     data: DepartmentCreate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_roles("admin", "hr_manager")),
 ):
     dept = Department(name=data.name, description=data.description)
     db.add(dept)
@@ -193,7 +197,7 @@ async def update_department(
     dept_id: int,
     data: DepartmentCreate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_roles("admin", "hr_manager")),
 ):
     result = await db.execute(select(Department).where(Department.id == dept_id))
     dept = result.scalar_one_or_none()
@@ -210,7 +214,7 @@ async def update_department(
 async def delete_department(
     dept_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_roles("admin", "hr_manager")),
 ):
     result = await db.execute(select(Department).where(Department.id == dept_id))
     dept = result.scalar_one_or_none()
@@ -225,9 +229,9 @@ async def delete_department(
 @admin_router.get("/users", response_model=list[UserRead])
 async def admin_list_all_users(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_roles("admin", "hr_manager")),
 ):
-    """Admin-only: list all users including inactive."""
+    """Admin/HR: list all users including inactive."""
     result = await db.execute(
         select(User)
         .options(selectinload(User.department))
@@ -239,9 +243,9 @@ async def admin_list_all_users(
 @admin_router.get("/stats")
 async def admin_get_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin")),
+    current_user: User = Depends(require_roles("admin", "hr_manager")),
 ):
-    """Admin-only: get system statistics."""
+    """Admin/HR: get system statistics."""
     from sqlalchemy import case
 
     # Total users
@@ -321,22 +325,29 @@ async def admin_get_stats(
 @admin_router.patch("/users/{user_id}/role", response_model=UserRead)
 async def admin_change_role(
     user_id: int,
-    data: dict,
+    data: UserAdminUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles("admin")),
 ):
-    """Admin-only: change user role."""
+    """Admin-only: change user role. HR cannot change roles."""
     if user_id == current_user.id:
         raise HTTPException(400, "Admins cannot modify their own role")
-    
-    result = await db.execute(select(User).where(User.id == user_id))
+
+    if not data.role:
+        raise HTTPException(400, "Role is required")
+
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.department))
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
-    
-    user.role = data.get("role")
+
+    user.role = data.role
     await db.commit()
-    await db.refresh(user)
+    await db.refresh(user, ["department"])
     return user
 
 
@@ -345,34 +356,64 @@ async def admin_assign_department(
     user_id: int,
     data: dict,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_roles("admin", "hr_manager")),
 ):
-    """Admin-only: assign user to department."""
-    result = await db.execute(select(User).where(User.id == user_id))
+    """Admin/HR: assign user to department."""
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.department))
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
     
     user.department_id = data.get("department_id")
     await db.commit()
-    await db.refresh(user)
+    await db.refresh(user, ["department"])
     return user
 
 
 @admin_router.delete("/users/{user_id}", status_code=204)
-async def admin_deactivate_user(
+async def admin_hard_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles("admin")),
 ):
-    """Admin-only: deactivate user."""
+    """Admin-only: hard delete user. HR cannot hard delete."""
     if user_id == current_user.id:
-        raise HTTPException(400, "Admins cannot deactivate themselves")
-    
+        raise HTTPException(400, "Admins cannot delete themselves")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
-    
-    user.is_active = False
+
+    await db.delete(user)
     await db.commit()
+
+
+@admin_router.patch("/users/{user_id}/status", response_model=UserRead)
+async def hr_toggle_user_status(
+    user_id: int,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("admin", "hr_manager")),
+):
+    """Admin/HR: activate/deactivate user (soft delete)."""
+    if user_id == current_user.id:
+        raise HTTPException(400, "Cannot modify own status")
+
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.department))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    user.is_active = data.get("is_active", False)
+    await db.commit()
+    await db.refresh(user, ["department"])
+    return user
