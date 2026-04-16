@@ -84,21 +84,6 @@ backend_by_domain/
 └── SETUP.bat                    # Setup script
 
 ```
-
-## 🚀 Quick Start
-
-### 1. Setup (First Time)
-Run the setup script to build the domain structure:
-```bash
-SETUP.bat
-```
-
-This will:
-- Create all domain directories
-- Copy and reorganize files from `backend_by_architecture`
-- Update import statements
-- Copy configuration files
-
 ### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
@@ -111,11 +96,6 @@ DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/erp_db
 SECRET_KEY=your-secret-key-here
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2:1b
-```
-
-### 4. Initialize Database
-```bash
-python create_db.py
 ```
 
 ### 5. Run Migrations
@@ -283,41 +263,6 @@ API Documentation: `http://localhost:8001/docs`
 - `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration (default: 60)
 - `MEDIA_DIR` - Upload directory (default: media)
 - `OLLAMA_BASE_URL` - Ollama API URL (default: http://localhost:11434)
-- `OLLAMA_MODEL` - LLM model (default: llama3.2:1b)
-
-## 🧪 Testing
-
-### Run Smoke Tests
-```bash
-python smoke_test.py
-python ws_smoke_test.py
-```
-
-## 📝 Migration from Architecture-Based
-
-If you want to switch from `backend_by_architecture` to `backend_by_domain`:
-
-1. Update `run_fastapi_project.bat`:
-   ```batch
-   set "BACKEND_DIR=%ROOT_DIR%backend\backend_by_domain"
-   ```
-
-2. Both backends use the same database schema
-3. All functionality is identical - only organization differs
-
-## 💡 Benefits of Domain-Driven Design
-
-1. **Better Cohesion**: All user-related code in one place
-2. **Easier Navigation**: Find features quickly
-3. **Clear Boundaries**: Domain responsibilities are explicit
-4. **Team Collaboration**: Teams can work on domains independently
-5. **Scalability**: Easy to extract domains into microservices
-6. **Maintainability**: Changes are localized to domains
-
-## 📄 License
-
-Same as parent ERP project
-
----
+- `OLLAMA_MODEL` - LLM model
 
 **Built with FastAPI, SQLAlchemy, PostgreSQL, and Ollama** 🚀

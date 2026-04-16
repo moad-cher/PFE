@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "minimax-m2.7:cloud"
     # OLLAMA_MODEL: str = "gemma4:e2b"
+    BACKEND_CORS_ORIGINS: str = "*"
 
 
     class Config:

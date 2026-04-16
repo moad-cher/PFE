@@ -36,16 +36,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ERP API", version="1.0.0", lifespan=lifespan)
 
-# CORS configuration - allow local network access
+# CORS configuration
+origins = [origin.strip() for origin in settings.BACKEND_CORS_ORIGINS.split(",")] if settings.BACKEND_CORS_ORIGINS else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?$",
+    allow_origins=origins,
     allow_credentials=False,  # Must be False when allow_origins uses "*", but JWT auth uses headers not cookies
     allow_methods=["*"],
     allow_headers=["*"],
