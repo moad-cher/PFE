@@ -8,12 +8,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     if (token) {
       getMe()
         .then((res) => setUser(res.data))
         .catch(() => {
-          localStorage.removeItem('token');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
         })
         .finally(() => setLoading(false));
     } else {
@@ -24,14 +25,16 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     const res = await authLogin(username, password);
     const { access_token } = res.data;
-    localStorage.setItem('token', access_token);
+    // Note: authLogin already sets access_token/refresh_token in localStorage, 
+    // but we'll keep the logic here if needed for direct context updates.
     const meRes = await getMe();
     setUser(meRes.data);
     return meRes.data;
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setUser(null);
   }, []);
 

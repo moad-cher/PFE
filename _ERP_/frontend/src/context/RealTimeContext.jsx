@@ -18,7 +18,7 @@ export function RealTimeProvider({ children }) {
   }, []);
 
   const connect = useCallback(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     if (!token || !userId) return;
 
     if (reconnectTimeout.current) {
@@ -52,7 +52,7 @@ export function RealTimeProvider({ children }) {
       };
 
       ws.onclose = () => {
-        if (localStorage.getItem('token') && userId) {
+        if (localStorage.getItem('access_token') && userId) {
           reconnectTimeout.current = setTimeout(connect, 3000);
         }
       };
