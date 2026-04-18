@@ -79,7 +79,7 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px -8px rgba(168, 123, 196, 0.25);
+  box-shadow: 0 10px 28px -8px rgba(89, 63, 109, 0.35);
 }
 
 /* Subtle float animation */
@@ -109,8 +109,8 @@ body {
 
 /* Varied shadows */
 .shadow-lilac {
-  box-shadow: 0 4px 14px -3px rgba(168, 123, 196, 0.15);
+  box-shadow: 0 6px 18px -5px rgba(89, 63, 109, 0.32);
 }
 .shadow-mauve {
-  box-shadow: 0 4px 14px -3px rgba(216, 136, 176, 0.15);
+  box-shadow: 0 6px 18px -5px rgba(128, 75, 103, 0.3);
 }
