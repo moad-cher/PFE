@@ -7,36 +7,6 @@ from app.projects.models import PriorityEnum
 from app.users.schemas import UserBrief
 
 
-# ── Project ───────────────────────────────────────────────────────────────────
-
-class ProjectCreate(BaseModel):
-    name: str
-    description: str = ""
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-
-
-class ProjectRead(BaseModel):
-    id: int
-    name: str
-    description: str
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    manager: Optional[UserBrief] = None
-    members: list[UserBrief] = []
-    progress: int = 0
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-
-
 # ── TaskStatus ────────────────────────────────────────────────────────────────
 
 class TaskStatusRead(BaseModel):
@@ -75,6 +45,7 @@ class TaskRead(BaseModel):
     completed_at: Optional[datetime]
     created_at: datetime
     assigned_to: list[UserBrief]
+    ai_suggestions: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -100,6 +71,37 @@ class TaskUpdate(BaseModel):
     deadline: Optional[date] = None
     points: Optional[int] = None
     assigned_to_ids: Optional[list[int]] = None
+
+
+# ── Project ───────────────────────────────────────────────────────────────────
+
+class ProjectCreate(BaseModel):
+    name: str
+    description: str = ""
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+
+class ProjectRead(BaseModel):
+    id: int
+    name: str
+    description: str
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    manager: Optional[UserBrief] = None
+    members: list[UserBrief] = []
+    tasks: list[TaskRead] = []
+    progress: int = 0
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
 
 
 # ── Comment ───────────────────────────────────────────────────────────────────

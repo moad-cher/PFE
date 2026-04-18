@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { RealTimeProvider } from './context/RealTimeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
@@ -60,7 +61,8 @@ function PublicLayout() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter
+      <RealTimeProvider>
+        <BrowserRouter
         future={{
           v7_startTransition: true,
           v7_relativeSplatPath: true,
@@ -142,6 +144,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
+    </RealTimeProvider>
     </AuthProvider>
   );
 }

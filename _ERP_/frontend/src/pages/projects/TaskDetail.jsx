@@ -4,24 +4,69 @@ import {
   getTask, getProject, getTaskComments, createTaskComment,
   deleteTask, moveTask, suggestAssignee, reassignTask, getProjectStatuses, formatDateTime, relativeTime,
 } from '../../api';
+import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 
-function AISuggestPanel({ pk, taskId, onAssigned }) {
+function AISuggestPanel({ pk, taskId, task, onAssigned }) {
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(null);
   const [result, setResult] = useState(null);
+  const { subscribe } = useRealTime();
+
+  // Initialize from cached suggestions on task load
+  useEffect(() => {
+    if (task?.ai_suggestions) {
+      try {
+        const suggestions = JSON.parse(task.ai_suggestions);
+        if (suggestions?.members?.length) {
+          const sorted = [...suggestions.members].sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+          setResult({ ...suggestions, members: sorted });
+        }
+      } catch (e) {
+        console.error('Failed to parse cached suggestions:', e);
+      }
+    }
+  }, [task?.ai_suggestions]);
+
+  // Listen for real-time completion
+  useEffect(() => {
+    if (!loading) return;
+    return subscribe((data) => {
+      if (data.type === 'task_suggestion_complete' && data.task_id === parseInt(taskId)) {
+        // Fetch the updated task to get the stored suggestions
+        getTask(pk, taskId).then(r => {
+            const suggestions = r.data.ai_suggestions ? JSON.parse(r.data.ai_suggestions) : null;
+            if (suggestions?.members?.length) {
+                const sorted = [...suggestions.members].sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+                setResult({ ...suggestions, members: sorted });
+            }
+            setLoading(false);
+        }).catch(err => {
+            console.error('Failed to fetch suggestions:', err);
+            setLoading(false);
+        });
+      }
+    });
+  }, [loading, subscribe, pk, taskId]);
 
   const run = async () => {
     setLoading(true);
+    setResult(null);
     try {
-      const r = await suggestAssignee(pk, taskId);
-      // Sort by confidence (highest first)
-      const sorted = (r.data.members || []).sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
-      setResult({ ...r.data, members: sorted });
-    } finally { setLoading(false); }
+      await suggestAssignee(pk, taskId);
+      // UI will update when WebSocket event arrives
+      
+      // Fallback timeout: reset after 30s in case WebSocket fails
+      setTimeout(() => {
+        setLoading(prev => prev ? false : prev);
+      }, 30000);
+    } catch (err) {
+      console.error('Failed to start suggestion:', err);
+      setLoading(false);
+    }
   };
 
   const handleAssign = async (userId) => {
@@ -261,7 +306,7 @@ export default function TaskDetail() {
             )}
           </div>
 
-          <AISuggestPanel pk={pk} taskId={taskId} onAssigned={loadTaskData} />
+          <AISuggestPanel pk={pk} taskId={taskId} task={task} onAssigned={loadTaskData} />
 
           <Link to={`/projects/${pk}/tasks/${taskId}/chat`}
             className="flex items-center gap-2 bg-white rounded-2xl shadow p-4 hover:shadow-md transition-shadow text-green-700">

@@ -27,22 +27,34 @@ from app.notifications.websocket import router as ws_notif_router
 from app.ai.websocket import router as ws_ai_router
 
 
+from app.websockets.manager import ws_manager, heartbeat_worker
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(deadline_scheduler())
+    # Start tasks
+    sched_task = asyncio.create_task(deadline_scheduler())
+    ws_heartbeat_task = asyncio.create_task(heartbeat_worker(ws_manager))
+    
     yield
-    task.cancel()
+    
+    # Clean up tasks
+    sched_task.cancel()
+    ws_heartbeat_task.cancel()
+    try:
+        await asyncio.gather(sched_task, ws_heartbeat_task, return_exceptions=True)
+    except Exception:
+        pass
 
 
 app = FastAPI(title="ERP API", version="1.0.0", lifespan=lifespan)
 
 # CORS configuration
-origins = [origin.strip() for origin in settings.BACKEND_CORS_ORIGINS.split(",")] if settings.BACKEND_CORS_ORIGINS else ["*"]
+origins = settings.BACKEND_CORS_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=False,  # Must be False when allow_origins uses "*", but JWT auth uses headers not cookies
+    allow_credentials=True if "*" not in origins else False,  # Standard practice: allow creds only for explicit origins
     allow_methods=["*"],
     allow_headers=["*"],
 )

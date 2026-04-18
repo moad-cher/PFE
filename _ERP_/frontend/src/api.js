@@ -9,7 +9,10 @@ const normalizeBase = (value, fallback) => {
 
 export const API_BASE = normalizeBase(import.meta.env.VITE_API_BASE, '/api');
 
-const defaultWsBase = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+const isLocalDev = import.meta.env.DEV && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const defaultWsBase = isLocalDev
+  ? "ws://127.0.0.1:8001"
+  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 export const WS_BASE = normalizeBase(import.meta.env.VITE_WS_BASE, defaultWsBase);
 
 export const api = axios.create({
@@ -85,7 +88,7 @@ export const getProjectMembers = (pk) => api.get(`/projects/${pk}/members`);
 export const addProjectMember = (pk, userId) => api.post(`/projects/${pk}/members/${userId}`);
 export const removeProjectMember = (pk, userId) => api.delete(`/projects/${pk}/members/${userId}`);
 export const getLeaderboard = (pk) => api.get(`/projects/${pk}/leaderboard`);
-export const suggestAssignee = (pk, taskId) => api.get(`/projects/${pk}/tasks/${taskId}/suggest`);
+export const suggestAssignee = (pk, taskId) => api.post(`/projects/${pk}/tasks/${taskId}/suggest`);
 
 // ===================== Tasks =====================
 export const listTasks = (projectId, params) =>

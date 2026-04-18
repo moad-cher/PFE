@@ -14,13 +14,19 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.core.base import Base
-# import app.models  # noqa: F401 — registers all models on Base.metadata
+# Ensure all models are imported so target_metadata knows about them
+from app.users.models import User, Department
+from app.projects.models import Project, Task
+from app.hiring.models import JobPosting, Application, Interview
+from app.messaging.models import ChatMessage
+from app.notifications.models import Notification
 
 # ------------------------------------------------------------------ #
 #  Alembic config                                                      #
 # ------------------------------------------------------------------ #
 config = context.config
-fileConfig(config.config_file_name)
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
@@ -28,7 +34,7 @@ target_metadata = Base.metadata
 from app.core.config import settings
 
 # Keep asyncpg in the URL — async_engine_from_config will use it directly
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", str(settings.DATABASE_URL))
 
 
 # ------------------------------------------------------------------ #
@@ -67,7 +73,11 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(run_async_migrations())
+    except RuntimeError:
+        asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():

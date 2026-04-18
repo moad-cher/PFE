@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useRealTime } from '../context/RealTimeContext';
 import {
-  createNotificationsWS,
   listNotifications,
   markAllRead,
   markNotificationRead,
@@ -11,17 +11,10 @@ import {
 
 export default function NotificationDropdown() {
   const { refreshUser } = useAuth();
+  const { unreadCount, subscribe } = useRealTime();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
-  const wsRef = useRef(null);
-  const reconnectTimeout = useRef(null);
-  const pingInterval = useRef(null);
-
-  // Derived state: recompute unread count whenever notifications list changes
-  const unreadCount = useMemo(() => 
-    notifications.filter((n) => !n.is_read).length, 
-  [notifications]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -43,68 +36,24 @@ export default function NotificationDropdown() {
       .catch(() => { });
   }, []);
 
-  // WebSocket for live notifications
+  // Listen for live updates via context
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    return subscribe((data) => {
+      if (data.type === 'notification') {
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === data.id)) return prev;
+          return [data, ...prev.slice(0, 49)];
+        });
 
-    let ws;
-    const connect = () => {
-      try {
-        ws = createNotificationsWS();
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          clearTimeout(reconnectTimeout.current);
-          pingInterval.current = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: 'ping' }));
-            }
-          }, 30000);
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'notification') {
-              setNotifications((prev) => {
-                if (prev.some((n) => n.id === data.id)) return prev;
-                return [data, ...prev.slice(0, 49)];
-              });
-
-              // Refresh user data if this is a reward notification
-              const message = (data.message || data.content || '').toLowerCase();
-              const isReward = message.includes('point') || message.includes('reward') || message.includes('earned');
-              if (isReward) {
-                refreshUser().catch(() => { });
-              }
-            }
-          } catch (_) { }
-        };
-
-        ws.onclose = () => {
-          clearInterval(pingInterval.current);
-          if (localStorage.getItem('token')) {
-            reconnectTimeout.current = setTimeout(connect, 3000);
-          }
-        };
-
-        ws.onerror = () => {
-          if (ws && ws.readyState === WebSocket.OPEN) ws.close();
-        };
-      } catch (error) { }
-    };
-
-    connect();
-
-    return () => {
-      clearTimeout(reconnectTimeout.current);
-      clearInterval(pingInterval.current);
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
+        // Refresh user data if this is a reward notification
+        const message = (data.message || data.content || '').toLowerCase();
+        const isReward = message.includes('point') || message.includes('reward') || message.includes('earned');
+        if (isReward) {
+          refreshUser().catch(() => { });
+        }
       }
-    };
-  }, [refreshUser]);
+    });
+  }, [subscribe, refreshUser]);
 
   const handleMarkAll = async () => {
     try {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getJob, getJobApplications, updateApplicationStatus, deleteJob } from '../../api';
+import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import EditJobModal from '../../components/EditJobModal';
@@ -31,6 +32,7 @@ function ScoreBar({ score }) {
 export default function JobDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { subscribe } = useRealTime();
   const [job, setJob] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,14 +40,30 @@ export default function JobDetail() {
   const isHR = user?.role === 'hr_manager';
   const [editOpen, setEditOpen] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     const p = [getJob(id)];
     if (isHR) p.push(getJobApplications(id));
-    Promise.all(p).then(([j, a]) => {
+    return Promise.all(p).then(([j, a]) => {
       setJob(j.data);
       if (a) setApplications(a.data);
-    }).finally(() => setLoading(false));
+      return { job: j.data, applications: a?.data };
+    });
+  };
+
+  useEffect(() => {
+    loadData().finally(() => setLoading(false));
   }, [id, isHR]);
+
+  // WebSocket for live AI updates
+  useEffect(() => {
+    if (!isHR) return;
+    return subscribe((data) => {
+      if (data.type === 'ai_complete' && data.job_id === parseInt(id)) {
+        // Refresh the whole list or fetch the specific application
+        getJobApplications(id).then(r => setApplications(r.data));
+      }
+    });
+  }, [id, isHR, subscribe]);
 
   const navigate = useNavigate();
 

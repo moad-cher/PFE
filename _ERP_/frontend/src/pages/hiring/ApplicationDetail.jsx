@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getApplication, updateApplicationStatus, analyzeApplication, formatDateTime, API_BASE } from '../../api';
+import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/Spinner';
 import PdfViewer from '../../components/PdfViewer';
 
@@ -15,12 +16,28 @@ const STATUS_STYLE = {
 
 function AIPanel({ app, onReanalyze }) {
   const [loading, setLoading] = useState(false);
+  const { subscribe } = useRealTime();
   const ai = app.ai_data;
+
+  // Listen for real-time completion
+  useEffect(() => {
+    if (!loading) return;
+    return subscribe((data) => {
+      if (data.type === 'ai_complete' && data.app_id === app.id) {
+        onReanalyze();
+        setLoading(false);
+      }
+    });
+  }, [loading, subscribe, app.id, onReanalyze]);
 
   const reanalyze = async () => {
     setLoading(true);
-    try { await analyzeApplication(app.id); onReanalyze(); }
-    finally { setLoading(false); }
+    try {
+      await analyzeApplication(app.id);
+      // Wait for WebSocket event
+    } catch (err) {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,16 +45,22 @@ function AIPanel({ app, onReanalyze }) {
       <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <span className="text-purple-500">✦</span> AI Analysis
       </h3>
-      {!ai ? (
+      {(!ai && !loading) ? (
         <div className="text-center py-4">
           <p className="text-sm text-gray-400 mb-3">No AI analysis yet.</p>
           <button onClick={reanalyze} disabled={loading}
             className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm hover:bg-purple-700 disabled:opacity-50">
-            {loading ? 'Analysing…' : 'Analyze Resume'}
+            Analyze Resume
           </button>
         </div>
       ) : (
         <div className="space-y-4">
+          {loading && (
+            <div className="flex items-center gap-2 text-xs text-purple-600 animate-pulse mb-2">
+              <Spinner size="xs" /> 
+              <span>Analyzing…</span>
+            </div>
+          )}
           {/* Score */}
           {app.ai_score != null && (
             <div>
@@ -55,12 +78,12 @@ function AIPanel({ app, onReanalyze }) {
               </div>
             </div>
           )}
-          {ai.analysis && (
+          {ai?.analysis && (
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-xs text-gray-600 leading-relaxed">{ai.analysis}</p>
             </div>
           )}
-          {ai.strengths?.length > 0 && (
+          {ai?.strengths?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-700 mb-1">Strengths</p>
               <ul className="space-y-0.5">
@@ -72,7 +95,7 @@ function AIPanel({ app, onReanalyze }) {
               </ul>
             </div>
           )}
-          {ai.weaknesses?.length > 0 && (
+          {ai?.weaknesses?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-700 mb-1">Weaknesses</p>
               <ul className="space-y-0.5">
@@ -85,8 +108,8 @@ function AIPanel({ app, onReanalyze }) {
             </div>
           )}
           <button onClick={reanalyze} disabled={loading}
-            className="text-xs text-purple-600 hover:underline">
-            {loading ? 'Re-analysing…' : 'Re-run analysis'}
+            className="text-xs text-purple-600 hover:underline disabled:opacity-50">
+            {loading ? 'Processing…' : 'Re-run analysis'}
           </button>
         </div>
       )}
@@ -99,7 +122,11 @@ export default function ApplicationDetail() {
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const load = () => getApplication(id).then(r => setApp(r.data));
+  const load = async () => {
+    const r = await getApplication(id);
+    setApp(r.data);
+    return r.data;
+  };
 
   useEffect(() => {
     load().finally(() => setLoading(false));

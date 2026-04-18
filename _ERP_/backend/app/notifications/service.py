@@ -114,3 +114,14 @@ async def notify_deadline_approaching(user_id: int, task_title: str, deadline: s
         message=f'Task "{task_title}" is due on {deadline}.',
         link=f"/tasks/{task_id}",
     )
+
+
+async def notify_ai_complete(hr_id: int, applicant_name: str, app_id: int, job_id: int):
+    """Special real-time event that doesn't necessarily create a persistent DB notification."""
+    payload = {
+        "type": "ai_complete",
+        "app_id": app_id,
+        "job_id": job_id,
+        "applicant_name": applicant_name,
+    }
+    await ws_manager.send_personal(hr_id, payload)

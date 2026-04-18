@@ -8,7 +8,6 @@ import logging
 from app.core.deps import get_db, get_current_user
 from app.messaging.models import ChatMessage
 from app.notifications.service import notify_task_assigned
-from app.tasks.ai import suggest_task_assignees
 from app.users.models import User
 from app.projects.models import Project, ProjectConfig, RewardLog, Task, TaskStatus, project_members, task_assignees
 from app.projects.schemas import (
@@ -125,7 +124,7 @@ async def list_projects(
     q = select(Project).options(
         selectinload(Project.manager),
         selectinload(Project.members),
-        selectinload(Project.tasks),
+        selectinload(Project.tasks).selectinload(Task.assigned_to),
     )
     # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
     if current_user.role not in ("admin", "hr_manager", "project_manager"):
@@ -657,10 +656,11 @@ async def leaderboard(
 
 # ── AI assignment suggestion ──────────────────────────────────────────────────
 
-@router.get("/{pk}/tasks/{task_id}/suggest", response_model=AISuggestionRead)
+@router.post("/{pk}/tasks/{task_id}/suggest")
 async def ai_suggest(
     pk: int,
     task_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -668,47 +668,14 @@ async def ai_suggest(
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
 
-    task_res = await db.execute(
-        select(Task)
-        .where(Task.id == task_id, Task.project_id == pk)
-        .options(selectinload(Task.assigned_to))
-    )
-    task = task_res.scalar_one_or_none()
-    if not task:
+    task_res = await db.execute(select(Task).where(Task.id == task_id, Task.project_id == pk))
+    if not task_res.scalar_one_or_none():
         raise HTTPException(404, "Task not found")
 
-    # Build active task counts per member via GROUP BY query
-    all_members = list({project.manager, *project.members})
-    member_ids = [m.id for m in all_members]
-    active_counts: dict[int, int] = {m.id: 0 for m in all_members}
-    if member_ids:
-        result = await db.execute(
-            select(task_assignees.c.user_id, func.count(Task.id).label("count"))
-            .join(Task, task_assignees.c.task_id == Task.id)
-            .where(
-                task_assignees.c.user_id.in_(member_ids),
-                Task.project_id == pk,
-                Task.status != "done",
-            )
-            .group_by(task_assignees.c.user_id)
-        )
-        for row in result.all():
-            active_counts[row.user_id] = row.count
+    from app.tasks.ai import run_ai_task_suggestion
 
-    member_dicts = [
-        {
-            "user_id": m.id,
-            "username": m.username,
-            "full_name": f"{m.first_name} {m.last_name}".strip(),
-            "skills": getattr(m, "skills", "") or "",
-            "active_tasks": active_counts.get(m.id, 0),
-            "reward_points": m.reward_points,
-        }
-        for m in all_members
-    ]
-
-    result = await suggest_task_assignees(task.title, task.description, member_dicts)
-    return AISuggestionRead(**result)
+    background_tasks.add_task(run_ai_task_suggestion, task_id, pk, current_user.id)
+    return {"status": "accepted", "message": "AI is generating suggestions"}
 
 
 

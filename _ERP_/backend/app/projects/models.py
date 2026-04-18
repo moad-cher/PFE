@@ -93,6 +93,7 @@ class Task(Base):
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=10)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ai_suggestions: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

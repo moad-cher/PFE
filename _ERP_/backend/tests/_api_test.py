@@ -81,7 +81,7 @@ def test_change_password_same(client, auth_headers):
 def test_change_password_wrong_current(client, auth_headers):
     r = client.post(
         "/users/me/password",
-        json={"current_password": "wrongpassword", "new_password": "newpassword"},
+        json={"current_password": "wrongpassword", "new_password": "newpassword123"},
         headers=auth_headers
     )
     assert r.status_code == 400

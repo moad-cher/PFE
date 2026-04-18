@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import json
 
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
+
 from app.ai.service import ollama_chat
 
 
@@ -98,3 +101,74 @@ async def suggest_task_assignees(
     result.sort(key=lambda x: x["confidence"], reverse=True)
 
     return {"members": result, "error": None}
+
+
+async def run_ai_task_suggestion(task_id: int, project_id: int, user_id: int) -> None:
+    """
+    Background task that computes assignee suggestions, persists them on the task,
+    then emits a personal realtime event to the requester.
+    """
+    from app.core.database import AsyncSessionLocal
+    from app.projects.models import Project, Task, task_assignees
+    from app.websockets.manager import ws_manager
+
+    async with AsyncSessionLocal() as db:
+        # Load project and task
+        project_res = await db.execute(
+            select(Project)
+            .where(Project.id == project_id)
+            .options(selectinload(Project.manager), selectinload(Project.members))
+        )
+        project = project_res.scalar_one_or_none()
+        if not project:
+            return
+
+        task_res = await db.execute(select(Task).where(Task.id == task_id, Task.project_id == project_id))
+        task = task_res.scalar_one_or_none()
+        if not task:
+            return
+
+        # Build workload stats for project members
+        all_members = list({project.manager, *project.members})
+        member_ids = [m.id for m in all_members]
+        active_counts: dict[int, int] = {m.id: 0 for m in all_members}
+
+        if member_ids:
+            counts_res = await db.execute(
+                select(task_assignees.c.user_id, func.count(Task.id).label("count"))
+                .join(Task, task_assignees.c.task_id == Task.id)
+                .where(
+                    task_assignees.c.user_id.in_(member_ids),
+                    Task.project_id == project_id,
+                    Task.status != "done",
+                )
+                .group_by(task_assignees.c.user_id)
+            )
+            for row in counts_res.all():
+                active_counts[row.user_id] = row.count
+
+        member_dicts = [
+            {
+                "user_id": m.id,
+                "username": m.username,
+                "full_name": f"{m.first_name} {m.last_name}".strip(),
+                "skills": getattr(m, "skills", "") or "",
+                "active_tasks": active_counts.get(m.id, 0),
+                "reward_points": m.reward_points,
+            }
+            for m in all_members
+        ]
+
+        suggestions = await suggest_task_assignees(task.title, task.description, member_dicts)
+
+        task.ai_suggestions = json.dumps(suggestions)
+        await db.commit()
+
+        await ws_manager.send_personal(
+            user_id,
+            {
+                "type": "task_suggestion_complete",
+                "task_id": task_id,
+                "project_id": project_id,
+            },
+        )
