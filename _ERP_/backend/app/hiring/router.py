@@ -180,7 +180,7 @@ async def apply(
     # Notify all HR managers and admins of the new application
     hr_res = await db.execute(
         select(User).where(
-            User.role.in_([RoleEnum.hr_manager]),
+            User.role.in_([RoleEnum.hr_manager, RoleEnum.admin]),
             User.is_active.is_(True),
         )
     )

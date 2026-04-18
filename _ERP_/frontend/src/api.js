@@ -155,11 +155,11 @@ export const deleteChatMessage = (id) => api.delete(`/chat/message/${id}`);
 // ===================== AI =====================
 export const getAIStatus = () => api.get('/ai/status');
 export const aiChat = (messages, system) =>
-  api.post('/ai/chat', { messages, system });
+  api.post('/ai/chat', { messages, system_prompt: system });
 export const aiSummarize = (text, maxWords, language) =>
   api.post('/ai/summarize', { text, max_words: maxWords, language });
 export const aiGenerateDescription = (title, contextType) =>
-  api.post('/ai/generate-description', { title, context_type: contextType });
+  api.post('/ai/generate-description', { title, context: contextType });
 
 // ===================== WebSocket helpers =====================
 export const createChatWS = (roomType, pk) => {
