@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealTime } from '../context/RealTimeContext';
 import {
@@ -11,7 +11,7 @@ import {
 
 export default function NotificationDropdown() {
   const { refreshUser } = useAuth();
-  const { unreadCount, subscribe } = useRealTime();
+  const { unreadCount, setUnreadCount, subscribe } = useRealTime();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
@@ -59,23 +59,30 @@ export default function NotificationDropdown() {
     try {
       await markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
     } catch (_) { }
   };
 
   const onMarkRead = async (id) => {
+    const target = notifications.find((n) => n.id === id);
+    const wasUnread = Boolean(target && !target.is_read);
     try {
       await markNotificationRead(id);
       setNotifications((prev) => 
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
+      if (wasUnread) setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (_) { }
   };
 
   const onDelete = async (id, e) => {
     e.stopPropagation();
+    const target = notifications.find((n) => n.id === id);
+    const wasUnread = Boolean(target && !target.is_read);
     try {
       await deleteNotification(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      if (wasUnread) setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (_) { }
   };
 
@@ -145,8 +152,12 @@ export default function NotificationDropdown() {
             <button
               onClick={() => {
                 if (window.confirm('Are you sure you want to delete all notifications? This cannot be undone.')) {
+                  const unreadToRemove = notifications.filter((n) => !n.is_read).length;
                   setNotifications([]);
                   notifications.forEach(n => deleteNotification(n.id).catch(() => { }));
+                  if (unreadToRemove > 0) {
+                    setUnreadCount((prev) => Math.max(0, prev - unreadToRemove));
+                  }
                 }
               }}
               className="text-gray-300 hover:text-red-500 transition-colors"

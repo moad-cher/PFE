@@ -7,7 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_db, get_current_user
-from app.notifications.service import notify_task_assigned, notify_task_completed, notify_task_updated, notify_reward
+from app.notifications.service import (
+    notify_task_assigned,
+    notify_task_completed,
+    notify_task_updated,
+    notify_reward,
+    schedule_notification,
+)
 from app.users.models import User
 from app.projects.models import Project, ProjectConfig, RewardLog, Task, Comment, TaskStatus
 from app.projects.schemas import (
@@ -63,9 +69,12 @@ async def _award_points(task: Task, db: AsyncSession):
         assignee.reward_points = (assignee.reward_points or 0) + points
         db.add(assignee)  # Explicitly mark assignee for update
         db.add(RewardLog(user_id=assignee.id, task_id=task.id, points=points))
-        # fire-and-forget notification (no background task available here, use direct call)
-        import asyncio
-        asyncio.ensure_future(notify_reward(assignee.id, points, task.title))
+        # Fire-and-forget with explicit error logging context.
+        schedule_notification(
+            notify_reward(assignee.id, points, task.title),
+            label="notify_reward",
+            context={"task_id": task.id, "user_id": assignee.id, "points": points},
+        )
     
     logger.info(f"[AWARD_POINTS] Completed, awarded to {len(task.assigned_to)} assignees")
 

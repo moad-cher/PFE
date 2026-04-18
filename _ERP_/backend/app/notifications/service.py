@@ -5,9 +5,38 @@ Call these from routers/tasks.py, routers/hiring.py, etc.
 
 from __future__ import annotations
 
+import asyncio
+import logging
+from collections.abc import Awaitable
+from typing import Any
+
 from app.core.database import AsyncSessionLocal
 from app.notifications.models import Notification, NotifTypeEnum
 from app.websockets.manager import ws_manager
+
+logger = logging.getLogger(__name__)
+
+
+def schedule_notification(
+    coro: Awaitable[Any],
+    *,
+    label: str,
+    context: dict[str, Any] | None = None,
+) -> None:
+    """Run notification coroutine in background and log any unhandled error."""
+    task = asyncio.create_task(coro)
+
+    def _on_done(done_task: asyncio.Task[Any]) -> None:
+        try:
+            done_task.result()
+        except Exception:
+            logger.exception(
+                "Background notification failed [%s] context=%s",
+                label,
+                context or {},
+            )
+
+    task.add_done_callback(_on_done)
 
 
 async def _create_and_push(

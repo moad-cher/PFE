@@ -80,8 +80,14 @@ export function RealTimeProvider({ children }) {
     };
   }, [connect]);
 
+  useEffect(() => {
+    if (!userId) {
+      setUnreadCount(0);
+    }
+  }, [userId]);
+
   return (
-    <RealTimeContext.Provider value={{ unreadCount, subscribe }}>
+    <RealTimeContext.Provider value={{ unreadCount, setUnreadCount, subscribe }}>
       {children}
     </RealTimeContext.Provider>
   );
