@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.deps import get_db, get_current_user
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.users.models import User
 from app.auth.schemas import Token
 from app.users.schemas import UserCreate, UserRead
@@ -19,7 +19,24 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
     user = result.scalar_one_or_none()
     if not user or not verify_password(form.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
-    return Token(access_token=create_access_token(user.id))
+    return Token(access_token=create_access_token(user.id), refresh_token=create_refresh_token(user.id))
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh(refresh_token: str, db: AsyncSession = Depends(get_db)):
+    payload = decode_token(refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    
+    user_id = int(payload["sub"])
+    user = await db.get(User, user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        
+    return Token(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id)
+    )
 
 
 @router.post("/register", response_model=UserRead, status_code=201)

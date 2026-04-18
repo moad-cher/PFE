@@ -33,8 +33,13 @@ _DEFAULT_SYSTEM = (
 
 async def _authenticate(websocket: WebSocket, token: str) -> bool:
     """Return True if the token is valid, else close the WebSocket."""
-    user_id = decode_token(token)
-    if user_id is None:
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
+        await websocket.close(code=4001, reason="Invalid or expired token")
+        return False
+    try:
+        int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
         await websocket.close(code=4001, reason="Invalid or expired token")
         return False
     return True

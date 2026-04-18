@@ -21,9 +21,11 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    user_id = decode_token(token)
-    if user_id is None:
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    user_id = int(payload["sub"])
     
     # Import here to avoid circular import
     from sqlalchemy.orm import selectinload

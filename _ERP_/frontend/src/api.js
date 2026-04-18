@@ -20,19 +20,50 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const res = await api.post('/auth/refresh', null, { params: { refresh_token: refreshToken } });
+          localStorage.setItem('access_token', res.data.access_token);
+          localStorage.setItem('refresh_token', res.data.refresh_token);
+          originalRequest.headers.Authorization = `Bearer ${res.data.access_token}`;
+          return api(originalRequest);
+        } catch (err) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+        }
+      } else {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ===================== Auth =====================
 export const authLogin = (username, password) => {
   const params = new URLSearchParams();
   params.append('username', username);
   params.append('password', password);
-  return api.post('/auth/token', params);
+  return api.post('/auth/token', params).then((res) => {
+    localStorage.setItem('access_token', res.data.access_token);
+    localStorage.setItem('refresh_token', res.data.refresh_token);
+    return res;
+  });
 };
 
 export const createUser = (userData) => api.post('/auth/register', userData);
@@ -163,7 +194,7 @@ export const aiGenerateDescription = (title, contextType) =>
 
 // ===================== WebSocket helpers =====================
 export const createChatWS = (roomType, pk) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
     if (!token) {
     throw new Error('No authentication token available');
   }
@@ -172,7 +203,7 @@ export const createChatWS = (roomType, pk) => {
 };
 
 export const createNotificationsWS = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
   if (!token) {
     throw new Error('No authentication token available');
   }
@@ -180,7 +211,7 @@ export const createNotificationsWS = () => {
 };
 
 export const createAIStreamWS = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
   if (!token) {
     throw new Error('No authentication token available');
   }

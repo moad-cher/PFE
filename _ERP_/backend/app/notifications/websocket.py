@@ -11,8 +11,12 @@ router = APIRouter()
 
 
 async def _get_user(token: str) -> User | None:
-    user_id = decode_token(token)
-    if user_id is None:
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
+        return None
+    try:
+        user_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
         return None
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
