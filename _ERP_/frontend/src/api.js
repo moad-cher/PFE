@@ -9,9 +9,16 @@ const normalizeBase = (value, fallback) => {
 
 export const API_BASE = normalizeBase(import.meta.env.VITE_API_BASE, '/api');
 
-const isLocalDev = import.meta.env.DEV && ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const defaultWsBase = isLocalDev
-  ? "ws://127.0.0.1:8001"
+const normalizeWsFromHttp = (url) => {
+  if (!url) return '';
+  const normalized = url.trim().replace(/\/+$/, '');
+  return normalized.replace(/^http:/i, 'ws:').replace(/^https:/i, 'wss:');
+};
+
+const isLocalDevHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const backendWsBase = normalizeWsFromHttp(import.meta.env.VITE_BACKEND_TARGET);
+const defaultWsBase = import.meta.env.DEV && isLocalDevHost
+  ? (backendWsBase || 'ws://127.0.0.1:8001')
   : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 export const WS_BASE = normalizeBase(import.meta.env.VITE_WS_BASE, defaultWsBase);
 
@@ -201,10 +208,9 @@ export const aiGenerateDescription = (title, contextType) =>
 // ===================== WebSocket helpers =====================
 export const createChatWS = (roomType, pk) => {
   const token = localStorage.getItem('access_token');
-    if (!token) {
+  if (!token) {
     throw new Error('No authentication token available');
   }
-  // Pass token as subprotocol to avoid showing it in logs/history (query params)
   return new WebSocket(`${WS_BASE}/ws/chat/${roomType}/${pk}`, [token]);
 };
 

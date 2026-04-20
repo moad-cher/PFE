@@ -51,7 +51,13 @@ export function RealTimeProvider({ children }) {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        // Do not loop reconnects when backend explicitly rejected auth.
+        if (event?.code === 1008 || event?.code === 4001) {
+          console.warn('Notifications WS auth failed; stopping auto-reconnect.', event.reason || event.code);
+          return;
+        }
+
         if (localStorage.getItem('access_token') && userId) {
           reconnectTimeout.current = setTimeout(connect, 3000);
         }

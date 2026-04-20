@@ -97,10 +97,17 @@ export default function ChatWindow({ roomType, pk }) {
           } catch (_) {}
         };
 
-        ws.onclose = () => {
+        ws.onclose = (event) => {
           setConnected(false);
           setLoading(false);
           clearInterval(pingInterval.current);
+
+          // Stop reconnect loops when backend explicitly rejects auth/access.
+          if (event?.code === 1008 || event?.code === 4001) {
+            console.warn('Chat WS rejected by backend; stopping auto-reconnect.', event.reason || event.code);
+            return;
+          }
+
           reconnectTimeout.current = setTimeout(connect, 3000);
         };
 
