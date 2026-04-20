@@ -62,10 +62,10 @@ async def _get_user(token: str) -> User | None:
 
 
 async def _accept_ws(ws: WebSocket):
-    # If client requested a subprotocol, echo one to satisfy strict browser checks.
+    # Echo a fixed subprotocol name; client sent Bearer token which we don't echo back.
     subprotocols = ws.scope.get("subprotocols", [])
     if subprotocols:
-        await ws.accept(subprotocol=subprotocols[0])
+        await ws.accept(subprotocol="notifications")
         return
     await ws.accept()
 

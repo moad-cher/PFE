@@ -112,9 +112,11 @@ export default function ChatWindow({ roomType, pk }) {
         };
 
         ws.onerror = () => {
-          ws.close();
+          // Ignore transient errors; onclose handles actual disconnects.
+          if (ws.readyState === WebSocket.CLOSED) ws.close();
         };
-      } catch (_) {
+      } catch (err) {
+        console.error('Chat WS connect error:', err);
         setLoading(false);
       }
     };

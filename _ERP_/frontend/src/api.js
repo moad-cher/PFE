@@ -211,7 +211,7 @@ export const createChatWS = (roomType, pk) => {
   if (!token) {
     throw new Error('No authentication token available');
   }
-  return new WebSocket(`${WS_BASE}/ws/chat/${roomType}/${pk}`, [token]);
+  return new WebSocket(`${WS_BASE}/ws/chat/${roomType}/${pk}?token=${encodeURIComponent(token)}`);
 };
 
 export const createNotificationsWS = () => {
@@ -219,7 +219,7 @@ export const createNotificationsWS = () => {
   if (!token) {
     throw new Error('No authentication token available');
   }
-  return new WebSocket(`${WS_BASE}/ws/notifications`, [token]);
+  return new WebSocket(`${WS_BASE}/ws/notifications?token=${encodeURIComponent(token)}`);
 };
 
 export const createAIStreamWS = () => {
@@ -227,7 +227,7 @@ export const createAIStreamWS = () => {
   if (!token) {
     throw new Error('No authentication token available');
   }
-  return new WebSocket(`${WS_BASE}/ws/ai/stream`, [token]);
+  return new WebSocket(`${WS_BASE}/ws/ai/stream?token=${encodeURIComponent(token)}`);
 };
 
 // ===================== Analytics =====================

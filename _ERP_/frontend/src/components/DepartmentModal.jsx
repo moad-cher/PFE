@@ -415,6 +415,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                             </p>
                           )}
                         </div>
+                        {provided.placeholder}
                       </div>
                     )}
                   </Droppable>

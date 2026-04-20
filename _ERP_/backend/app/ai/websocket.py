@@ -57,7 +57,7 @@ async def ws_ai_stream(websocket: WebSocket):
     # ── Auth ──────────────────────────────────────────────────────────────────
     if not await _authenticate(websocket, token):
         return
-    await websocket.accept(subprotocol=token)
+    await websocket.accept(subprotocol="ai")
 
     try:
         while True:
