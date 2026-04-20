@@ -273,13 +273,14 @@ export default function TaskDetail() {
             <div className="flex justify-between items-center">
               <span className="text-gray-500">Priority</span><PriorityBadge priority={task.priority} />
             </div>
-            {task.time_slot && (
-              <div className="flex justify-between"><span className="text-gray-500">Time slot</span><span className="text-gray-700">{task.time_slot}</span></div>
-            )}
             <div className="flex justify-between items-center">
-              <span className="text-gray-500">Deadline</span>
+              <span className="text-gray-500">Start</span>
+              <span className="text-gray-700">{task.start_time ? formatDateTime(task.start_time) : '—'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">End</span>
               <span className={task.is_overdue ? 'text-red-500 font-semibold' : task.deadline_approaching ? 'text-orange-500' : 'text-gray-700'}>
-                {task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}
+                {task.end_time ? formatDateTime(task.end_time) : '—'}
               </span>
             </div>
             {task.points > 0 && (

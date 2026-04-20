@@ -166,9 +166,9 @@ export default function ProjectManagerDashboard() {
       nextWeek.setDate(today.getDate() + 7);
 
       const dueThisWeek = (dashboardRes.data.my_tasks || []).filter(task => {
-        if (!task.deadline) return false;
-        const deadline = new Date(task.deadline);
-        return deadline >= today && deadline <= nextWeek && task.status !== 'done';
+        if (!task.end_time) return false;
+        const endTime = new Date(task.end_time);
+        return endTime >= today && endTime <= nextWeek && task.status !== 'done';
       });
       setTasksDueThisWeek(dueThisWeek);
     } catch (err) {
@@ -417,9 +417,9 @@ export default function ProjectManagerDashboard() {
                       <span className="text-xs text-purple-300">{task.project_name}</span>
                     )}
                   </div>
-                  {task.deadline && (
+                  {task.end_time && (
                     <p className="text-xs mt-2 text-gray-400">
-                      Due: {new Date(task.deadline).toLocaleDateString()}
+                      Due: {new Date(task.end_time).toLocaleString()}
                     </p>
                   )}
                 </Link>

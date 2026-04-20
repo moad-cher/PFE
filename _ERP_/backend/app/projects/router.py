@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import Integer, delete, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from datetime import date
+from datetime import datetime, timezone
 import logging
 
 from app.core.deps import get_db, get_current_user
@@ -111,7 +111,7 @@ async def dashboard(
         select(Task)
         .where(Task.assigned_to.any(User.id == current_user.id))
         .options(selectinload(Task.assigned_to))
-        .order_by(Task.deadline.nullslast(), Task.created_at)
+        .order_by(Task.end_time.nullslast(), Task.created_at)
     )
     my_tasks = my_tasks_res.scalars().all()
 
@@ -203,14 +203,14 @@ async def project_stats(
         total_tasks = 0
         completed_tasks = 0
         overdue_tasks = 0
-        today = date.today()
+        now_utc = datetime.now(timezone.utc)
         
         for project in all_projects:
             for task in project.tasks:
                 total_tasks += 1
                 if task.status == "done":
                     completed_tasks += 1
-                elif task.deadline and task.deadline < today and task.status != "done":
+                elif task.end_time and task.end_time < now_utc and task.status != "done":
                     overdue_tasks += 1
         
         completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
@@ -460,7 +460,7 @@ async def scrum_board(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Flat task list sorted by priority then deadline — Scrum backlog view."""
+    """Flat task list sorted by priority then end time — Scrum backlog view."""
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
@@ -485,7 +485,7 @@ async def scrum_board(
         tasks,
         key=lambda t: (
             _PRIORITY_ORDER.get(t.priority.value if hasattr(t.priority, "value") else t.priority, 99),
-            t.deadline or date.max,
+            t.end_time or datetime.max.replace(tzinfo=timezone.utc),
         ),
     )
     return [TaskRead.model_validate(t) for t in tasks]

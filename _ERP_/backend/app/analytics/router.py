@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, case, extract, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -356,7 +356,7 @@ async def get_team_member_performance(
     on_time = sum(
         1
         for t in done_tasks
-        if t.deadline and t.completed_at and t.completed_at.date() <= t.deadline
+        if t.end_time and t.completed_at and t.completed_at <= t.end_time
     )
     late = len(done_tasks) - on_time
 

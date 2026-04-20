@@ -8,9 +8,10 @@ export default function TaskNew() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
+  const fromDateTimeLocal = (value) => (value ? new Date(value).toISOString() : null);
   const [form, setForm] = useState({
     title: '', description: '', status: 'todo', priority: 'medium',
-    time_slot: '', deadline: '', points: 10, assigned_to_ids: [],
+    start_time: '', end_time: '', points: 10, assigned_to_ids: [],
     sprint_id: '',
   });
   const [saving, setSaving] = useState(false);
@@ -39,7 +40,8 @@ export default function TaskNew() {
       const payload = { 
         ...form, 
         points: Number(form.points), 
-        deadline: form.deadline || null,
+        start_time: fromDateTimeLocal(form.start_time),
+        end_time: fromDateTimeLocal(form.end_time),
         sprint_id: form.sprint_id ? Number(form.sprint_id) : null
       };
       const res = await createTask(pk, payload);
@@ -83,17 +85,13 @@ export default function TaskNew() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time Slot</label>
-              <select value={form.time_slot} onChange={e => setForm(f => ({ ...f, time_slot: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="">—</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-              <input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>

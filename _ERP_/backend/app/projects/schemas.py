@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from pydantic import BaseModel, computed_field
@@ -59,8 +59,8 @@ class TaskCreate(BaseModel):
     description: str = ""
     status: str = "todo"
     priority: PriorityEnum = PriorityEnum.medium
-    time_slot: str = ""
-    deadline: Optional[date] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     points: int = 10
     assigned_to_ids: list[int] = []
     sprint_id: Optional[int] = None
@@ -74,8 +74,8 @@ class TaskRead(BaseModel):
     description: str
     status: str
     priority: PriorityEnum
-    time_slot: str
-    deadline: Optional[date]
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
     points: int
     completed_at: Optional[datetime]
     created_at: datetime
@@ -87,14 +87,16 @@ class TaskRead(BaseModel):
     @computed_field
     @property
     def is_overdue(self) -> bool:
-        return bool(self.deadline and self.completed_at is None and self.deadline < date.today())
+        return bool(self.end_time and self.completed_at is None and self.end_time < datetime.now(timezone.utc))
 
     @computed_field
     @property
     def deadline_approaching(self) -> bool:
-        if not self.deadline or self.completed_at is not None:
+        if not self.end_time or self.completed_at is not None:
             return False
-        return 0 <= (self.deadline - date.today()).days <= 2
+        now_utc = datetime.now(timezone.utc)
+        delta = self.end_time - now_utc
+        return timedelta(0) <= delta <= timedelta(days=2)
 
 
 class TaskUpdate(BaseModel):
@@ -102,8 +104,8 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[PriorityEnum] = None
-    time_slot: Optional[str] = None
-    deadline: Optional[date] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     points: Optional[int] = None
     assigned_to_ids: Optional[list[int]] = None
     sprint_id: Optional[int] = None

@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -58,7 +58,7 @@ async def _award_points(task: Task, db: AsyncSession):
     on_time_pts = cfg.points_on_time if cfg else 10
     late_pts = cfg.points_late if cfg else 3
 
-    is_late = bool(task.deadline and task.deadline < date.today())
+    is_late = bool(task.end_time and task.end_time < datetime.now(timezone.utc))
     points = late_pts if is_late else on_time_pts
     reason = "Completed late" if is_late else "Completed on time"
     

@@ -180,23 +180,32 @@ export default function TeamMemberDashboard() {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const todayTasks = myTasks.filter(task => {
-    if (!task.deadline || task.status === 'done') return false;
-    const deadline = new Date(task.deadline);
-    return deadline >= today && deadline < tomorrow;
+    const scheduleRef = task.start_time || task.end_time;
+    if (!scheduleRef || task.status === 'done') return false;
+    const scheduledAt = new Date(scheduleRef);
+    return scheduledAt >= today && scheduledAt < tomorrow;
   });
 
-  const morningTasks = todayTasks.filter(t => t.time_slot === 'morning');
-  const afternoonTasks = todayTasks.filter(t => t.time_slot === 'afternoon');
+  const morningTasks = todayTasks.filter((t) => {
+    const scheduleRef = t.start_time || t.end_time;
+    if (!scheduleRef) return false;
+    return new Date(scheduleRef).getHours() < 12;
+  });
+  const afternoonTasks = todayTasks.filter((t) => {
+    const scheduleRef = t.start_time || t.end_time;
+    if (!scheduleRef) return false;
+    return new Date(scheduleRef).getHours() >= 12;
+  });
 
   // Upcoming deadlines (next 7 days)
   const nextWeek = new Date(today);
   nextWeek.setDate(today.getDate() + 7);
 
   const upcomingTasks = myTasks.filter(task => {
-    if (!task.deadline || task.status === 'done') return false;
-    const deadline = new Date(task.deadline);
-    return deadline > today && deadline <= nextWeek;
-  }).sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    if (!task.end_time || task.status === 'done') return false;
+    const endTime = new Date(task.end_time);
+    return endTime > today && endTime <= nextWeek;
+  }).sort((a, b) => new Date(a.end_time) - new Date(b.end_time));
 
   const doneTasks = myTasks.filter((t) => t.status === 'done').length;
   const activeTasks = myTasks.filter((t) => t.status !== 'done').length;
@@ -454,10 +463,10 @@ export default function TeamMemberDashboard() {
                       <span className="text-xs text-purple-300">{task.project_name}</span>
                     )}
                   </div>
-                  {task.deadline && (
+                  {task.end_time && (
                     <p className={`text-xs mt-2 ${task.is_overdue ? 'text-rose-400' : 'text-gray-400'}`}>
                       {task.is_overdue ? 'Overdue: ' : 'Due: '}
-                      {new Date(task.deadline).toLocaleDateString()}
+                      {new Date(task.end_time).toLocaleString()}
                     </p>
                   )}
                   {task.points > 0 && (
@@ -474,7 +483,7 @@ export default function TeamMemberDashboard() {
         {/* Upcoming Deadlines */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Deadlines</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming Due Times</h2>
             <span className="text-sm text-gray-500">{upcomingTasks.length} this week</span>
           </div>
           {upcomingTasks.length === 0 ? (
@@ -482,7 +491,7 @@ export default function TeamMemberDashboard() {
               <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              No upcoming deadlines
+              No upcoming due times
             </div>
           ) : (
             <div className="space-y-3">
@@ -505,7 +514,7 @@ export default function TeamMemberDashboard() {
                     )}
                   </div>
                   <p className="text-xs mt-2 text-gray-400">
-                    Due: {new Date(task.deadline).toLocaleDateString()}
+                    Due: {new Date(task.end_time).toLocaleString()}
                   </p>
                 </Link>
               ))}

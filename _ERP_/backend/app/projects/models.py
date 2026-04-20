@@ -76,11 +76,6 @@ class PriorityEnum(str, enum.Enum):
     urgent = "urgent"
 
 
-class TimeSlotEnum(str, enum.Enum):
-    morning = "morning"
-    afternoon = "afternoon"
-
-
 class SprintStatus(str, enum.Enum):
     draft = "draft"
     active = "active"
@@ -113,8 +108,8 @@ class Task(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(50), default="todo")
     priority: Mapped[PriorityEnum] = mapped_column(Enum(PriorityEnum), default=PriorityEnum.medium)
-    time_slot: Mapped[str] = mapped_column(String(20), default="")
-    deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=10)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ai_suggestions: Mapped[str] = mapped_column(Text, default="")

@@ -259,7 +259,7 @@ export default function ProjectDetail() {
                   <th className="pb-3 font-medium">Status</th>
                   <th className="pb-3 font-medium">Priority</th>
                   <th className="pb-3 font-medium">Assignees</th>
-                  <th className="pb-3 font-medium">Deadline</th>
+                  <th className="pb-3 font-medium">End Time</th>
                   <th className="pb-3 font-medium">Points</th>
                 </tr>
               </thead>
@@ -284,8 +284,8 @@ export default function ProjectDetail() {
                       {task.assigned_to?.map((u) => u.username).join(', ') || '-'}
                     </td>
                     <td className={`py-3 pr-4 ${task.is_overdue ? 'text-red-500' : 'text-gray-500'}`}>
-                      {task.deadline
-                        ? new Date(task.deadline).toLocaleDateString()
+                      {task.end_time
+                        ? new Date(task.end_time).toLocaleString()
                         : '-'}
                     </td>
                     <td className="py-3">

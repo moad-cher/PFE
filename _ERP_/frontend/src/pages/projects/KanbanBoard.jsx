@@ -21,12 +21,11 @@ function TaskCard({ task, projectId, isDragging, isLocked }) {
       </Link>
       <div className="flex items-center gap-1.5 flex-wrap mb-2">
         <PriorityBadge priority={task.priority} />
-        {task.time_slot && <span className="text-xs text-purple-300">{task.time_slot}</span>}
       </div>
-      {task.deadline && (
+      {task.end_time && (
         <p className={`text-xs mb-2 ${task.is_overdue ? 'text-rose-400 font-medium' : task.deadline_approaching ? 'text-amber-500' : 'text-gray-400'}`}>
-          {task.is_overdue ? '⚠ Overdue: ' : task.deadline_approaching ? '⏰ Due soon: ' : 'Due: '}
-          {new Date(task.deadline).toLocaleDateString()}
+          {task.is_overdue ? '⚠ Overdue: ' : task.deadline_approaching ? '⏰ Due soon: ' : 'Ends: '}
+          {new Date(task.end_time).toLocaleString()}
         </p>
       )}
       {task.assigned_to?.length > 0 && (

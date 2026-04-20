@@ -2,12 +2,12 @@
 Deadline notification scheduler.
 
 Runs hourly as a background asyncio task started at application startup.
-For each incomplete task whose deadline falls within the project's
+For each incomplete task whose end time falls within the project's
 `notify_deadline_days` window, notifies all assignees.
 """
 import asyncio
 import logging
-from datetime import date
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -22,11 +22,11 @@ _CHECK_INTERVAL_SECONDS = 3600  # 1 hour
 
 
 async def _run_deadline_check() -> None:
-    today = date.today()
+    now_utc = datetime.now(timezone.utc)
     async with AsyncSessionLocal() as db:
         tasks_res = await db.execute(
             select(Task)
-            .where(Task.deadline.isnot(None), Task.completed_at.is_(None))
+            .where(Task.end_time.isnot(None), Task.completed_at.is_(None))
             .options(selectinload(Task.assigned_to))
         )
         tasks = tasks_res.scalars().all()
@@ -44,14 +44,14 @@ async def _run_deadline_check() -> None:
                 configs[task.project_id] = cfg.notify_deadline_days if cfg else 2
 
             notify_days = configs[task.project_id]
-            delta = (task.deadline - today).days
+            delta_days = (task.end_time - now_utc).total_seconds() / 86400
 
-            if 0 <= delta <= notify_days:
+            if 0 <= delta_days <= notify_days:
                 for assignee in task.assigned_to:
                     await notify_deadline_approaching(
                         assignee.id,
                         task.title,
-                        task.deadline.isoformat(),
+                        task.end_time.isoformat(),
                         task.id,
                     )
 

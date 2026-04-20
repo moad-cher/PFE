@@ -12,6 +12,14 @@ export default function TaskEdit() {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const toDateTimeLocal = (value) => {
+    if (!value) return '';
+    const d = new Date(value);
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+  const fromDateTimeLocal = (value) => (value ? new Date(value).toISOString() : null);
 
   useEffect(() => {
     Promise.all([getTask(pk, taskId), getProject(pk), getProjectStatuses(pk), getProjectMembers(pk)])
@@ -25,7 +33,7 @@ export default function TaskEdit() {
         setForm({
           title: d.title, description: d.description || '',
           status: d.status, priority: d.priority,
-          time_slot: d.time_slot || '', deadline: d.deadline || '',
+          start_time: toDateTimeLocal(d.start_time), end_time: toDateTimeLocal(d.end_time),
           points: d.points, assigned_to_ids: d.assigned_to?.map(u => u.id) || [],
           sprint_id: d.sprint_id || '',
         });
@@ -49,7 +57,8 @@ export default function TaskEdit() {
       const payload = { 
         ...form, 
         points: Number(form.points), 
-        deadline: form.deadline || null,
+        start_time: fromDateTimeLocal(form.start_time),
+        end_time: fromDateTimeLocal(form.end_time),
         sprint_id: form.sprint_id ? Number(form.sprint_id) : null
       };
       await updateTask(pk, taskId, payload);
@@ -149,17 +158,13 @@ export default function TaskEdit() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time Slot</label>
-              <select value={form.time_slot} onChange={e => setForm(f => ({ ...f, time_slot: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="">—</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-              <input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
