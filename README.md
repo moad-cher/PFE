@@ -58,12 +58,11 @@ workflow (skill with defined tool use or organique json output):
 ### high priority
 
 - [ ] scrum
-    - [ ] sprint view
-    - [ ] 
+    - [ ] in project details instead of recent tasks, show horizontally scrollable gantt chart with colored tasks, assignees, with sprints separated (like an area or something) and current sprint highlighted and current day marked
+
 
 ### medium priority
 - [ ] resume bulk appraisal for a job posting
-- [ ] gantt for projects <!-- with assignees displayed and deadlines and milestones -->
 - [ ] assignment suggestions should be integrated into the assignment component
 
 ### low priority

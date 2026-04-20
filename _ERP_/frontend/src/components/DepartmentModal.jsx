@@ -14,6 +14,9 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Multi-select state
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+
   // CRUD states
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -30,6 +33,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
       setIsCreating(false);
       setForm(initialDepartmentForm);
       setDeleteConfirm(null);
+      setSelectedUserIds([]);
     }
   }, [open, departments, users]);
 
@@ -43,65 +47,82 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
     return allUsers.filter(u => !u.department);
   };
 
+  const handleUserClick = (e, userId, containerUsers) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.ctrlKey || e.metaKey) {
+      // Toggle selection
+      setSelectedUserIds(prev =>
+        prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+      );
+    } else if (e.shiftKey && selectedUserIds.length > 0) {
+      // Range selection
+      const lastSelectedId = selectedUserIds[selectedUserIds.length - 1];
+      const currentIndex = containerUsers.findIndex(u => u.id === userId);
+      const lastIndex = containerUsers.findIndex(u => u.id === lastSelectedId);
+
+      if (lastIndex !== -1 && currentIndex !== -1) {
+        const start = Math.min(currentIndex, lastIndex);
+        const end = Math.max(currentIndex, lastIndex);
+        const rangeIds = containerUsers.slice(start, end + 1).map(u => u.id);
+        
+        setSelectedUserIds(prev => {
+          const others = prev.filter(id => !rangeIds.includes(id));
+          return [...others, ...rangeIds];
+        });
+      } else {
+        setSelectedUserIds([userId]);
+      }
+    } else {
+      // Single selection
+      setSelectedUserIds([userId]);
+    }
+  };
+
   const handleDragEnd = async (result) => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
-    const userId = parseInt(draggableId.replace('user-', ''));
+    const draggedUserId = parseInt(draggableId.replace('user-', ''));
 
     // Dropped in same location
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return;
     }
 
-    // Determine new department
-    let newDepartmentId = null;
-    if (destination.droppableId !== 'unassigned') {
-      newDepartmentId = parseInt(destination.droppableId.replace('dept-', ''));
+    // Determine which users are being moved
+    let usersToMove = [draggedUserId];
+    if (selectedUserIds.includes(draggedUserId)) {
+      usersToMove = [...selectedUserIds];
     }
 
-    // Optimistic update
-    setLocalDepartments(prev => prev.map(dept => {
-      const deptUsers = getDepartmentUsers(dept.id);
-      const user = allUsers.find(u => u.id === userId);
+    // Determine new department
+    let newDepartmentId = null;
+    let newDeptObj = null;
+    if (destination.droppableId !== 'unassigned') {
+      newDepartmentId = parseInt(destination.droppableId.replace('dept-', ''));
+      newDeptObj = localDepartments.find(d => d.id === newDepartmentId);
+    }
 
-      // Remove from old department
-      if (user?.department?.id === dept.id) {
-        return { ...dept, _users: deptUsers.filter(u => u.id !== userId) };
-      }
-      // Add to new department
-      if (dept.id === newDepartmentId) {
-        return { ...dept, _users: [...deptUsers, user] };
-      }
-      return dept;
-    }));
-
-    // Update unassigned
-    setAllUsers(prev => {
-      const user = prev.find(u => u.id === userId);
-      const updatedUser = { ...user, department: localDepartments.find(d => d.id === newDepartmentId) || null };
-
-      if (source.droppableId === 'unassigned') {
-        // Was unassigned, now assigned - remove from unassigned list visual
-        return prev.map(u => u.id === userId ? updatedUser : u);
-      }
-      if (destination.droppableId === 'unassigned') {
-        // Was assigned, now unassigned
-        return prev.map(u => u.id === userId ? updatedUser : u);
-      }
-      return prev.map(u => u.id === userId ? updatedUser : u);
-    });
+    // Update state optimistically
+    setAllUsers(prev => prev.map(u => 
+      usersToMove.includes(u.id) ? { ...u, department: newDeptObj } : u
+    ));
+    
+    // Clear selection after drag
+    setSelectedUserIds([]);
 
     try {
-      // Import API function dynamically to avoid circular imports
       const { adminAssignDepartment } = await import('../api');
-      await adminAssignDepartment(userId, newDepartmentId);
-      setSuccessMessage('User department updated');
+      // Process all users in parallel
+      await Promise.all(usersToMove.map(uid => adminAssignDepartment(uid, newDepartmentId)));
+      
+      setSuccessMessage(`${usersToMove.length} user(s) moved`);
       setTimeout(() => setSuccessMessage(''), 2000);
       onRefresh?.();
     } catch (err) {
-      setError('Failed to update user department: ' + (err.response?.data?.detail || 'Unknown error'));
-      // Revert optimistic update
+      setError('Failed to update users: ' + (err.response?.data?.detail || 'Unknown error'));
       onRefresh?.();
       setTimeout(() => setError(''), 3000);
     }
@@ -260,32 +281,45 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                       <span>Unassigned ({getUnassignedUsers().length})</span>
                     </h4>
                     <div className="space-y-2">
-                      {getUnassignedUsers().map((user, index) => (
-                        <Draggable key={`user-${user.id}`} draggableId={`user-${user.id}`} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`bg-white rounded-lg px-3 py-2 shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:border-purple-300 transition-colors ${
-                                snapshot.isDragging ? 'shadow-lg rotate-2' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-medium text-xs">
-                                  {user.first_name?.[0]}{user.last_name?.[0]}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {user.first_name} {user.last_name}
-                                  </p>
-                                  <p className="text-xs text-gray-500 truncate">@{user.username}</p>
+                      {getUnassignedUsers().map((user, index) => {
+                        const isSelected = selectedUserIds.includes(user.id);
+                        return (
+                          <Draggable key={`user-${user.id}`} draggableId={`user-${user.id}`} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                onClick={(e) => handleUserClick(e, user.id, getUnassignedUsers())}
+                                className={`bg-white rounded-lg px-3 py-2 shadow-sm border cursor-grab active:cursor-grabbing hover:border-purple-300 transition-colors ${
+                                  isSelected ? 'border-purple-500 bg-purple-50 ring-1 ring-purple-500' : 'border-gray-200'
+                                } ${
+                                  snapshot.isDragging ? 'shadow-lg rotate-2' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 relative">
+                                  {snapshot.isDragging && isSelected && selectedUserIds.length > 1 && (
+                                    <div className="absolute -top-4 -right-4 bg-purple-600 text-white text-[10px] font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border-2 border-white z-50">
+                                      {selectedUserIds.length}
+                                    </div>
+                                  )}
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-xs ${
+                                    isSelected ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-600'
+                                  }`}>
+                                    {user.first_name?.[0]}{user.last_name?.[0]}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-medium truncate ${isSelected ? 'text-purple-900' : 'text-gray-900'}`}>
+                                      {user.first_name} {user.last_name}
+                                    </p>
+                                    <p className={`text-xs truncate ${isSelected ? 'text-purple-600' : 'text-gray-500'}`}>@{user.username}</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
+                            )}
+                          </Draggable>
+                        );
+                      })}
                       {getUnassignedUsers().length === 0 && (
                         <p className="text-sm text-gray-400 text-center py-4">No unassigned users</p>
                       )}
@@ -336,32 +370,45 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                           <p className="text-xs text-gray-500 mb-3 line-clamp-2">{dept.description}</p>
                         )}
                         <div className="flex-1 space-y-2">
-                          {deptUsers.map((user, userIndex) => (
-                            <Draggable key={`user-${user.id}`} draggableId={`user-${user.id}`} index={userIndex}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 cursor-grab active:cursor-grabbing hover:border-purple-300 transition-colors ${
-                                    snapshot.isDragging ? 'shadow-lg rotate-2' : ''
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-medium text-xs">
-                                      {user.first_name?.[0]}{user.last_name?.[0]}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">
-                                        {user.first_name} {user.last_name}
-                                      </p>
-                                      <p className="text-xs text-gray-500 truncate">@{user.username}</p>
+                          {deptUsers.map((user, userIndex) => {
+                            const isSelected = selectedUserIds.includes(user.id);
+                            return (
+                              <Draggable key={`user-${user.id}`} draggableId={`user-${user.id}`} index={userIndex}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    onClick={(e) => handleUserClick(e, user.id, deptUsers)}
+                                    className={`bg-gray-50 rounded-lg px-3 py-2 border cursor-grab active:cursor-grabbing hover:border-purple-300 transition-colors ${
+                                      isSelected ? 'border-purple-500 bg-purple-100 ring-1 ring-purple-500' : 'border-gray-200'
+                                    } ${
+                                      snapshot.isDragging ? 'shadow-lg rotate-2' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 relative">
+                                      {snapshot.isDragging && isSelected && selectedUserIds.length > 1 && (
+                                        <div className="absolute -top-4 -right-4 bg-purple-600 text-white text-[10px] font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg border-2 border-white z-50">
+                                          {selectedUserIds.length}
+                                        </div>
+                                      )}
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-xs ${
+                                        isSelected ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-600'
+                                      }`}>
+                                        {user.first_name?.[0]}{user.last_name?.[0]}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-medium truncate ${isSelected ? 'text-purple-900' : 'text-gray-900'}`}>
+                                          {user.first_name} {user.last_name}
+                                        </p>
+                                        <p className={`text-xs truncate ${isSelected ? 'text-purple-600' : 'text-gray-500'}`}>@{user.username}</p>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
+                                )}
+                              </Draggable>
+                            );
+                          })}
                           {deptUsers.length === 0 && (
                             <p className="text-sm text-gray-400 text-center py-4">
                               Drop users here
