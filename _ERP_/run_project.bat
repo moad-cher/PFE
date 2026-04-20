@@ -31,7 +31,6 @@ start "FastAPI Backend" cmd /k "cd /d "%BACKEND_DIR%" && python -m uvicorn app.m
 
 timeout /t 2 /nobreak > nul
 echo [2/2] Starting frontend on localhost:5173 (external window) ...
-start "React Frontend" cmd /k "cd /d "%FRONTEND_DIR%" && npm run dev -- --force"
 start "React Frontend" cmd /k "cd /d "%FRONTEND_DIR%" && npm run dev"
 
 echo.

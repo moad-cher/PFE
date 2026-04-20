@@ -66,7 +66,7 @@ export default function Navbar() {
             <img
               src="/log.png"
               alt="ERP logo"
-              className="h-10 object-contain rounded-md shadow-lilac"
+              className="h-10 hover:scale-110 transition-transform"
             />
             <span>ERP</span>
           </Link>

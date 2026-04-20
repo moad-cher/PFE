@@ -129,6 +129,7 @@ class ProjectRead(BaseModel):
     manager: Optional[UserBrief] = None
     members: list[UserBrief] = []
     tasks: list[TaskRead] = []
+    statuses: list[TaskStatusRead] = []
     sprints: list[SprintRead] = []
     progress: int = 0
     created_at: datetime

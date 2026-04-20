@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { getProject, listTasks, deleteProject, getKanban } from '../../api';
+import { getProject, deleteProject, getKanban } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
 import PriorityBadge from '../../components/PriorityBadge';
 import TaskDistributionChart from '../../components/TaskDistributionChart';
+import GanttChart from '../../components/GanttChart';
 
 function QuickCard({ to, icon, label, color }) {
   return (
@@ -26,27 +27,20 @@ export default function ProjectDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
-  const [tasks, setTasks] = useState([]);
   const [kanbanData, setKanbanData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      getProject(pk),
-      listTasks(pk, { limit: 10 }),
-    ])
-      .then(([projRes, tasksRes]) => {
+    setLoading(true);
+    getProject(pk)
+      .then((projRes) => {
         setProject(projRes.data);
-        setTasks(Array.isArray(tasksRes.data) ? tasksRes.data : tasksRes.data?.items || []);
         
-        // Fetch kanban data separately (optional, won't break page if it fails)
+        // Fetch kanban data separately
         getKanban(pk)
           .then((kanbanRes) => {
-            console.log('Kanban response:', kanbanRes.data);
-            
-            // Check if columns exist and is an array
             if (kanbanRes.data && Array.isArray(kanbanRes.data.columns)) {
               const chartData = kanbanRes.data.columns.map(col => ({
                 name: col.status.name,
@@ -55,20 +49,16 @@ export default function ProjectDetail() {
               }));
               setKanbanData(chartData);
             } else if (Array.isArray(kanbanRes.data)) {
-              // If response is directly an array of columns
               const chartData = kanbanRes.data.map(col => ({
                 name: col.status.name,
                 value: col.tasks.length,
                 fill: col.status.color
               }));
               setKanbanData(chartData);
-            } else {
-              console.warn('Unexpected kanban data structure:', kanbanRes.data);
             }
           })
           .catch((err) => {
             console.warn('Failed to load kanban data for chart:', err);
-            // Chart will show "No tasks to display" if data fails to load
           });
       })
       .catch((err) => {
@@ -223,84 +213,24 @@ export default function ProjectDetail() {
         />
       </div>
 
-      {/* Recent Tasks */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      {/* Project Roadmap / Gantt */}
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Tasks</h2>
-          <div className="flex items-center gap-2">
-            <Link
-              to={`/projects/${pk}/kanban`}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              View Kanban
-            </Link>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900">Project Roadmap</h2>
+          <Link
+            to={`/projects/${pk}/kanban`}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            View Kanban
+          </Link>
         </div>
-
-        {tasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <p className="text-sm">No tasks yet</p>
-            <Link
-              to={`/projects/${pk}/tasks/new`}
-              className="mt-2 inline-block text-sm text-blue-600 hover:underline"
-            >
-              Create the first task
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b text-gray-500">
-                  <th className="pb-3 font-medium">Title</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Priority</th>
-                  <th className="pb-3 font-medium">Assignees</th>
-                  <th className="pb-3 font-medium">End Time</th>
-                  <th className="pb-3 font-medium">Points</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3 pr-4">
-                      <Link
-                        to={`/projects/${pk}/tasks/${task.id}`}
-                        className="font-medium text-gray-900 hover:text-blue-600"
-                      >
-                        {task.title}
-                      </Link>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <StatusBadge status={task.status} />
-                    </td>
-                    <td className="py-3 pr-4">
-                      <PriorityBadge priority={task.priority} />
-                    </td>
-                    <td className="py-3 pr-4 text-gray-500">
-                      {task.assigned_to?.map((u) => u.username).join(', ') || '-'}
-                    </td>
-                    <td className={`py-3 pr-4 ${task.is_overdue ? 'text-red-500' : 'text-gray-500'}`}>
-                      {task.end_time
-                        ? new Date(task.end_time).toLocaleString()
-                        : '-'}
-                    </td>
-                    <td className="py-3">
-                      {task.points > 0 ? (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5">
-                          {task.points} pts
-                        </span>
-                      ) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        
+        <GanttChart 
+          tasks={project?.tasks || []} 
+          sprints={project?.sprints || []} 
+          statuses={project?.statuses || []}
+          project_id={pk} 
+        />
       </div>
     </div>
   );

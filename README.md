@@ -20,7 +20,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
 - [ ] proper permissions system with roles (admin, manager, employee)
     - [x] rh and admin can manage accounts
     - [x] kanban permissions (only the concerned who shall update the task status)
-    - [ ] scrum roles (a whole other story)
+    - [ ] scrum (in progess)
 
 - [x] AI suggests task assignments based on team members' skills and workload
 
@@ -58,6 +58,10 @@ workflow (skill with defined tool use or organique json output):
 ### high priority
 
 - [ ] scrum
+    - [ ] working sprints
+        - [ ] sprint goal and retrospective notes
+        - [ ] sprint backlog
+        - [ ] separate scrum board view with swimlanes for each sprint and backlog items colored by status
     - [ ] in project details instead of recent tasks, show horizontally scrollable gantt chart with colored tasks, assignees, with sprints separated (like an area or something) and current sprint highlighted and current day marked
 
 
