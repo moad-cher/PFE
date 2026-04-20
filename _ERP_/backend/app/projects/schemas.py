@@ -3,8 +3,41 @@ from typing import Optional
 
 from pydantic import BaseModel, computed_field
 
-from app.projects.models import PriorityEnum
+from app.projects.models import PriorityEnum, SprintStatus
 from app.users.schemas import UserBrief
+
+
+# ── Sprint ────────────────────────────────────────────────────────────────────
+
+class SprintCreate(BaseModel):
+    name: str
+    goal: str = ""
+    retrospective: str = ""
+    start_date: date
+    end_date: date
+    status: SprintStatus = SprintStatus.draft
+
+
+class SprintRead(BaseModel):
+    id: int
+    project_id: int
+    name: str
+    goal: str
+    retrospective: str
+    start_date: date
+    end_date: date
+    status: SprintStatus
+
+    model_config = {"from_attributes": True}
+
+
+class SprintUpdate(BaseModel):
+    name: Optional[str] = None
+    goal: Optional[str] = None
+    retrospective: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    status: Optional[SprintStatus] = None
 
 
 # ── TaskStatus ────────────────────────────────────────────────────────────────
@@ -30,11 +63,13 @@ class TaskCreate(BaseModel):
     deadline: Optional[date] = None
     points: int = 10
     assigned_to_ids: list[int] = []
+    sprint_id: Optional[int] = None
 
 
 class TaskRead(BaseModel):
     id: int
     project_id: int
+    sprint_id: Optional[int]
     title: str
     description: str
     status: str
@@ -71,6 +106,7 @@ class TaskUpdate(BaseModel):
     deadline: Optional[date] = None
     points: Optional[int] = None
     assigned_to_ids: Optional[list[int]] = None
+    sprint_id: Optional[int] = None
 
 
 # ── Project ───────────────────────────────────────────────────────────────────
@@ -91,6 +127,7 @@ class ProjectRead(BaseModel):
     manager: Optional[UserBrief] = None
     members: list[UserBrief] = []
     tasks: list[TaskRead] = []
+    sprints: list[SprintRead] = []
     progress: int = 0
     created_at: datetime
 

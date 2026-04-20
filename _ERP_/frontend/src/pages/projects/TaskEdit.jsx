@@ -27,6 +27,7 @@ export default function TaskEdit() {
           status: d.status, priority: d.priority,
           time_slot: d.time_slot || '', deadline: d.deadline || '',
           points: d.points, assigned_to_ids: d.assigned_to?.map(u => u.id) || [],
+          sprint_id: d.sprint_id || '',
         });
       });
   }, [pk, taskId]);
@@ -45,7 +46,13 @@ export default function TaskEdit() {
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      await updateTask(pk, taskId, { ...form, points: Number(form.points), deadline: form.deadline || null });
+      const payload = { 
+        ...form, 
+        points: Number(form.points), 
+        deadline: form.deadline || null,
+        sprint_id: form.sprint_id ? Number(form.sprint_id) : null
+      };
+      await updateTask(pk, taskId, payload);
       navigate(`/projects/${pk}/tasks/${taskId}`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update task');
@@ -115,6 +122,16 @@ export default function TaskEdit() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
+              <select value={form.sprint_id} onChange={e => setForm(f => ({ ...f, sprint_id: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <option value="">Backlog (No Sprint)</option>
+                {project?.sprints?.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}

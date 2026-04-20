@@ -9,7 +9,7 @@ from app.core.deps import get_db, get_current_user
 from app.messaging.models import ChatMessage
 from app.notifications.service import notify_task_assigned
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Task, TaskStatus, project_members, task_assignees
+from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Task, TaskStatus, project_members, task_assignees
 from app.projects.schemas import (
     AISuggestionRead,
     KanbanColumnRead,
@@ -19,6 +19,9 @@ from app.projects.schemas import (
     ProjectCreate,
     ProjectRead,
     ProjectUpdate,
+    SprintCreate,
+    SprintRead,
+    SprintUpdate,
     TaskRead,
     TaskStatusCreate,
     TaskStatusRead,
@@ -65,6 +68,7 @@ async def _load_project(pk: int, db: AsyncSession) -> Project:
             selectinload(Project.tasks).selectinload(Task.assigned_to),
             selectinload(Project.statuses),
             selectinload(Project.config),
+            selectinload(Project.sprints),
         )
     )
     project = result.scalar_one_or_none()
@@ -93,6 +97,7 @@ async def dashboard(
         selectinload(Project.manager),
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
+        selectinload(Project.sprints),
     )
     # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
     if current_user.role not in ("admin", "hr_manager", "project_manager"):
@@ -125,6 +130,7 @@ async def list_projects(
         selectinload(Project.manager),
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
+        selectinload(Project.sprints),
     )
     # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
     if current_user.role not in ("admin", "hr_manager", "project_manager"):
@@ -231,13 +237,18 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Check if project name already exists
+    existing_project = await db.execute(select(Project).where(Project.name == data.name))
+    if existing_project.scalars().first():
+        raise HTTPException(400, "A project with this name already exists")
+
     project = Project(**data.model_dump(), manager_id=current_user.id)
     db.add(project)
     await db.flush()  # get project.id before committing
     await _ensure_default_statuses(project, db)
     await _ensure_config(project, db)
     await db.commit()
-    await db.refresh(project, ["manager", "members", "tasks", "statuses", "config"])
+    await db.refresh(project, ["manager", "members", "tasks", "statuses", "config", "sprints"])
     return project
 
 
@@ -263,6 +274,12 @@ async def update_project(
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
+    
+    if data.name and data.name != project.name:
+        existing_project = await db.execute(select(Project).where(Project.name == data.name))
+        if existing_project.scalars().first():
+            raise HTTPException(400, "A project with this name already exists")
+
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(project, field, value)
     await db.commit()
@@ -439,6 +456,7 @@ async def scrum_board(
     pk: int,
     status: str | None = Query(None, description="Filter by status slug"),
     assignee_id: int | None = Query(None, description="Filter by assignee user id"),
+    sprint_id: str | None = Query(None, description="Filter by sprint id. 'null' for backlog."),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -452,6 +470,16 @@ async def scrum_board(
         tasks = [t for t in tasks if t.status == status]
     if assignee_id:
         tasks = [t for t in tasks if any(a.id == assignee_id for a in t.assigned_to)]
+    
+    if sprint_id:
+        if sprint_id.lower() == "null":
+            tasks = [t for t in tasks if t.sprint_id is None]
+        else:
+            try:
+                sid = int(sprint_id)
+                tasks = [t for t in tasks if t.sprint_id == sid]
+            except ValueError:
+                pass
 
     tasks = sorted(
         tasks,
@@ -461,6 +489,81 @@ async def scrum_board(
         ),
     )
     return [TaskRead.model_validate(t) for t in tasks]
+
+
+# ── Sprints ───────────────────────────────────────────────────────────────────
+
+@router.get("/{pk}/sprints", response_model=list[SprintRead])
+async def list_sprints(
+    pk: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await _load_project(pk, db)
+    if not _can_access(project, current_user):
+        raise HTTPException(403, "Access denied")
+    return project.sprints
+
+
+@router.post("/{pk}/sprints", response_model=SprintRead, status_code=201)
+async def create_sprint(
+    pk: int,
+    data: SprintCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+    sprint = Sprint(**data.model_dump(), project_id=pk)
+    db.add(sprint)
+    await db.commit()
+    await db.refresh(sprint)
+    return sprint
+
+
+@router.patch("/{pk}/sprints/{sprint_id}", response_model=SprintRead)
+async def update_sprint(
+    pk: int,
+    sprint_id: int,
+    data: SprintUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+    
+    result = await db.execute(select(Sprint).where(Sprint.id == sprint_id, Sprint.project_id == pk))
+    sprint = result.scalar_one_or_none()
+    if not sprint:
+        raise HTTPException(404, "Sprint not found")
+    
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(sprint, field, value)
+    await db.commit()
+    await db.refresh(sprint)
+    return sprint
+
+
+@router.delete("/{pk}/sprints/{sprint_id}", status_code=204)
+async def delete_sprint(
+    pk: int,
+    sprint_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+    
+    result = await db.execute(select(Sprint).where(Sprint.id == sprint_id, Sprint.project_id == pk))
+    sprint = result.scalar_one_or_none()
+    if not sprint:
+        raise HTTPException(404, "Sprint not found")
+    
+    await db.delete(sprint)
+    await db.commit()
 
 
 # ── Members ───────────────────────────────────────────────────────────────────

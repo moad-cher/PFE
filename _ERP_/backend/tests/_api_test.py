@@ -91,15 +91,18 @@ def test_change_password_wrong_current(client, auth_headers):
 # Project Tests
 # ══════════════════════════════════════════════════════════════════════════════
 
+import uuid
+
 def test_create_project(client, auth_headers):
+    unique_name = f"Unit Test Project {uuid.uuid4().hex[:8]}"
     r = client.post(
         "/projects/",
-        json={"name": "Unit Test Project", "description": "Created by unit test"},
+        json={"name": unique_name, "description": "Created by unit test"},
         headers=auth_headers
     )
     assert r.status_code == 201
     data = r.json()
-    assert data["name"] == "Unit Test Project"
+    assert data["name"] == unique_name
     assert "id" in data
     
     # Cleanup
@@ -111,11 +114,67 @@ def test_create_project_without_name(client, auth_headers):
     assert r.status_code == 422  # Validation error
 
 
-def test_project_crud_full_cycle(client, auth_headers):
-    # Create
+def test_create_duplicate_project_name(client, auth_headers):
+    # Create first project
+    unique_name = f"Duplicate Test {uuid.uuid4().hex[:8]}"
     r = client.post(
         "/projects/",
-        json={"name": "CRUD Test Project"},
+        json={"name": unique_name},
+        headers=auth_headers
+    )
+    assert r.status_code == 201
+    project_id = r.json()["id"]
+
+    try:
+        # Try to create another project with the same name
+        r = client.post(
+            "/projects/",
+            json={"name": unique_name},
+            headers=auth_headers
+        )
+        assert r.status_code == 400
+        assert r.json()["detail"] == "A project with this name already exists"
+    finally:
+        # Cleanup
+        client.delete(f"/projects/{project_id}", headers=auth_headers)
+
+
+def test_update_duplicate_project_name(client, auth_headers):
+    # Create two projects
+    name1 = f"Project 1 {uuid.uuid4().hex[:8]}"
+    name2 = f"Project 2 {uuid.uuid4().hex[:8]}"
+    p1 = client.post("/projects/", json={"name": name1}, headers=auth_headers).json()
+    p2 = client.post("/projects/", json={"name": name2}, headers=auth_headers).json()
+
+    try:
+        # Try to update p2's name to p1's name
+        r = client.patch(
+            f"/projects/{p2['id']}",
+            json={"name": name1},
+            headers=auth_headers
+        )
+        assert r.status_code == 400
+        assert r.json()["detail"] == "A project with this name already exists"
+        
+        # Update to its own name should work
+        r = client.patch(
+            f"/projects/{p2['id']}",
+            json={"name": name2},
+            headers=auth_headers
+        )
+        assert r.status_code == 200
+    finally:
+        # Cleanup
+        client.delete(f"/projects/{p1['id']}", headers=auth_headers)
+        client.delete(f"/projects/{p2['id']}", headers=auth_headers)
+
+
+def test_project_crud_full_cycle(client, auth_headers):
+    # Create
+    unique_name = f"CRUD Test {uuid.uuid4().hex[:8]}"
+    r = client.post(
+        "/projects/",
+        json={"name": unique_name},
         headers=auth_headers
     )
     assert r.status_code == 201
@@ -124,16 +183,17 @@ def test_project_crud_full_cycle(client, auth_headers):
     # Read
     r = client.get(f"/projects/{project_id}", headers=auth_headers)
     assert r.status_code == 200
-    assert r.json()["name"] == "CRUD Test Project"
+    assert r.json()["name"] == unique_name
     
     # Update
+    updated_name = f"Updated {uuid.uuid4().hex[:8]}"
     r = client.patch(
         f"/projects/{project_id}",
-        json={"name": "Updated Project Name"},
+        json={"name": updated_name},
         headers=auth_headers
     )
     assert r.status_code == 200
-    assert r.json()["name"] == "Updated Project Name"
+    assert r.json()["name"] == updated_name
     
     # Delete
     r = client.delete(f"/projects/{project_id}", headers=auth_headers)
@@ -147,9 +207,10 @@ def test_project_crud_full_cycle(client, auth_headers):
 def test_delete_project_with_chat_messages(client, auth_headers):
     """Test that projects with chat messages can be deleted."""
     # Create project
+    unique_name = f"Project with Messages {uuid.uuid4().hex[:8]}"
     r = client.post(
         "/projects/",
-        json={"name": "Project with Messages"},
+        json={"name": unique_name},
         headers=auth_headers
     )
     assert r.status_code == 201
@@ -179,9 +240,10 @@ def test_get_nonexistent_project(client, auth_headers):
 
 def test_task_crud_full_cycle(client, auth_headers):
     # Create project first
+    unique_name = f"Task Test Project {uuid.uuid4().hex[:8]}"
     r = client.post(
         "/projects/",
-        json={"name": "Task Test Project"},
+        json={"name": unique_name},
         headers=auth_headers
     )
     project_id = r.json()["id"]
@@ -221,7 +283,8 @@ def test_task_crud_full_cycle(client, auth_headers):
 
 def test_task_move_status(client, auth_headers):
     # Create project
-    r = client.post("/projects/", json={"name": "Move Test"}, headers=auth_headers)
+    unique_name = f"Move Test {uuid.uuid4().hex[:8]}"
+    r = client.post("/projects/", json={"name": unique_name}, headers=auth_headers)
     project_id = r.json()["id"]
     
     # Create task
@@ -260,7 +323,8 @@ def test_task_move_status(client, auth_headers):
 
 def test_kanban_board(client, auth_headers):
     # Create project
-    r = client.post("/projects/", json={"name": "Kanban Test"}, headers=auth_headers)
+    unique_name = f"Kanban Test {uuid.uuid4().hex[:8]}"
+    r = client.post("/projects/", json={"name": unique_name}, headers=auth_headers)
     project_id = r.json()["id"]
     
     # Get kanban
@@ -390,7 +454,8 @@ def test_unread_count(client, auth_headers):
 
 def test_project_chat(client, auth_headers):
     # Create project
-    r = client.post("/projects/", json={"name": "Chat Test"}, headers=auth_headers)
+    unique_name = f"Chat Test {uuid.uuid4().hex[:8]}"
+    r = client.post("/projects/", json={"name": unique_name}, headers=auth_headers)
     project_id = r.json()["id"]
     
     # Send message

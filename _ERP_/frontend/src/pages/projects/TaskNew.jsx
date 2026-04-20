@@ -11,6 +11,7 @@ export default function TaskNew() {
   const [form, setForm] = useState({
     title: '', description: '', status: 'todo', priority: 'medium',
     time_slot: '', deadline: '', points: 10, assigned_to_ids: [],
+    sprint_id: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +36,13 @@ export default function TaskNew() {
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      const res = await createTask(pk, { ...form, points: Number(form.points), deadline: form.deadline || null });
+      const payload = { 
+        ...form, 
+        points: Number(form.points), 
+        deadline: form.deadline || null,
+        sprint_id: form.sprint_id ? Number(form.sprint_id) : null
+      };
+      const res = await createTask(pk, payload);
       navigate(`/projects/${pk}/tasks/${res.data.id}`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create task');
@@ -94,6 +101,16 @@ export default function TaskNew() {
               <input type="number" min="0" value={form.points} onChange={e => setForm(f => ({ ...f, points: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
+            <select value={form.sprint_id} onChange={e => setForm(f => ({ ...f, sprint_id: e.target.value }))}
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              <option value="">Backlog (No Sprint)</option>
+              {project.sprints?.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>

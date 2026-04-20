@@ -1,4 +1,5 @@
 import io
+import uuid
 
 import httpx
 import pytest
@@ -72,9 +73,14 @@ async def test_http_smoke_flow():
         assert r.json()["status"] == "interview"
 
         # ── project + task (regression) ───────────────────────────────────────
-        rp = await c.post("/projects/", json={"name": "Test Project"}, headers=h)
+        unique_project_name = f"Smoke Test Project {uuid.uuid4().hex[:8]}"
+        rp = await c.post("/projects/", json={"name": unique_project_name}, headers=h)
         assert rp.status_code == 201, rp.text
+
         pid = rp.json()["id"]
         rt = await c.post(f"/projects/{pid}/tasks/", json={"title": "Test Task"}, headers=h)
         assert rt.status_code == 201, rt.text
+
+        # Cleanup
+        await c.delete(f"/projects/{pid}", headers=h)
 

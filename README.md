@@ -1,11 +1,4 @@
-# as soon as possible
-~~1. Kanban permissions (backend + frontend)~~
-2. Sprint model + scrum board redesign    — biggest remaining feature
-3. Inline assignment suggestions          — polish the existing AI feature
-
-
-# ERP System requirements and features
-<!-- (cahier de charges summary) -->
+# cahier de charges summary
 
 ## hiring
 - [x] HR manager can create job postings
@@ -43,38 +36,37 @@ i don't want a simple AI engineering project or an AI wrapper. tool call with st
 | What                                   |     Why it matters for thesis      |
 | -------------------------------------- | :--------------------------------: |
 | ML models as LLM tools                 |    Core thesis argument (maybe)    |
-| Agentic loop with multi-tool reasoning |    Shows you understand agents     |
+| Agentic loop with multi-tool reasoning |    Shows i understand agents     |
 | Bulk resume appraisal                  | Showcases the ML pipeline at scale |
 
-what to search for:
-- how to use ML models as tools in an agentic loop
-- semantic parsing of unstructured data (resumes) into structured data for ML model input
-- elastic search , redis , pg vector
+# features
 
-# features by priority
+## AI
 
+### project assistance workflow:
 
+workflow (skill with defined tool use or organique json output):
 
-## high priority
-
-- scrum
-    - [ ] actual scrum board view with sprints and story points
-    - [ ] kanban board shows current sprint tasks
-
-- kanban permissions:
-    - [x] only assigned members can update task status
-    - [ ] only project manager can reassign tasks and adjust deadlines
+- **fn 1:** suggest project name description and project backlog if one of them is provided
+- **fn 2:** suggest sprints backlogs decomposition and tasks based on product backlog
+- **fn3:** eterative refinement with previous sprint retrospection analysis
+~~- **fn 4:** suggest task assignment~~ (partially implemented, not so important for now)
 
 
+## dev
 
-## medium priority
+### high priority
+
+- [ ] scrum
+    - [ ] sprint view
+    - [ ] 
+
+### medium priority
 - [ ] resume bulk appraisal for a job posting
 - [ ] gantt for projects <!-- with assignees displayed and deadlines and milestones -->
 - [ ] assignment suggestions should be integrated into the assignment component
 
-
-
-## low priority
+### low priority
 - [ ] calendar for users
     - [ ] interview scheduling for HR manager
     - [ ] tasks time tracking for team members
@@ -84,11 +76,7 @@ what to search for:
 
 
 # to do if i have time
-  - [ ] AI drafts
-      - [ ] project parameters as json response
-          - [ ] tasks
-          - [ ] gantt chart
-  - [ ] suggest next steps for projects based on progress and deadlines
+
 
 # role permissions matrix
 

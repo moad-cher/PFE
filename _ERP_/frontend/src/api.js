@@ -121,6 +121,12 @@ export const removeProjectMember = (pk, userId) => api.delete(`/projects/${pk}/m
 export const getLeaderboard = (pk) => api.get(`/projects/${pk}/leaderboard`);
 export const suggestAssignee = (pk, taskId) => api.post(`/projects/${pk}/tasks/${taskId}/suggest`);
 
+// Sprints
+export const getSprints = (pk) => api.get(`/projects/${pk}/sprints`);
+export const createSprint = (pk, data) => api.post(`/projects/${pk}/sprints`, data);
+export const updateSprint = (pk, sprintId, data) => api.patch(`/projects/${pk}/sprints/${sprintId}`, data);
+export const deleteSprint = (pk, sprintId) => api.delete(`/projects/${pk}/sprints/${sprintId}`);
+
 // ===================== Tasks =====================
 export const listTasks = (projectId, params) =>
   api.get(`/projects/${projectId}/tasks/`, { params });
