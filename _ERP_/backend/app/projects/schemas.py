@@ -131,6 +131,7 @@ class ProjectRead(BaseModel):
     tasks: list[TaskRead] = []
     statuses: list[TaskStatusRead] = []
     sprints: list[SprintRead] = []
+    config: Optional[ProjectConfigRead] = None
     progress: int = 0
     created_at: datetime
 
@@ -177,6 +178,7 @@ class ProjectConfigRead(BaseModel):
     points_on_time: int
     points_late: int
     notify_deadline_days: int
+    sprint_duration_days: int
 
     model_config = {"from_attributes": True}
 
@@ -185,6 +187,7 @@ class ProjectConfigUpdate(BaseModel):
     points_on_time: Optional[int] = None
     points_late: Optional[int] = None
     notify_deadline_days: Optional[int] = None
+    sprint_duration_days: Optional[int] = None
 
 
 # ── Kanban board ──────────────────────────────────────────────────────────────

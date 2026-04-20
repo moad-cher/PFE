@@ -157,6 +157,7 @@ class ProjectConfig(Base):
     points_on_time: Mapped[int] = mapped_column(Integer, default=10)
     points_late: Mapped[int] = mapped_column(Integer, default=3)
     notify_deadline_days: Mapped[int] = mapped_column(Integer, default=2)
+    sprint_duration_days: Mapped[int] = mapped_column(Integer, default=14)
 
     project: Mapped["Project"] = relationship("Project", back_populates="config")
 

@@ -26,7 +26,12 @@ export default function ProjectSettings() {
   const saveConfig = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      await updateProjectConfig(pk, { points_on_time: Number(config.points_on_time), points_late: Number(config.points_late), notify_deadline_days: Number(config.notify_deadline_days) });
+      await updateProjectConfig(pk, { 
+        points_on_time: Number(config.points_on_time), 
+        points_late: Number(config.points_late), 
+        notify_deadline_days: Number(config.notify_deadline_days),
+        sprint_duration_days: Number(config.sprint_duration_days)
+      });
       setMsg('Settings saved.');
     } finally { setSaving(false); }
   };
@@ -67,10 +72,10 @@ export default function ProjectSettings() {
       {msg && <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 mb-4 text-sm">{msg}</div>}
       {config && isManager && (
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Reward Points</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Parameters</h2>
           <form onSubmit={saveConfig} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              {[['points_on_time','On-time pts'],['points_late','Late pts'],['notify_deadline_days','Notify N days before']].map(([k,l]) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[['points_on_time','On-time pts'],['points_late','Late pts'],['notify_deadline_days','Notify N days before'],['sprint_duration_days', 'Sprint Duration (days)']].map(([k,l]) => (
                 <div key={k}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{l}</label>
                   <input type="number" min="0" value={config[k]} onChange={e => setConfig(c=>({...c,[k]:e.target.value}))}

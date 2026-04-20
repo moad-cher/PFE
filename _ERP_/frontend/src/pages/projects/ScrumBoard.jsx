@@ -248,7 +248,17 @@ export default function ScrumBoard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Kickoff</label>
-                  <input required type="date" value={sprintForm.start_date} onChange={e => setSprintForm({...sprintForm, start_date: e.target.value})}
+                  <input required type="date" value={sprintForm.start_date} 
+                    onChange={e => {
+                      const start = e.target.value;
+                      let end = sprintForm.end_date;
+                      if (start && project?.config?.sprint_duration_days) {
+                        const d = new Date(start);
+                        d.setDate(d.getDate() + project.config.sprint_duration_days);
+                        end = d.toISOString().split('T')[0];
+                      }
+                      setSprintForm({...sprintForm, start_date: start, end_date: end});
+                    }}
                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
