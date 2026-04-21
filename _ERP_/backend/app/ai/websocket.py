@@ -19,7 +19,7 @@ import json
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.core.security import decode_token
+from app.websockets.auth import extract_ws_token, get_ws_user
 from app.ai.service import ollama_stream, ollama_status
 
 router = APIRouter()
@@ -31,33 +31,26 @@ _DEFAULT_SYSTEM = (
 )
 
 
-async def _authenticate(websocket: WebSocket, token: str) -> bool:
-    """Return True if the token is valid, else close the WebSocket."""
-    payload = decode_token(token)
-    if payload is None or payload.get("type") != "access":
-        await websocket.close(code=4001, reason="Invalid or expired token")
-        return False
-    try:
-        int(payload["sub"])
-    except (KeyError, TypeError, ValueError):
-        await websocket.close(code=4001, reason="Invalid or expired token")
-        return False
-    return True
-
-
 @router.websocket("/ws/ai/stream")
 async def ws_ai_stream(websocket: WebSocket):
     """
     Streaming AI chat over WebSocket.
-    Authenticate with token passed in Sec-WebSocket-Protocol.
     """
-    subprotocols = websocket.scope.get("subprotocols", [])
-    token = subprotocols[0] if subprotocols else ""
+    token = extract_ws_token(websocket)
+    user = await get_ws_user(token)
     
-    # ── Auth ──────────────────────────────────────────────────────────────────
-    if not await _authenticate(websocket, token):
+    if user is None:
+        # Accept then close to provide a clean error to the client
+        await websocket.accept()
+        await websocket.close(code=4001, reason="Invalid or expired token")
         return
-    await websocket.accept(subprotocol="ai")
+
+    # Echo back "ai" as the selected subprotocol if requested, or just accept
+    subprotocols = websocket.scope.get("subprotocols", [])
+    if subprotocols:
+        await websocket.accept(subprotocol="ai")
+    else:
+        await websocket.accept()
 
     try:
         while True:

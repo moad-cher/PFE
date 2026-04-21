@@ -2,63 +2,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
-from app.core.security import decode_token
+from app.websockets.auth import extract_ws_token, get_ws_user
 from app.users.models import User
 from app.notifications.models import Notification
 from app.websockets.manager import ws_manager
 
 router = APIRouter()
-
-
-def _normalize_bearer(token: str) -> str:
-    token = (token or "").strip()
-    # Handle accidental quoted tokens from client/proxy transformations.
-    if len(token) >= 2 and ((token[0] == '"' and token[-1] == '"') or (token[0] == "'" and token[-1] == "'")):
-        token = token[1:-1].strip()
-    if token.lower().startswith("bearer "):
-        return token[7:].strip()
-    return token
-
-
-def _extract_ws_token(ws: WebSocket) -> str:
-    # Prefer WebSocket subprotocol/header. Query token remains fallback for compatibility.
-    subprotocols = ws.scope.get("subprotocols", [])
-    if subprotocols:
-        for candidate in subprotocols:
-            normalized = _normalize_bearer(candidate)
-            if normalized:
-                return normalized
-
-    auth_header = ws.headers.get("authorization")
-    if auth_header:
-        return _normalize_bearer(auth_header)
-
-    # Last fallback: parse raw Sec-WebSocket-Protocol header if present.
-    raw_subprotocol_header = ws.headers.get("sec-websocket-protocol")
-    if raw_subprotocol_header:
-        for candidate in raw_subprotocol_header.split(","):
-            normalized = _normalize_bearer(candidate)
-            if normalized:
-                return normalized
-
-    token = ws.query_params.get("token") or ws.query_params.get("access_token") or ""
-    if token:
-        return _normalize_bearer(token)
-
-    return ""
-
-
-async def _get_user(token: str) -> User | None:
-    payload = decode_token(token)
-    if payload is None or payload.get("type") != "access":
-        return None
-    try:
-        user_id = int(payload["sub"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
-        return result.scalar_one_or_none()
 
 
 async def _accept_ws(ws: WebSocket):
@@ -78,9 +27,9 @@ async def _close_auth_failed(ws: WebSocket):
 
 @router.websocket("/ws/notifications")
 async def ws_notifications(ws: WebSocket):
-    token = _extract_ws_token(ws)
+    token = extract_ws_token(ws)
 
-    user = await _get_user(token)
+    user = await get_ws_user(token)
     if user is None:
         await _close_auth_failed(ws)
         return

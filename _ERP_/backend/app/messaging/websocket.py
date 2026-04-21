@@ -5,62 +5,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
-from app.core.security import decode_token
+from app.websockets.auth import extract_ws_token, get_ws_user
 from app.users.models import User
 from app.messaging.models import ChatMessage
 from app.projects.models import Project, Task
 from app.websockets.manager import ws_manager
 
 router = APIRouter()
-
-
-def _normalize_bearer(token: str) -> str:
-    token = (token or "").strip()
-    if len(token) >= 2 and ((token[0] == '"' and token[-1] == '"') or (token[0] == "'" and token[-1] == "'")):
-        token = token[1:-1].strip()
-    if token.lower().startswith("bearer "):
-        return token[7:].strip()
-    return token
-
-
-def _extract_ws_token(ws: WebSocket) -> str:
-    # Prefer subprotocol/header. Query token remains fallback for compatibility.
-    subprotocols = ws.scope.get("subprotocols", [])
-    if subprotocols:
-        for candidate in subprotocols:
-            normalized = _normalize_bearer(candidate)
-            if normalized:
-                return normalized
-
-    auth_header = ws.headers.get("authorization")
-    if auth_header:
-        return _normalize_bearer(auth_header)
-
-    raw_subprotocol_header = ws.headers.get("sec-websocket-protocol")
-    if raw_subprotocol_header:
-        for candidate in raw_subprotocol_header.split(","):
-            normalized = _normalize_bearer(candidate)
-            if normalized:
-                return normalized
-
-    token = ws.query_params.get("token") or ws.query_params.get("access_token") or ""
-    if token:
-        return _normalize_bearer(token)
-
-    return ""
-
-
-async def _get_user(token: str) -> User | None:
-    payload = decode_token(token)
-    if payload is None or payload.get("type") != "access":
-        return None
-    try:
-        user_id = int(payload["sub"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
-        return result.scalar_one_or_none()
 
 
 async def _accept_ws(ws: WebSocket):
@@ -105,9 +56,9 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int):
             accepted = True
         await ws.close(code=status.WS_1008_POLICY_VIOLATION, reason=reason)
 
-    token = _extract_ws_token(ws)
+    token = extract_ws_token(ws)
     
-    user = await _get_user(token)
+    user = await get_ws_user(token)
     if user is None:
         await close_policy("Invalid or expired token")
         return
