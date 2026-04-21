@@ -98,6 +98,7 @@ async def dashboard(
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
         selectinload(Project.statuses),
+        selectinload(Project.config),
         selectinload(Project.sprints),
     )
     # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
@@ -132,6 +133,7 @@ async def list_projects(
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
         selectinload(Project.statuses),
+        selectinload(Project.config),
         selectinload(Project.sprints),
     )
     # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.

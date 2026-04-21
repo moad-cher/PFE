@@ -263,8 +263,9 @@ export default function ScrumBoard() {
                 </div>
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                  <input required type="date" value={sprintForm.end_date} onChange={e => setSprintForm({...sprintForm, end_date: e.target.value})}
-                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" />
+                  <div className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm text-gray-700">
+                    {sprintForm.end_date ? formatDate(sprintForm.end_date) : '—'}
+                  </div>
                 </div>
               </div>
               <div>

@@ -111,6 +111,26 @@ class TaskUpdate(BaseModel):
     sprint_id: Optional[int] = None
 
 
+# ── ProjectConfig ─────────────────────────────────────────────────────────────
+
+class ProjectConfigRead(BaseModel):
+    id: int
+    project_id: int
+    points_on_time: int
+    points_late: int
+    notify_deadline_days: int
+    sprint_duration_days: int
+
+    model_config = {"from_attributes": True}
+
+
+class ProjectConfigUpdate(BaseModel):
+    points_on_time: Optional[int] = None
+    points_late: Optional[int] = None
+    notify_deadline_days: Optional[int] = None
+    sprint_duration_days: Optional[int] = None
+
+
 # ── Project ───────────────────────────────────────────────────────────────────
 
 class ProjectCreate(BaseModel):
@@ -168,26 +188,6 @@ class TaskStatusCreate(BaseModel):
     slug: str
     order: int = 0
     color: str = "#3498db"
-
-
-# ── ProjectConfig ─────────────────────────────────────────────────────────────
-
-class ProjectConfigRead(BaseModel):
-    id: int
-    project_id: int
-    points_on_time: int
-    points_late: int
-    notify_deadline_days: int
-    sprint_duration_days: int
-
-    model_config = {"from_attributes": True}
-
-
-class ProjectConfigUpdate(BaseModel):
-    points_on_time: Optional[int] = None
-    points_late: Optional[int] = None
-    notify_deadline_days: Optional[int] = None
-    sprint_duration_days: Optional[int] = None
 
 
 # ── Kanban board ──────────────────────────────────────────────────────────────
