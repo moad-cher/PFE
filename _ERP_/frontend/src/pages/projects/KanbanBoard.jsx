@@ -5,6 +5,7 @@ import { getKanban, moveTask, getProject } from '../../api';
 import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
+import TaskNew from './TaskNew';
 
 function TaskCard({ task, projectId, isDragging, isLocked }) {
   return (
@@ -51,11 +52,16 @@ export default function KanbanBoard() {
   const [columns, setColumns] = useState([]);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     Promise.all([getKanban(pk), getProject(pk)])
       .then(([k, p]) => { setColumns(k.data); setProject(p.data); })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [pk]);
 
   const handleDragEnd = async (result) => {
@@ -116,10 +122,18 @@ export default function KanbanBoard() {
           <div className="flex gap-2">
             <Link to={`/projects/${pk}/scrum`} className="px-3 py-1.5 text-sm bg-violet-50 text-violet-600 rounded-xl hover:bg-violet-100 transition-colors">Scrum</Link>
             {isManager && (
-              <Link to={`/projects/${pk}/tasks/new`} className="px-3 py-1.5 text-sm bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:from-purple-600 hover:to-violet-600 transition-all shadow-sm">+ Task</Link>
+              <button onClick={() => setShowTaskModal(true)} className="px-3 py-1.5 text-sm bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:from-purple-600 hover:to-violet-600 transition-all shadow-sm">+ Task</button>
             )}
           </div>
         </div>
+
+        <TaskNew 
+          isOpen={showTaskModal} 
+          onClose={() => setShowTaskModal(false)} 
+          pk={pk} 
+          onSuccess={fetchData} 
+        />
+
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
             {columns.map((col, colIndex) => (

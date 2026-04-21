@@ -106,14 +106,6 @@ export default function App() {
             <Route path="/projects/:pk/settings" element={<ProjectSettings />} />
             <Route path="/projects/:pk/kanban" element={<KanbanBoard />} />
             <Route path="/projects/:pk/scrum" element={<ScrumBoard />} />
-            <Route
-              path="/projects/:pk/tasks/new"
-              element={
-                <ProtectedRoute roles={['admin', 'project_manager']}>
-                  <TaskNew />
-                </ProtectedRoute>
-              }
-            />
             <Route path="/projects/:pk/tasks/:taskId" element={<TaskDetail />} />
             <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
             <Route path="/projects/:pk/tasks/:taskId/chat" element={<TaskChat />} />

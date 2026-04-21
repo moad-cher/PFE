@@ -5,6 +5,7 @@ import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
+import TaskNew from './TaskNew';
 
 export default function ScrumBoard() {
   const { pk } = useParams();
@@ -17,9 +18,10 @@ export default function ScrumBoard() {
   const [loading, setLoading] = useState(true);
   const [showSprintModal, setShowSprintModal] = useState(false);
   const [sprintForm, setSprintForm] = useState({ name: '', start_date: '', end_date: '', goal: '' });
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [taskModalSprintId, setTaskModalSprintId] = useState('');
 
-  useEffect(() => {
-    setLoading(true);
+  const fetchData = () => {
     Promise.all([getProject(pk), getProjectStatuses(pk), getSprints(pk)])
       .then(([p, s, spr]) => {
         setProject(p.data);
@@ -27,7 +29,17 @@ export default function ScrumBoard() {
         setSprints(spr.data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date)));
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchData();
   }, [pk]);
+
+  const openTaskModal = (sprintId = '') => {
+    setTaskModalSprintId(sprintId);
+    setShowTaskModal(true);
+  };
 
   const handleCreateSprint = async (e) => {
     e.preventDefault();
@@ -135,11 +147,19 @@ export default function ScrumBoard() {
               New Sprint
             </button>
           )}
-          <Link to={`/projects/${pk}/tasks/new`} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100">
+          <button onClick={() => openTaskModal()} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100">
             + New Task
-          </Link>
+          </button>
         </div>
       </div>
+
+      <TaskNew 
+        isOpen={showTaskModal} 
+        onClose={() => setShowTaskModal(false)} 
+        pk={pk} 
+        initialSprintId={taskModalSprintId} 
+        onSuccess={fetchData} 
+      />
 
       {/* Global Filters */}
       <div className="flex flex-wrap gap-4 mb-12 items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
@@ -194,6 +214,9 @@ export default function ScrumBoard() {
                       {isManager && sprint.status === 'active' && (
                         <button onClick={() => handleUpdateSprintStatus(sprint.id, 'completed')} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
                       )}
+                      <button onClick={() => openTaskModal(sprint.id)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                        + Task
+                      </button>
                       <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
                       <div className="text-right hidden sm:block">
                         <div className="text-xs font-bold text-gray-900">{tasksBySprint[sprint.id]?.length || 0} Tasks</div>
@@ -223,7 +246,12 @@ export default function ScrumBoard() {
             
             <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
               <div className="px-6 py-4 border-b border-dashed border-gray-300 flex items-center justify-between bg-gray-100/50">
-                <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
+                  <button onClick={() => openTaskModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                    + Task
+                  </button>
+                </div>
                 <span className="text-xs font-bold text-gray-400 uppercase">{backlogTasks.length} unassigned tasks</span>
               </div>
               <div className="p-2 sm:p-4 opacity-75">

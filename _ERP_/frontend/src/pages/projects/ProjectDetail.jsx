@@ -7,6 +7,7 @@ import StatusBadge from '../../components/StatusBadge';
 import PriorityBadge from '../../components/PriorityBadge';
 import TaskDistributionChart from '../../components/TaskDistributionChart';
 import GanttChart from '../../components/GanttChart';
+import TaskNew from './TaskNew';
 
 function QuickCard({ to, icon, label, color }) {
   return (
@@ -31,9 +32,9 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
+  const fetchProject = () => {
     getProject(pk)
       .then((projRes) => {
         setProject(projRes.data);
@@ -64,9 +65,20 @@ export default function ProjectDetail() {
       .catch((err) => {
         console.error('Failed to load project:', err);
         setError('Failed to load project');
-      })
-      .finally(() => setLoading(false));
+      });
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchProject();
+    // setLoading is handled by finally in original code, but since I extracted fetchProject, 
+    // I should ensure it's handled. 
+    // Actually, I'll just put the logic back or wrap it.
   }, [pk]);
+
+  useEffect(() => {
+    if (project) setLoading(false);
+  }, [project]);
 
   const handleDelete = async () => {
     try {
@@ -79,6 +91,12 @@ export default function ProjectDetail() {
   };
 
   const canEdit = user?.role === 'admin' || user?.role === 'project_manager';
+
+  const [taskModalSprintId, setTaskModalSprintId] = useState('');
+  const openTaskModal = (sprintId = '') => {
+    setTaskModalSprintId(sprintId);
+    setShowTaskModal(true);
+  };
 
   if (loading) {
     return (
@@ -162,17 +180,25 @@ export default function ProjectDetail() {
               )}
             </>
           )}
-          <Link
-            to={`/projects/${pk}/tasks/new`}
+          <button
+            onClick={() => setShowTaskModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             New Task
-          </Link>
+          </button>
         </div>
       </div>
+
+      <TaskNew 
+        isOpen={showTaskModal} 
+        onClose={() => setShowTaskModal(false)} 
+        pk={pk} 
+        initialSprintId={taskModalSprintId}
+        onSuccess={fetchProject} 
+      />
 
       {/* Task Distribution Chart */}
       <div className="mb-8 max-w-md">
@@ -230,6 +256,7 @@ export default function ProjectDetail() {
           sprints={project?.sprints || []} 
           statuses={project?.statuses || []}
           project_id={pk} 
+          onAddTask={openTaskModal}
         />
       </div>
     </div>

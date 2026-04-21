@@ -119,7 +119,7 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id }) {
   );
 }
 
-export default function GanttChart({ tasks, sprints, statuses, project_id }) {
+export default function GanttChart({ tasks, sprints, statuses, project_id, onAddTask }) {
   const sortedSprints = useMemo(() => 
     [...(sprints || [])].sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
   , [sprints]);
@@ -153,6 +153,9 @@ export default function GanttChart({ tasks, sprints, statuses, project_id }) {
                   <div className="flex items-center gap-2 mb-0.5">
                     <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">{sprint.name}</h4>
                     {isActive && <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded-full uppercase">Active</span>}
+                    <button onClick={() => onAddTask && onAddTask(sprint.id)} className="p-1 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-[10px] font-bold px-2" title="Add Task to Sprint">
+                      + task
+                    </button>
                   </div>
                   <p className="text-[10px] font-bold text-gray-400">
                     {new Date(sprint.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} — {new Date(sprint.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -188,7 +191,14 @@ export default function GanttChart({ tasks, sprints, statuses, project_id }) {
         {tasksBySprint.backlog.length > 0 && (
           <div className="flex-shrink-0 bg-gray-50/50 rounded-3xl border border-dashed border-gray-300 w-80">
             <div className="px-6 py-4 border-b border-dashed border-gray-200 flex items-center justify-between">
-              <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest italic">Project Backlog</h4>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest italic">Project Backlog</h4>
+                <button onClick={() => onAddTask && onAddTask()} className="p-1 hover:bg-gray-200 rounded-lg transition-colors" title="Add Task to Backlog">
+                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
               <span className="text-[10px] font-bold text-gray-400 uppercase">{tasksBySprint.backlog.length} tasks</span>
             </div>
             <div className="p-4 space-y-2 max-h-[250px] overflow-y-auto scrollbar-hide">

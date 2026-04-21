@@ -1,30 +1,38 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createTask, getProject } from '../../api';
 import Spinner from '../../components/Spinner';
 
-export default function TaskNew() {
-  const { pk } = useParams();
-  const navigate = useNavigate();
+export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSuccess }) {
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
   const fromDateTimeLocal = (value) => (value ? new Date(value).toISOString() : null);
   const [form, setForm] = useState({
     title: '', description: '', status: 'todo', priority: 'medium',
     start_time: '', end_time: '', points: 10, assigned_to_ids: [],
-    sprint_id: '',
+    sprint_id: initialSprintId || '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getProject(pk).then(r => {
-      setProject(r.data);
-      const all = [r.data.manager, ...(r.data.members || [])]
-        .filter((v, i, a) => a.findIndex(x => x.id === v.id) === i);
-      setMembers(all);
-    });
-  }, [pk]);
+    if (isOpen && pk) {
+      getProject(pk).then(r => {
+        setProject(r.data);
+        const all = [r.data.manager, ...(r.data.members || [])]
+          .filter((v, i, a) => a.findIndex(x => x.id === v.id) === i);
+        setMembers(all);
+      });
+      // Reset form or set initial sprint id
+      setForm(prev => ({
+        ...prev,
+        title: '', description: '', status: 'todo', priority: 'medium',
+        start_time: '', end_time: '', points: 10, assigned_to_ids: [],
+        sprint_id: initialSprintId || '',
+      }));
+      setError('');
+      setSaving(false);
+    }
+  }, [isOpen, pk, initialSprintId]);
 
   const toggleAssignee = id =>
     setForm(f => ({
@@ -45,100 +53,136 @@ export default function TaskNew() {
         sprint_id: form.sprint_id ? Number(form.sprint_id) : null
       };
       const res = await createTask(pk, payload);
-      navigate(`/projects/${pk}/tasks/${res.data.id}`);
+      if (onSuccess) onSuccess(res.data);
+      onClose();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create task');
       setSaving(false);
     }
   };
 
-  if (!project) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to={`/projects/${pk}/kanban`} className="hover:text-blue-600">← {project.name} / Kanban</Link>
-        <span>/</span><span className="text-gray-700 font-medium">New Task</span>
-      </div>
-      <div className="bg-white rounded-2xl shadow p-8">
-        <h1 className="text-xl font-bold text-gray-900 mb-6">Create Task</h1>
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm">{error}</div>}
-        <form onSubmit={submit} className="space-y-4">
+    <div 
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 backdrop-blur-sm px-4 py-8 overflow-y-auto" 
+      onClick={onClose}
+      role="presentation"
+    >
+      <div 
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl my-auto mt-20 relative border border-gray-100" 
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center justify-between p-6 border-b border-gray-100 rounded-t-3xl">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <h1 className="text-xl font-bold text-gray-900">Create New Task</h1>
+            {project && <p className="text-sm text-gray-500 mt-0.5">{project.name}</p>}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                {['low', 'medium', 'high', 'urgent'].map(p => (
-                  <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-              <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-              <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-              <input type="number" min="0" value={form.points} onChange={e => setForm(f => ({ ...f, points: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
-            <select value={form.sprint_id} onChange={e => setForm(f => ({ ...f, sprint_id: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-              <option value="">Backlog (No Sprint)</option>
-              {project.sprints?.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
-            <div className="border rounded-xl divide-y max-h-48 overflow-y-auto">
-              {members.map(m => (
-                <label key={m.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                  <input type="checkbox" checked={form.assigned_to_ids.includes(m.id)}
-                    onChange={() => toggleAssignee(m.id)} className="rounded text-blue-600" />
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                    {m.username[0].toUpperCase()}
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-8">
+          {!project ? (
+            <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+          ) : (
+            <>
+              {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm">{error}</div>}
+              <form onSubmit={submit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title *</label>
+                  <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required
+                    placeholder="What needs to be done?"
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                  <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3}
+                    placeholder="Add more details about this task..."
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Priority</label>
+                    <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white">
+                      {['low', 'medium', 'high', 'urgent'].map(p => (
+                        <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{m.first_name} {m.last_name}</p>
-                    <p className="text-xs text-gray-400">{m.username}</p>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Points</label>
+                    <input type="number" min="0" value={form.points} onChange={e => setForm(f => ({ ...f, points: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" />
                   </div>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={saving}
-              className="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-              {saving ? 'Creating…' : 'Create Task'}
-            </button>
-            <Link to={`/projects/${pk}/kanban`}
-              className="px-5 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200">
-              Cancel
-            </Link>
-          </div>
-        </form>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Start Time</label>
+                    <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">End Time</label>
+                    <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Sprint</label>
+                  <select value={form.sprint_id} onChange={e => setForm(f => ({ ...f, sprint_id: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white">
+                    <option value="">Backlog (No Sprint)</option>
+                    {project.sprints?.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">Assignees</label>
+                  <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 max-h-40 overflow-y-auto shadow-inner bg-gray-50/30">
+                    {members.map(m => (
+                      <label key={m.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-white cursor-pointer transition-colors group">
+                        <input type="checkbox" checked={form.assigned_to_ids.includes(m.id)}
+                          onChange={() => toggleAssignee(m.id)} className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4" />
+                        <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-[10px] font-bold border border-indigo-200 group-hover:scale-110 transition-transform">
+                          {m.username[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{m.first_name} {m.last_name}</p>
+                          <p className="text-[10px] text-gray-400 truncate tracking-wide uppercase">@{m.username}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
+                  <button type="button" onClick={onClose}
+                    className="px-6 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={saving}
+                    className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-100 transition-all active:scale-95">
+                    {saving ? 'Creating…' : 'Create Task'}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
