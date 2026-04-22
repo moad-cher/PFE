@@ -29,7 +29,7 @@ export function canManageHiring(user) {
 }
 
 /**
- * Admin, HR Manager or Project Manager can manage projects
+ * Admin or Project Manager can manage projects
  */
 export function canManageProjects(user) {
   return hasRole(user, [ROLES.ADMIN, ROLES.PROJECT_MANAGER]);
