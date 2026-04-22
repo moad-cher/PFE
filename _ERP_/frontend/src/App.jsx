@@ -1,13 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { RealTimeProvider } from './context/RealTimeContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Navbar from './components/Navbar';
+import ProtectedRoute from './components/features/auth/ProtectedRoute';
+import AppLayout from './components/layout/AppLayout';
+import PublicLayout from './components/layout/PublicLayout';
 
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import Login from './pages/auth/Login';
+import Dashboard from './pages/dashboards/Dashboard';
 import Profile from './pages/Profile';
-import Unauthorized from './pages/Unauthorized';
+import Unauthorized from './pages/auth/Unauthorized';
 
 import ProjectNew from './pages/projects/ProjectNew';
 import ProjectDetail from './pages/projects/ProjectDetail';
@@ -15,7 +16,6 @@ import ProjectEdit from './pages/projects/ProjectEdit';
 import ProjectSettings from './pages/projects/ProjectSettings';
 import KanbanBoard from './pages/projects/KanbanBoard';
 import ScrumBoard from './pages/projects/ScrumBoard';
-import TaskNew from './pages/projects/TaskNew';
 import TaskDetail from './pages/projects/TaskDetail';
 import TaskEdit from './pages/projects/TaskEdit';
 import Members from './pages/projects/Members';
@@ -29,34 +29,6 @@ import Apply from './pages/hiring/Apply';
 import ApplySuccess from './pages/hiring/ApplySuccess';
 import ApplicationDetail from './pages/hiring/ApplicationDetail';
 import InterviewSchedule from './pages/hiring/InterviewSchedule';
-
-function AppLayout() {
-  return (
-    <div className="relative min-h-screen bg-transparent">
-      {/* filter */}
-      <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
-      <Navbar />
-      <div className="relative z-10 pt-16">
-        <Outlet />
-      </div>
-    </div>
-  );
-}
-
-function PublicLayout() {
-  const { user } = useAuth();
-  
-  return (
-    <div className="relative min-h-screen bg-transparent">
-      {/* filter */}
-      <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
-      {user && <Navbar />}
-      <div className={`relative z-10 ${user ? 'pt-16' : ''}`}>
-        <Outlet />
-      </div>
-    </div>
-  );
-}
 
 export default function App() {
   return (

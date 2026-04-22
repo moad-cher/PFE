@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { listJobs } from '../../api';
-import Spinner from '../../components/Spinner';
-import Guard, { usePermissions } from '../../components/Guard';
-import CreateJobModal from '../../components/CreateJobModal';
+import Spinner from '../../components/ui/Spinner';
+import Guard, { usePermissions } from '../../components/features/auth/Guard';
+import CreateJobModal from '../../components/features/hiring/CreateJobModal';
 
 const STATUS_STYLES = {
   published: 'bg-green-100 text-green-700',

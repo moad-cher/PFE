@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getTask, getProject } from '../../api';
-import ChatWindow from '../../components/ChatWindow';
+import ChatWindow from '../../components/features/chat/ChatWindow';
 
 export default function TaskChat() {
   const { pk, taskId } = useParams();

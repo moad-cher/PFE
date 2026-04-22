@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getProject, getProjectStatuses, getSprints, createSprint, updateSprint, formatDate } from '../../api';
-import Spinner from '../../components/Spinner';
-import PriorityBadge from '../../components/PriorityBadge';
-import StatusBadge from '../../components/StatusBadge';
+import Spinner from '../../components/ui/Spinner';
+import PriorityBadge from '../../components/ui/PriorityBadge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import { isProjectManager } from '../../utils/permissions';
 import TaskNew from './TaskNew';

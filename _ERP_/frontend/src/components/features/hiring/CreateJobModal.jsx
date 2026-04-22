@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import Spinner from './Spinner';
-import { createJob } from '../api';
+import Spinner from '../../ui/Spinner';
+import { createJob } from '../../../api';
 import { useNavigate } from 'react-router-dom';
 import JobForm from './JobForm';
 

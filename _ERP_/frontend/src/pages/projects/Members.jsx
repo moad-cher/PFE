@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, listDepartments } from '../../api';
-import Spinner from '../../components/Spinner';
-import Guard from '../../components/Guard';
+import Spinner from '../../components/ui/Spinner';
+import Guard from '../../components/features/auth/Guard';
 
 function MemberCard({ member, project, onRemove }) {
   const u = member.user;

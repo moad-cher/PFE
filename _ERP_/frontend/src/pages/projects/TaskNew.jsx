@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createTask, getProject } from '../../api';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 
 export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSuccess }) {
   const [project, setProject] = useState(null);

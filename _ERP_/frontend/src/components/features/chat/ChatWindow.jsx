@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { createChatWS, relativeTime, API_BASE } from '../api';
-import Spinner from './Spinner';
+import { useAuth } from '../../../context/AuthContext';
+import { createChatWS, relativeTime, API_BASE } from '../../../api';
+import Spinner from '../../ui/Spinner';
 
 function Avatar({ user }) {
   const initials = [user.first_name, user.last_name]
@@ -247,3 +247,6 @@ export default function ChatWindow({ roomType, pk }) {
     </div>
   );
 }
+
+
+

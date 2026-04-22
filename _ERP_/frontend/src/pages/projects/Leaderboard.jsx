@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getLeaderboard, getProject } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 
 export default function Leaderboard() {
   const { pk } = useParams();

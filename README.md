@@ -60,12 +60,14 @@ workflow (skill with defined tool use or organique json output):
 - [ ] scrum
     - [ ] working sprints
         - [ ] sprint goal and retrospective notes
-        - [ ] sprint backlog
+        - [x] sprint backlog
         - [ ] separate scrum board view with swimlanes for each sprint and backlog items colored by status
     - [x] in project details instead of recent tasks, show horizontally scrollable gantt chart with colored tasks, assignees, with sprints separated (like an area or something) and current sprint highlighted and current day marked
 
 
 ### medium priority
+- [ ] task status need refinement
+- [ ] points must not be issued until sprint is completed
 - [ ] resume bulk appraisal for a job posting
 - [ ] assignment suggestions should be integrated into the assignment component
 

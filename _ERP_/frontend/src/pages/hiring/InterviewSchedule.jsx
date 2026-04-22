@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getApplication, scheduleInterview } from '../../api';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 
 export default function InterviewSchedule() {
   const { id } = useParams();

@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getJob, getJobApplications, updateApplicationStatus, deleteJob } from '../../api';
 import { useRealTime } from '../../context/RealTimeContext';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
-import Guard, { usePermissions } from '../../components/Guard';
-import EditJobModal from '../../components/EditJobModal';
+import Guard, { usePermissions } from '../../components/features/auth/Guard';
+import EditJobModal from '../../components/features/hiring/EditJobModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {

@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import { 
   hasRole, 
   canManageHiring, 
@@ -6,7 +6,7 @@ import {
   isProjectManager, 
   canEditTask, 
   ROLES 
-} from '../utils/permissions';
+} from '../../../utils/permissions';
 
 /**
  * Conditional rendering wrapper based on user role
@@ -77,3 +77,5 @@ export function usePermissions({ project, task } = {}) {
     isPM: hasRole(user, [ROLES.PROJECT_MANAGER]),
   };
 }
+
+

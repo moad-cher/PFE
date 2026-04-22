@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createProject } from '../../api';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 
 export default function ProjectNew() {
   const navigate = useNavigate();

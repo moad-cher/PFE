@@ -9,7 +9,7 @@ import {
   API_BASE,
 } from '../api';
 import { useAuth } from '../context/AuthContext';
-import Spinner from '../components/Spinner';
+import Spinner from '../components/ui/Spinner';
 
 export default function Profile() {
   const { user, refreshUser } = useAuth();

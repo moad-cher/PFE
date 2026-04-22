@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_db, require_roles
 from app.users.models import User
-from app.projects.models import Project, Task, RewardLog, task_assignees
+from app.projects.models import Project, Task, RewardLog, task_assignees, project_members
 from app.hiring.models import Application, JobPosting, ApplicationStatusEnum
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getProject } from '../../api';
-import ChatWindow from '../../components/ChatWindow';
+import ChatWindow from '../../components/features/chat/ChatWindow';
 
 export default function ProjectChat() {
   const { pk } = useParams();

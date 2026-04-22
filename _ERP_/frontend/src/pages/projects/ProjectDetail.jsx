@@ -3,11 +3,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getProject, deleteProject, getKanban } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { canManageProjects } from '../../utils/permissions';
-import Spinner from '../../components/Spinner';
-import StatusBadge from '../../components/StatusBadge';
-import PriorityBadge from '../../components/PriorityBadge';
-import TaskDistributionChart from '../../components/TaskDistributionChart';
-import GanttChart from '../../components/GanttChart';
+import Spinner from '../../components/ui/Spinner';
+import StatusBadge from '../../components/ui/StatusBadge';
+import PriorityBadge from '../../components/ui/PriorityBadge';
+import TaskDistributionChart from '../../components/features/projects/TaskDistributionChart';
+import GanttChart from '../../components/features/projects/GanttChart';
 import TaskNew from './TaskNew';
 
 function QuickCard({ to, icon, label, color }) {

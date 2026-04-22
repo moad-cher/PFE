@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getDashboard, getTeamMemberPerformance } from '../api';
-import { useAuth } from '../context/AuthContext';
-import Spinner from '../components/Spinner';
-import StatusBadge from '../components/StatusBadge';
-import PriorityBadge from '../components/PriorityBadge';
+import { getDashboard, getTeamMemberPerformance } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import Spinner from '../../components/ui/Spinner';
+import StatusBadge from '../../components/ui/StatusBadge';
+import PriorityBadge from '../../components/ui/PriorityBadge';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 
 const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
@@ -525,3 +525,8 @@ export default function TeamMemberDashboard() {
     </div>
   );
 }
+
+
+
+
+

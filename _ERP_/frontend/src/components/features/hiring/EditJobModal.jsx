@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import Spinner from './Spinner';
-import { getJob, updateJob } from '../api';
+import Spinner from '../../ui/Spinner';
+import { getJob, updateJob } from '../../../api';
 import JobForm from './JobForm';
 
 export default function EditJobModal({ open, onClose, jobId, onSaved }) {

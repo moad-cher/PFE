@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import Spinner from './Spinner';
+import Spinner from '../ui/Spinner';
 
 const PDFJS_URL =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';

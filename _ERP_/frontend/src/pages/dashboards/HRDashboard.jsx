@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getHRStats, listApplications, listJobs, createUser, getHRPipeline, adminListUsers, listDepartments } from '../api';
-import CreateUserModal from '../components/CreateUserModal';
-import CreateJobModal from '../components/CreateJobModal';
-import DepartmentModal from '../components/DepartmentModal';
-import Spinner from '../components/Spinner';
+import { getHRStats, listApplications, listJobs, createUser, getHRPipeline, adminListUsers, listDepartments } from '../../api';
+import CreateUserModal from '../../components/features/admin/CreateUserModal';
+import CreateJobModal from '../../components/features/hiring/CreateJobModal';
+import DepartmentModal from '../../components/features/admin/DepartmentModal';
+import Spinner from '../../components/ui/Spinner';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, FunnelChart, Funnel, LabelList } from 'recharts';
 
 const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
@@ -569,3 +569,8 @@ export default function HRDashboard() {
     </div>
   );
 }
+
+
+
+
+

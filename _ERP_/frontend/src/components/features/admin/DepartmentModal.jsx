@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import Spinner from './Spinner';
+import Spinner from '../../ui/Spinner';
 
 const initialDepartmentForm = {
   name: '',
@@ -114,7 +114,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
     setSelectedUserIds([]);
 
     try {
-      const { adminAssignDepartment } = await import('../api');
+      const { adminAssignDepartment } = await import('../../../api');
       // Process all users in parallel
       await Promise.all(usersToMove.map(uid => adminAssignDepartment(uid, newDepartmentId)));
       
@@ -137,7 +137,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
 
     setLoading(true);
     try {
-      const { createDepartment } = await import('../api');
+      const { createDepartment } = await import('../../../api');
       await createDepartment({ name: form.name.trim(), description: form.description.trim() });
       setSuccessMessage('Department created');
       setIsCreating(false);
@@ -158,7 +158,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
 
     setLoading(true);
     try {
-      const { updateDepartment } = await import('../api');
+      const { updateDepartment } = await import('../../../api');
       await updateDepartment(editingDepartment.id, {
         name: form.name.trim(),
         description: form.description.trim()
@@ -181,7 +181,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
 
     setLoading(true);
     try {
-      const { deleteDepartment } = await import('../api');
+      const { deleteDepartment } = await import('../../../api');
       await deleteDepartment(deleteConfirm.id);
       setSuccessMessage('Department deleted');
       setDeleteConfirm(null);

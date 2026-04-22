@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getProject, updateProject } from '../../api';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 
 export default function ProjectEdit() {
   const { pk } = useParams();

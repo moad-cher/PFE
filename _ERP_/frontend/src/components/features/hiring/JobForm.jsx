@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Spinner from './Spinner';
+import Spinner from '../../ui/Spinner';
 
 const defaultInitial = { title: '', description: '', required_skills: '', contract_type: 'cdi', location: '', status: 'draft' };
 

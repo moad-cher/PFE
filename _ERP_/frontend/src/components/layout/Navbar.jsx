@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import Guard from './Guard';
+import { useAuth } from '../../context/AuthContext';
+import Guard from '../features/auth/Guard';
 import NotificationDropdown from './NotificationDropdown';
-import { API_BASE } from '../api';
+import { API_BASE } from '../../api';
 
 function UserAvatar({ user, size = 8 }) {
   const initials = [user.first_name, user.last_name]
@@ -212,3 +212,6 @@ export default function Navbar() {
     </nav>
   );
 }
+
+
+

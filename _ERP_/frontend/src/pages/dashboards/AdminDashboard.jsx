@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend, listProjects } from '../api';
-import CreateUserModal from '../components/CreateUserModal';
-import DepartmentModal from '../components/DepartmentModal';
-import Spinner from '../components/Spinner';
+import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend, listProjects } from '../../api';
+import CreateUserModal from '../../components/features/admin/CreateUserModal';
+import DepartmentModal from '../../components/features/admin/DepartmentModal';
+import Spinner from '../../components/ui/Spinner';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts';
 
 const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899', '#06B6D4', '#F97316'];
@@ -838,3 +838,7 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+
+

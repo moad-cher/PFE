@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTask, updateTask, getProject, getProjectStatuses, getProjectMembers } from '../../api';
-import Spinner from '../../components/Spinner';
+import Spinner from '../../components/ui/Spinner';
 
 export default function TaskEdit() {
   const { pk, taskId } = useParams();
