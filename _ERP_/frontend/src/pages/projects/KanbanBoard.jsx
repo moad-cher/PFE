@@ -50,7 +50,7 @@ function TaskCard({ task, projectId, isDragging, isLocked }) {
 export default function KanbanBoard() {
   const { pk } = useParams();
   const { user } = useAuth();
-  const { isProjectManager } = usePermissions();
+  const { checkPM } = usePermissions();
   const [columns, setColumns] = useState([]);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -142,7 +142,7 @@ export default function KanbanBoard() {
                       >
                         {col.tasks.map((task, index) => {
                           const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
-                          const canDrag = isProjectManager(user, project) || isAssignee;
+                          const canDrag = checkPM(project) || isAssignee;
                           
                           return (
                             <Draggable 

@@ -25,6 +25,7 @@ export function hasRole(user, allowedRoles) {
  * Admin or HR Manager can manage hiring
  */
 export function canManageHiring(user) {
+  if (!user) return false;
   return hasRole(user, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 }
 
@@ -32,6 +33,7 @@ export function canManageHiring(user) {
  * Admin or Project Manager can manage projects
  */
 export function canManageProjects(user) {
+  if (!user) return false;
   return hasRole(user, [ROLES.ADMIN, ROLES.PROJECT_MANAGER]);
 }
 
@@ -39,15 +41,18 @@ export function canManageProjects(user) {
  * Check if user is project manager (admin, PM, or project's manager)
  */
 export function isProjectManager(user, project) {
+  if (!user) return false;
   if (hasRole(user, [ROLES.ADMIN, ROLES.PROJECT_MANAGER])) return true;
-  return project?.manager?.id === user?.id;
+  return project?.manager?.id === user.id || project?.manager === user.id;
 }
 
 /**
  * Check if user can edit task (manager or assignee)
  */
 export function canEditTask(user, task, project) {
-  return isProjectManager(user, project) || task?.assigned_to?.some(a => a.id === user?.id);
+  if (!user) return false;
+  if (isProjectManager(user, project)) return true;
+  return task?.assigned_to?.some(a => (a.id === user.id || a === user.id));
 }
 
 /**

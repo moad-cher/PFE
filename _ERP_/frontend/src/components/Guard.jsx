@@ -1,5 +1,12 @@
 import { useAuth } from '../context/AuthContext';
-import { hasRole, canManageHiring, canManageProjects, isProjectManager, canEditTask, ROLES } from '../utils/permissions';
+import { 
+  hasRole, 
+  canManageHiring, 
+  canManageProjects, 
+  isProjectManager, 
+  canEditTask, 
+  ROLES 
+} from '../utils/permissions';
 
 /**
  * Conditional rendering wrapper based on user role
@@ -26,21 +33,17 @@ export default function Guard({
 }) {
   const { user } = useAuth();
 
+  if (!user) return fallback;
+
   let allowed = false;
 
-  if (role) {
-    allowed = hasRole(user, [role]);
-  } else if (roles) {
-    allowed = hasRole(user, roles);
-  } else if (checkHiring) {
-    allowed = canManageHiring(user);
-  } else if (checkProjects) {
-    allowed = canManageProjects(user);
-  } else if (checkPM) {
-    allowed = isProjectManager(user, project);
-  } else if (checkEditTask) {
-    allowed = canEditTask(user, task, project);
-  }
+  // Combine checks (Logical OR)
+  if (role && hasRole(user, [role])) allowed = true;
+  if (roles && hasRole(user, roles)) allowed = true;
+  if (checkHiring && canManageHiring(user)) allowed = true;
+  if (checkProjects && canManageProjects(user)) allowed = true;
+  if (checkPM && isProjectManager(user, project)) allowed = true;
+  if (checkEditTask && canEditTask(user, task, project)) allowed = true;
 
   if (!allowed) return fallback;
 
@@ -48,36 +51,26 @@ export default function Guard({
 }
 
 /**
- * Render function for inline use
- * Example: {Guard.render({ roles: ['admin'] }, () => <button>Edit</button>)}
- */
-Guard.render = (props, renderFn) => {
-  const { user } = useAuth();
-
-  let allowed = false;
-  if (props.role) allowed = hasRole(user, [props.role]);
-  else if (props.roles) allowed = hasRole(user, props.roles);
-  else if (props.canManageHiring) allowed = canManageHiring(user);
-  else if (props.canManageProjects) allowed = canManageProjects(user);
-  else if (props.isProjectManager) allowed = isProjectManager(user, props.project);
-  else if (props.canEditTask) allowed = canEditTask(user, props.task, props.project);
-
-  return allowed ? renderFn() : null;
-};
-
-/**
  * Hook for programmatic access
- * Example: const { canEdit } = usePermissions();
+ * Example: const { canEditTask } = usePermissions({ project, task });
  */
 export function usePermissions({ project, task } = {}) {
   const { user } = useAuth();
 
   return {
     user,
+    // Booleans (legacy support & convenience)
     canManageHiring: canManageHiring(user),
     canManageProjects: canManageProjects(user),
     isProjectManager: isProjectManager(user, project),
     canEditTask: canEditTask(user, task, project),
+    
+    // Functional helpers (flexible)
+    checkHiring: () => canManageHiring(user),
+    checkProjects: () => canManageProjects(user),
+    checkPM: (p) => isProjectManager(user, p || project),
+    checkEditTask: (t, p) => canEditTask(user, t || task, p || project),
+    
     hasRole: (roles) => hasRole(user, roles),
     isAdmin: hasRole(user, [ROLES.ADMIN]),
     isHR: hasRole(user, [ROLES.HR_MANAGER]),
