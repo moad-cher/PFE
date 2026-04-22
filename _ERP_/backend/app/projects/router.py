@@ -5,15 +5,11 @@ from sqlalchemy.orm import selectinload
 from datetime import datetime, timezone
 import logging
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, require_roles
 from app.messaging.models import ChatMessage
-from app.notifications.service import notify_task_assigned
 from app.users.models import User
 from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Task, TaskStatus, project_members, task_assignees
 from app.projects.schemas import (
-    AISuggestionRead,
-    KanbanColumnRead,
-    MemberStatsRead,
     ProjectConfigRead,
     ProjectConfigUpdate,
     ProjectCreate,
@@ -25,11 +21,16 @@ from app.projects.schemas import (
     TaskRead,
     TaskStatusCreate,
     TaskStatusRead,
+    KanbanColumnRead,
+    MemberStatsRead,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+_PROJECT_MANAGERS = ("admin", "hr_manager", "project_manager")
+_PROJECT_PARTICIPANTS = ("admin", "hr_manager", "project_manager", "team_member")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,6 @@ def _can_access(project: Project, user: User) -> bool:
 
 
 def _is_manager(project: Project, user: User) -> bool:
-    """Check if user can manage this project. Admin/HR see all. PM manages own projects."""
     return (
         user.role in ("admin", "hr_manager")
         or project.manager_id == user.id
@@ -91,7 +91,7 @@ async def _ensure_config(project: Project, db: AsyncSession):
 @router.get("/dashboard")
 async def dashboard(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     q = select(Project).options(
         selectinload(Project.manager),
@@ -101,7 +101,6 @@ async def dashboard(
         selectinload(Project.config),
         selectinload(Project.sprints),
     )
-    # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
     if current_user.role not in ("admin", "hr_manager", "project_manager"):
         q = q.where(
             (Project.manager_id == current_user.id)
@@ -126,7 +125,7 @@ async def dashboard(
 @router.get("/", response_model=list[ProjectRead])
 async def list_projects(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     q = select(Project).options(
         selectinload(Project.manager),
@@ -136,7 +135,6 @@ async def list_projects(
         selectinload(Project.config),
         selectinload(Project.sprints),
     )
-    # Admin/HR see all projects. PM sees all for resource allocation. Members see only assigned.
     if current_user.role not in ("admin", "hr_manager", "project_manager"):
         q = q.where(
             (Project.manager_id == current_user.id)
@@ -149,32 +147,15 @@ async def list_projects(
 @router.get("/stats")
 async def project_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
-    """Project Manager stats: projects per manager, task completion rates, overdue tasks.
-
-    Admin/HR/PM: see all projects for resource allocation.
-    Others: see only their projects.
-    """
-    logger.info(f"project_stats called by user: {current_user.username} (role: {current_user.role})")
     try:
-        # Admin/HR/PM see all projects. Others see only their own.
         can_see_all = current_user.role in ("admin", "hr_manager", "project_manager")
-        logger.debug(f"can_see_all: {can_see_all}")
-
         if can_see_all:
-            # Admin/HR/PM sees all projects
-            logger.debug("Querying projects for admin/hr/pm")
             projects_result = await db.execute(
-                select(Project).options(
-                    selectinload(Project.tasks),
-                    selectinload(Project.manager)
-                )
+                select(Project).options(selectinload(Project.tasks), selectinload(Project.manager))
             )
             all_projects = projects_result.scalars().all()
-            logger.debug(f"Found {len(all_projects)} projects")
-
-            # Projects per manager
             manager_result = await db.execute(
                 select(User.username, func.count(Project.id))
                 .select_from(Project)
@@ -183,8 +164,6 @@ async def project_stats(
             )
             projects_per_manager = {username: count for username, count in manager_result.all()}
         else:
-            # Regular user sees only their projects
-            logger.debug(f"Querying projects for user: {current_user.id}")
             projects_result = await db.execute(
                 select(Project)
                 .where(
@@ -199,11 +178,8 @@ async def project_stats(
                 .options(selectinload(Project.tasks))
             )
             all_projects = projects_result.scalars().all()
-            logger.debug(f"User found {len(all_projects)} projects")
             projects_per_manager = {current_user.username: len([p for p in all_projects if p.manager_id == current_user.id])}
         
-        # Calculate task completion rates
-        logger.debug(f"Calculating stats for {len(all_projects)} projects")
         total_tasks = 0
         completed_tasks = 0
         overdue_tasks = 0
@@ -219,7 +195,7 @@ async def project_stats(
         
         completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
         
-        result = {
+        return {
             "total_projects": len(all_projects),
             "projects_per_manager": projects_per_manager,
             "total_tasks": total_tasks,
@@ -228,8 +204,6 @@ async def project_stats(
             "overdue_tasks": overdue_tasks,
             "is_admin_view": can_see_all,
         }
-        logger.debug(f"Returning stats: {result}")
-        return result
     except Exception:
         logger.exception("Error in project_stats")
         raise HTTPException(500, "Error generating project statistics")
@@ -239,16 +213,15 @@ async def project_stats(
 async def create_project(
     data: ProjectCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
-    # Check if project name already exists
     existing_project = await db.execute(select(Project).where(Project.name == data.name))
     if existing_project.scalars().first():
         raise HTTPException(400, "A project with this name already exists")
 
     project = Project(**data.model_dump(), manager_id=current_user.id)
     db.add(project)
-    await db.flush()  # get project.id before committing
+    await db.flush()
     await _ensure_default_statuses(project, db)
     await _ensure_config(project, db)
     await db.commit()
@@ -260,7 +233,7 @@ async def create_project(
 async def get_project(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
@@ -273,7 +246,7 @@ async def update_project(
     pk: int,
     data: ProjectUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -295,7 +268,7 @@ async def update_project(
 async def delete_project(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
     result = await db.execute(select(Project).where(Project.id == pk))
     project = result.scalar_one_or_none()
@@ -304,12 +277,7 @@ async def delete_project(
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
     
-    # Delete related chat messages first (FK may not have CASCADE in DB)
-    await db.execute(
-        delete(ChatMessage).where(ChatMessage.project_id == pk)
-    )
-    
-    # Use raw SQL delete to rely on DB-level CASCADE constraints
+    await db.execute(delete(ChatMessage).where(ChatMessage.project_id == pk))
     await db.execute(delete(Project).where(Project.id == pk))
     await db.commit()
 
@@ -320,7 +288,7 @@ async def delete_project(
 async def get_config(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
@@ -339,7 +307,7 @@ async def update_config(
     pk: int,
     data: ProjectConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -362,7 +330,7 @@ async def update_config(
 async def list_statuses(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
@@ -375,7 +343,7 @@ async def create_status(
     pk: int,
     data: TaskStatusCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -392,7 +360,7 @@ async def delete_status(
     pk: int,
     status_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -404,18 +372,12 @@ async def delete_status(
     if target.slug in ESSENTIAL_SLUGS:
         raise HTTPException(400, "Cannot delete essential status column")
 
-    remaining = sorted(
-        [s for s in project.statuses if s.id != status_id],
-        key=lambda s: s.order,
-    )
+    remaining = sorted([s for s in project.statuses if s.id != status_id], key=lambda s: s.order)
     if not remaining:
         raise HTTPException(400, "Cannot delete the only status column")
 
     fallback = remaining[0]
-    # migrate tasks to fallback status
-    tasks_res = await db.execute(
-        select(Task).where(Task.project_id == pk, Task.status == target.slug)
-    )
+    tasks_res = await db.execute(select(Task).where(Task.project_id == pk, Task.status == target.slug))
     for task in tasks_res.scalars().all():
         task.status = fallback.slug
 
@@ -429,7 +391,7 @@ async def delete_status(
 async def kanban_board(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
@@ -462,9 +424,8 @@ async def scrum_board(
     assignee_id: int | None = Query(None, description="Filter by assignee user id"),
     sprint_id: str | None = Query(None, description="Filter by sprint id. 'null' for backlog."),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
-    """Flat task list sorted by priority then end time — Scrum backlog view."""
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
@@ -501,7 +462,7 @@ async def scrum_board(
 async def list_sprints(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
@@ -514,7 +475,7 @@ async def create_sprint(
     pk: int,
     data: SprintCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -532,7 +493,7 @@ async def update_sprint(
     sprint_id: int,
     data: SprintUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -555,7 +516,7 @@ async def delete_sprint(
     pk: int,
     sprint_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
@@ -578,9 +539,8 @@ async def search_members(
     q: str = Query("", min_length=0),
     department_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
-    """Search all users (for member add UI), excluding already-members."""
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
@@ -589,34 +549,26 @@ async def search_members(
     query = select(User).where(User.id.not_in(member_ids))
     if q:
         pattern = f"%{q}%"
-        query = query.where(
-            User.username.ilike(pattern)
-            | User.first_name.ilike(pattern)
-            | User.last_name.ilike(pattern)
-        )
+        query = query.where(User.username.ilike(pattern) | User.first_name.ilike(pattern) | User.last_name.ilike(pattern))
     if department_id is not None:
         query = query.where(User.department_id == department_id)
     users = (await db.execute(query.limit(20))).scalars().all()
-    return [
-        {"id": u.id, "username": u.username, "full_name": f"{u.first_name} {u.last_name}".strip()}
-        for u in users
-    ]
+    return [{"id": u.id, "username": u.username, "full_name": f"{u.first_name} {u.last_name}".strip()} for u in users]
 
 
 @router.get("/{pk}/members", response_model=list[MemberStatsRead])
 async def member_stats(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
 
-    all_members = list({project.manager, *project.members})
+    all_members = list({project.manager, *project.members} - {None})
     member_ids = [m.id for m in all_members]
 
-    # Single query: counts per member via the task_assignees secondary table
     if member_ids:
         count_result = await db.execute(
             select(
@@ -625,55 +577,34 @@ async def member_stats(
                 func.sum(func.cast(Task.status == "done", Integer)).label("done"),
             )
             .join(Task, task_assignees.c.task_id == Task.id)
-            .where(
-                task_assignees.c.user_id.in_(member_ids),
-                Task.project_id == pk,
-            )
+            .where(task_assignees.c.user_id.in_(member_ids), Task.project_id == pk)
             .group_by(task_assignees.c.user_id)
         )
         stats_map = {row.user_id: {"total": row.total, "done": row.done or 0} for row in count_result.all()}
     else:
         stats_map = {}
 
-    # Fetch active tasks per member in a single query (not loaded eagerly)
     active_result = await db.execute(
         select(Task.id, task_assignees.c.user_id)
         .join(task_assignees, Task.id == task_assignees.c.task_id)
-        .where(
-            task_assignees.c.user_id.in_(member_ids),
-            Task.project_id == pk,
-            Task.status != "done",
-        )
+        .where(task_assignees.c.user_id.in_(member_ids), Task.project_id == pk, Task.status != "done")
     )
     active_by_user: dict[int, list[int]] = {m.id: [] for m in all_members}
     for row in active_result.all():
         active_by_user[row.user_id].append(row.id)
 
-    # Load active tasks in one query by IDs
     if any(active_by_user.values()):
         all_active_ids = [tid for tids in active_by_user.values() for tid in tids]
-        tasks_result = await db.execute(
-            select(Task).where(Task.id.in_(all_active_ids)).options(selectinload(Task.assigned_to))
-        )
+        tasks_result = await db.execute(select(Task).where(Task.id.in_(all_active_ids)).options(selectinload(Task.assigned_to)))
         tasks_by_id = {t.id: t for t in tasks_result.scalars().all()}
-        active_tasks_by_user = {
-            uid: [TaskRead.model_validate(tasks_by_id[tid]) for tid in tids]
-            for uid, tids in active_by_user.items()
-        }
+        active_tasks_by_user = {uid: [TaskRead.model_validate(tasks_by_id[tid]) for tid in tids] for uid, tids in active_by_user.items()}
     else:
         active_tasks_by_user = {m.id: [] for m in all_members}
 
     result = []
     for member in all_members:
         stats = stats_map.get(member.id, {"total": 0, "done": 0})
-        result.append(
-            MemberStatsRead(
-                user=member,
-                tasks_count=stats["total"],
-                done_count=stats["done"],
-                active_tasks=active_tasks_by_user.get(member.id, []),
-            )
-        )
+        result.append(MemberStatsRead(user=member, tasks_count=stats["total"], done_count=stats["done"], active_tasks=active_tasks_by_user.get(member.id, [])))
     return result
 
 
@@ -682,18 +613,14 @@ async def add_member(
     pk: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
-    result = await db.execute(
-        select(Project).where(Project.id == pk).options(selectinload(Project.members))
-    )
-    project = result.scalar_one_or_none()
+    project = await db.get(Project, pk, options=[selectinload(Project.members)])
     if not project:
         raise HTTPException(404, "Project not found")
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
-    user_res = await db.execute(select(User).where(User.id == user_id))
-    user = user_res.scalar_one_or_none()
+    user = await db.get(User, user_id)
     if not user:
         raise HTTPException(404, "User not found")
     if user not in project.members:
@@ -706,12 +633,9 @@ async def remove_member(
     pk: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
 ):
-    result = await db.execute(
-        select(Project).where(Project.id == pk).options(selectinload(Project.members))
-    )
-    project = result.scalar_one_or_none()
+    project = await db.get(Project, pk, options=[selectinload(Project.members)])
     if not project:
         raise HTTPException(404, "Project not found")
     if not _is_manager(project, current_user):
@@ -726,17 +650,13 @@ async def remove_member(
 async def leaderboard(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
-    """Get project leaderboard showing points earned only from tasks in this project."""
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
 
-    all_members = list({project.manager, *project.members})
-    member_ids = [m.id for m in all_members]
-
-    # Single query: sum points per user for this project, using GROUP BY
+    all_members = list({project.manager, *project.members} - {None})
     result = await db.execute(
         select(RewardLog.user_id, func.coalesce(func.sum(RewardLog.points), 0).label("total"))
         .join(Task, RewardLog.task_id == Task.id)
@@ -744,21 +664,9 @@ async def leaderboard(
         .group_by(RewardLog.user_id)
     )
     member_points = {row.user_id: row.total for row in result.all()}
-
     board = sorted(all_members, key=lambda u: member_points.get(u.id, 0), reverse=True)
 
-    return [
-        {
-            "rank": i + 1,
-            "user_id": u.id,
-            "username": u.username,
-            "full_name": f"{u.first_name} {u.last_name}".strip(),
-            "reward_points": member_points.get(u.id, 0),
-        }
-        for i, u in enumerate(board)
-    ]
-
-
+    return [{"rank": i + 1, "user_id": u.id, "username": u.username, "full_name": f"{u.first_name} {u.last_name}".strip(), "reward_points": member_points.get(u.id, 0)} for i, u in enumerate(board)]
 
 
 # ── AI assignment suggestion ──────────────────────────────────────────────────
@@ -769,7 +677,7 @@ async def ai_suggest(
     task_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
 ):
     project = await _load_project(pk, db)
     if not _can_access(project, current_user):
@@ -780,10 +688,5 @@ async def ai_suggest(
         raise HTTPException(404, "Task not found")
 
     from app.tasks.ai import run_ai_task_suggestion
-
     background_tasks.add_task(run_ai_task_suggestion, task_id, pk, current_user.id)
     return {"status": "accepted", "message": "AI is generating suggestions"}
-
-
-
-

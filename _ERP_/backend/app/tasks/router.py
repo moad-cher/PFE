@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, require_roles
 from app.notifications.service import (
     notify_task_assigned,
     notify_task_completed,
@@ -28,6 +28,9 @@ from app.projects.schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["tasks"])
+
+_TASK_MANAGERS = ("admin", "project_manager", "hr_manager")
+_TASK_PARTICIPANTS = ("admin", "project_manager", "hr_manager", "team_member")
 
 
 async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> Project:
@@ -69,7 +72,6 @@ async def _award_points(task: Task, db: AsyncSession):
         assignee.reward_points = (assignee.reward_points or 0) + points
         db.add(assignee)  # Explicitly mark assignee for update
         db.add(RewardLog(user_id=assignee.id, task_id=task.id, points=points))
-        # Fire-and-forget with explicit error logging context.
         schedule_notification(
             notify_reward(assignee.id, points, task.title),
             label="notify_reward",
@@ -85,7 +87,7 @@ async def _award_points(task: Task, db: AsyncSession):
 async def list_tasks(
     project_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -102,7 +104,7 @@ async def create_task(
     data: TaskCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_MANAGERS)),
 ):
     project = await _get_project_or_403(project_id, current_user, db)
     assignee_ids = data.assigned_to_ids
@@ -126,7 +128,7 @@ async def get_task(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -146,7 +148,7 @@ async def update_task(
     data: TaskUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
 ):
     project = await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -175,12 +177,8 @@ async def update_task(
         await _award_points(task, db)
         background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
 
-    new_assigned_ids: list[int] = []
     if assignee_ids is not None:
         users = (await db.execute(select(User).where(User.id.in_(assignee_ids)))).scalars().all()
-        new_assignees = set(u.id for u in users)
-        old_assignees = set(a.id for a in task.assigned_to)
-        new_assigned_ids = list(new_assignees - old_assignees)
         task.assigned_to = list(users)
 
     await db.commit()
@@ -198,7 +196,7 @@ async def delete_task(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_MANAGERS)),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(select(Task).where(Task.id == task_id, Task.project_id == project_id))
@@ -218,12 +216,11 @@ async def move_task(
     data: TaskMoveRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
 ):
     """Move a task to a different Kanban column (status slug)."""
     project = await _get_project_or_403(project_id, current_user, db)
 
-    # Validate that the target status exists in the project
     status_res = await db.execute(
         select(TaskStatus).where(
             TaskStatus.project_id == project_id,
@@ -241,24 +238,16 @@ async def move_task(
     if not task:
         raise HTTPException(404, "Task not found")
 
-    # Permission check: Only admin, project owner, or assignees can change status
     is_manager = current_user.role == "admin" or project.manager_id == current_user.id
     is_assignee = any(u.id == current_user.id for u in task.assigned_to)
     if not (is_manager or is_assignee):
         raise HTTPException(403, "Only assignees or project managers can change task status")
 
-    old_status = task.status
     task.status = data.status
-    
-    logger.info(f"[MOVE_TASK] Task {task.id} status: {old_status} -> {data.status}, completed_at: {task.completed_at}")
-
     if data.status == "done" and not task.completed_at:
-        logger.info(f"[MOVE_TASK] Marking task {task.id} as completed and awarding points")
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
         background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
-    else:
-        logger.info(f"[MOVE_TASK] Skipping points award - status={data.status}, completed_at={task.completed_at}")
 
     await db.commit()
     await db.refresh(task, ["assigned_to"])
@@ -279,7 +268,7 @@ async def reassign_task(
     new_assignee_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_MANAGERS)),
 ):
     """Replace all assignees with a single new assignee (manager only)."""
     project = await _get_project_or_403(project_id, current_user, db)
@@ -314,7 +303,7 @@ async def list_comments(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -332,10 +321,9 @@ async def add_comment(
     data: CommentCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
 ):
     await _get_project_or_403(project_id, current_user, db)
-    # load task to notify assignees
     task_res = await db.execute(
         select(Task).where(Task.id == task_id, Task.project_id == project_id)
         .options(selectinload(Task.assigned_to))

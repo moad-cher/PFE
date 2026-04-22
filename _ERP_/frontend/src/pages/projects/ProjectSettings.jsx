@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getProject, getProjectStatuses, createProjectStatus, deleteProjectStatus, getProjectConfig, updateProjectConfig } from '../../api';
 import Spinner from '../../components/Spinner';
-import { useAuth } from '../../context/AuthContext';
+import Guard from '../../components/Guard';
 
 const COLOR_OPTS = ['#e74c3c','#f39c12','#3498db','#2ecc71','#9b59b6','#1abc9c','#e67e22','#34495e'];
 
 export default function ProjectSettings() {
   const { pk } = useParams();
-  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [statuses, setStatuses] = useState([]);
   const [config, setConfig] = useState(null);
@@ -60,7 +59,6 @@ export default function ProjectSettings() {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
-  const isManager = user?.role === 'admin' || user?.role === 'project_manager' || project?.manager?.id === user?.id;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -70,23 +68,27 @@ export default function ProjectSettings() {
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Project Settings</h1>
       {msg && <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 mb-4 text-sm">{msg}</div>}
-      {config && isManager && (
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Parameters</h2>
-          <form onSubmit={saveConfig} className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[['points_on_time','On-time pts'],['points_late','Late pts'],['notify_deadline_days','Notify N days before'],['sprint_duration_days', 'Sprint Duration (days)']].map(([k,l]) => (
-                <div key={k}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{l}</label>
-                  <input type="number" min="0" value={config[k]} onChange={e => setConfig(c=>({...c,[k]:e.target.value}))}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                </div>
-              ))}
-            </div>
-            <button disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
-          </form>
-        </div>
-      )}
+      
+      <Guard isProjectManager project={project}>
+        {config && (
+          <div className="bg-white rounded-2xl shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Parameters</h2>
+            <form onSubmit={saveConfig} className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[['points_on_time','On-time pts'],['points_late','Late pts'],['notify_deadline_days','Notify N days before'],['sprint_duration_days', 'Sprint Duration (days)']].map(([k,l]) => (
+                  <div key={k}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{l}</label>
+                    <input type="number" min="0" value={config[k]} onChange={e => setConfig(c=>({...c,[k]:e.target.value}))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                  </div>
+                ))}
+              </div>
+              <button disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+            </form>
+          </div>
+        )}
+      </Guard>
+
       <div className="bg-white rounded-2xl shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Kanban Columns</h2>
         <div className="space-y-2 mb-6">
@@ -97,18 +99,20 @@ export default function ProjectSettings() {
                 <span className="font-medium text-sm">{s.name}</span>
                 <span className="text-xs text-gray-400">{s.slug} · order {s.order}</span>
               </div>
-              {isManager && statuses.length > 1 && !['todo','done'].includes(s.slug) && (
-                <button onClick={() => removeStatus(s.id)} className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded border border-red-200">Remove</button>
-              )}
+              <Guard isProjectManager project={project}>
+                {statuses.length > 1 && !['todo','done'].includes(s.slug) && (
+                  <button onClick={() => removeStatus(s.id)} className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded border border-red-200">Remove</button>
+                )}
+              </Guard>
               {['todo','done'].includes(s.slug) && (
                 <span className="text-xs text-gray-400 italic">
-                  {/* Essential */}
                   </span>
               )}
             </div>
           ))}
         </div>
-        {isManager && (
+        
+        <Guard isProjectManager project={project}>
           <form onSubmit={addStatus} className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-semibold text-gray-700">Add Column</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -145,7 +149,7 @@ export default function ProjectSettings() {
             </div>
             <button className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">+ Add Column</button>
           </form>
-        )}
+        </Guard>
       </div>
     </div>
   );

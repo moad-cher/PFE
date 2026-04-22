@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Guard from './Guard';
 import NotificationDropdown from './NotificationDropdown';
 import { API_BASE } from '../api';
 
@@ -50,9 +51,6 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  const canManageHiring = user?.role === 'admin' || user?.role === 'hr_manager';
-  const canManageProjects = user?.role === 'admin' || user?.role === 'project_manager';
-
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-lilac border-b border-purple-100/50 h-16">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
@@ -60,7 +58,7 @@ export default function Navbar() {
         <div className="flex items-center gap-6">
           <Link
             to="/dashboard"
-            style={{ fontFamily: 'lucida handwriting' /*'impact' */ }}
+            style={{ fontFamily: 'lucida handwriting' }}
             className="inline-flex items-center gap-2 text-purple-300 font-bold text-xl tracking-tight hover:text-[#7C529A] transition-colors"
           >
             <img
@@ -79,36 +77,35 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
-            {canManageProjects && (
+            <Guard canManageProjects>
               <Link
                 to="/projects/new"
                 className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
               >
                 New Project
               </Link>
-            )}
-            {canManageHiring && (
+            </Guard>
+            <Guard canManageHiring>
               <Link
                 to="/hiring/jobs"
                 className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-colors"
               >
                 Hiring
               </Link>
-            )}
-            {!canManageHiring && (
+            </Guard>
+            <Guard roles={['team_member', 'project_manager']}>
               <Link
                 to="/hiring/jobs"
                 className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-colors"
               >
                 Jobs
               </Link>
-            )}
+            </Guard>
           </div>
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
           <NotificationDropdown />
 
           {/* User menu */}
@@ -147,18 +144,7 @@ export default function Navbar() {
                   </svg>
                   Profile
                 </Link>
-                {/* <Link
-                  to="/notifications"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  Notifications
-                </Link> */}
-                {/* admin or hr */}
-                {user?.role === 'admin' || user?.role === 'hr_manager' && (
+                <Guard canManageHiring>
                   <Link
                     to="/hiring/jobs"
                     onClick={() => setUserMenuOpen(false)}
@@ -169,7 +155,7 @@ export default function Navbar() {
                     </svg>
                     Hiring
                   </Link>
-                )}
+                </Guard>
                 <div className="border-t mt-1">
                   <button
                     onClick={handleLogout}
@@ -185,7 +171,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen((v) => !v)}
             className="md:hidden p-2 rounded-lg hover:bg-gray-100"
@@ -197,7 +182,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t px-4 py-2 space-y-1">
           <Link
@@ -212,9 +196,9 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
           >
-            {canManageHiring ? 'Hiring' : 'Jobs'}
+            <Guard canManageHiring fallback="Jobs">Hiring</Guard>
           </Link>
-          {canManageProjects && (
+          <Guard canManageProjects>
             <Link
               to="/projects/new"
               onClick={() => setMobileMenuOpen(false)}
@@ -222,7 +206,7 @@ export default function Navbar() {
             >
               New Project
             </Link>
-          )}
+          </Guard>
         </div>
       )}
     </nav>

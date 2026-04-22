@@ -51,25 +51,53 @@ export default function TaskEdit() {
     });
   };
 
+  const selectedSprint = project?.sprints?.find(s => String(s.id) === String(form.sprint_id));
+
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
     try {
+      let startTime = form.start_time;
+      let endTime = form.end_time;
+
+      if (selectedSprint) {
+        if (!startTime) startTime = selectedSprint.start_date;
+        if (!endTime) endTime = selectedSprint.end_date;
+
+        const sStart = new Date(selectedSprint.start_date);
+        const sEnd = new Date(selectedSprint.end_date);
+        const tStart = new Date(startTime);
+        const tEnd = new Date(endTime);
+
+        if (tStart < sStart || tStart > sEnd) {
+          throw new Error(`Start time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
+        }
+        if (tEnd < sStart || tEnd > sEnd) {
+          throw new Error(`End time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
+        }
+      }
+
       const payload = { 
         ...form, 
         points: Number(form.points), 
-        start_time: fromDateTimeLocal(form.start_time),
-        end_time: fromDateTimeLocal(form.end_time),
+        start_time: fromDateTimeLocal(startTime),
+        end_time: fromDateTimeLocal(endTime),
         sprint_id: form.sprint_id ? Number(form.sprint_id) : null
       };
       await updateTask(pk, taskId, payload);
       navigate(`/projects/${pk}/tasks/${taskId}`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update task');
+      setError(err.message || err.response?.data?.detail || 'Failed to update task');
       setSaving(false);
     }
   };
 
   if (!form) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toISOString().slice(0, 16);
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -160,11 +188,15 @@ export default function TaskEdit() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
+                max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
               <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
+                max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>

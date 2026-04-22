@@ -16,25 +16,11 @@ def normalize_ws_token(token: str) -> str:
 def extract_ws_token(ws: WebSocket) -> str:
     """
     Extract JWT token from WebSocket handshake.
-    Priority: Query Param > Auth Header > Subprotocols.
+    Strictly supports only Query Parameters (token or access_token).
     """
-    # 1. Query Parameter (Most maintainable for WSS browser clients)
     token = ws.query_params.get("token") or ws.query_params.get("access_token")
     if token:
         return normalize_ws_token(token)
-
-    # 2. Authorization Header (Standard for custom clients)
-    auth_header = ws.headers.get("authorization")
-    if auth_header:
-        return normalize_ws_token(auth_header)
-
-    # 3. Subprotocols (Legacy fallback/hacks)
-    subprotocols = ws.scope.get("subprotocols", [])
-    if subprotocols:
-        for candidate in subprotocols:
-            normalized = normalize_ws_token(candidate)
-            if normalized:
-                return normalized
 
     return ""
 

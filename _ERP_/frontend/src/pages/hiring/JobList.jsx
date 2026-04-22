@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { listJobs } from '../../api';
 import Spinner from '../../components/Spinner';
-import { useAuth } from '../../context/AuthContext';
+import Guard, { usePermissions } from '../../components/Guard';
 import CreateJobModal from '../../components/CreateJobModal';
 
 const STATUS_STYLES = {
@@ -21,7 +21,7 @@ const FILTERS = [
 ];
 
 export default function JobList() {
-  const { user } = useAuth();
+  const { canManageHiring } = usePermissions();
   const [jobs, setJobs] = useState([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,31 +31,22 @@ export default function JobList() {
     setLoading(true);
     listJobs(filter || undefined).then(r => setJobs(r.data)).finally(() => setLoading(false));
   }, [filter]);
-  
-  const isHR = user?.role === 'hr_manager';
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header with navigation */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
-          {/*!user && (
-            <p className="text-sm text-gray-500 mt-1">
-              Browse open positions. <Link to="/login" className="text-blue-600 hover:underline">Sign in</Link>.
-            </p>
-          )*/}
         </div>
-        {isHR && (
+        <Guard canManageHiring>
           <button type="button" onClick={() => setCreateJobOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             + New Job
           </button>
-        )}
+        </Guard>
       </div>
 
-      {/* Filter pills - only show draft/paused/closed to HR */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTERS.filter(f => isHR || ['', 'published'].includes(f.value)).map(f => (
+        {FILTERS.filter(f => canManageHiring || ['', 'published'].includes(f.value)).map(f => (
           <button key={f.value} onClick={() => setFilter(f.value)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               filter === f.value ? 'bg-blue-600 text-white' : 'bg-white border text-gray-600 hover:border-blue-300'

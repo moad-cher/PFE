@@ -9,6 +9,7 @@ import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
+import Guard, { usePermissions } from '../../components/Guard';
 
 function AISuggestPanel({ pk, taskId, task, onAssigned }) {
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,6 @@ function AISuggestPanel({ pk, taskId, task, onAssigned }) {
   const [result, setResult] = useState(null);
   const { subscribe } = useRealTime();
 
-  // Initialize from cached suggestions on task load
   useEffect(() => {
     if (task?.ai_suggestions) {
       try {
@@ -31,12 +31,10 @@ function AISuggestPanel({ pk, taskId, task, onAssigned }) {
     }
   }, [task?.ai_suggestions]);
 
-  // Listen for real-time completion
   useEffect(() => {
     if (!loading) return;
     return subscribe((data) => {
       if (data.type === 'task_suggestion_complete' && data.task_id === parseInt(taskId)) {
-        // Fetch the updated task to get the stored suggestions
         getTask(pk, taskId).then(r => {
             const suggestions = r.data.ai_suggestions ? JSON.parse(r.data.ai_suggestions) : null;
             if (suggestions?.members?.length) {
@@ -57,9 +55,6 @@ function AISuggestPanel({ pk, taskId, task, onAssigned }) {
     setResult(null);
     try {
       await suggestAssignee(pk, taskId);
-      // UI will update when WebSocket event arrives
-      
-      // Fallback timeout: reset after 30s in case WebSocket fails
       setTimeout(() => {
         setLoading(prev => prev ? false : prev);
       }, 30000);
@@ -124,6 +119,7 @@ function AISuggestPanel({ pk, taskId, task, onAssigned }) {
 export default function TaskDetail() {
   const { pk, taskId } = useParams();
   const { user } = useAuth();
+  const { canEditTask, isProjectManager } = usePermissions();
   const navigate = useNavigate();
   const [task, setTask] = useState(null);
   const [project, setProject] = useState(null);
@@ -172,10 +168,6 @@ export default function TaskDetail() {
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
   if (!task) return null;
 
-  const isManager = user?.role === 'admin' || project?.manager?.id === user?.id;
-  const isAssignee = task.assigned_to?.some(a => a.id === user?.id);
-  const canEdit = isManager || isAssignee;
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
@@ -187,50 +179,48 @@ export default function TaskDetail() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Task card */}
           <div className="bg-white rounded-2xl shadow p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <h1 className="text-2xl font-bold text-gray-900">{task.title}</h1>
-              {canEdit && (
+              <Guard canEditTask task={task} project={project}>
                 <div className="flex gap-2 flex-shrink-0">
                   <Link to={`/projects/${pk}/tasks/${taskId}/edit`}
                     className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
                     Edit
                   </Link>
-                  {isManager && (
+                  <Guard isProjectManager project={project}>
                     <button onClick={handleDelete}
                       className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100">
                       Delete
                     </button>
-                  )}
+                  </Guard>
                 </div>
-              )}
+              </Guard>
             </div>
             {task.description && (
               <p className="text-gray-700 text-sm whitespace-pre-line mb-4 leading-relaxed">{task.description}</p>
             )}
-            {canEdit && statuses.filter(s => s.slug !== task.status).length > 0 && (
-              <div className="flex gap-2 flex-wrap pt-3 border-t items-center">
-                <span className="text-xs text-gray-400">Move to:</span>
-                {statuses.filter(s => s.slug !== task.status).map(s => (
-                  <button key={s.slug} onClick={() => handleMove(s.slug)}
-                    // className="text-xs border rounded-full px-3 py-1 transition-colors"
-                    style={{
-                      color: s.color,
-                      borderColor: s.color,
-                      background: s.color + '11',
-                    }}
-                    className="text-xs border rounded-full px-3 py-1 hover:bg-gray-50 text-gray-600 hover:border-gray-400 transition-colors">
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            )}
+            <Guard canEditTask task={task} project={project}>
+              {statuses.filter(s => s.slug !== task.status).length > 0 && (
+                <div className="flex gap-2 flex-wrap pt-3 border-t items-center">
+                  <span className="text-xs text-gray-400">Move to:</span>
+                  {statuses.filter(s => s.slug !== task.status).map(s => (
+                    <button key={s.slug} onClick={() => handleMove(s.slug)}
+                      style={{
+                        color: s.color,
+                        borderColor: s.color,
+                        background: s.color + '11',
+                      }}
+                      className="text-xs border rounded-full px-3 py-1 hover:bg-gray-50 text-gray-600 hover:border-gray-400 transition-colors">
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Guard>
           </div>
 
-          {/* Comments */}
           <div className="bg-white rounded-2xl shadow p-6">
             <h2 className="font-semibold text-gray-900 mb-4">Comments ({comments.length})</h2>
             <div className="space-y-4 mb-6">
@@ -264,7 +254,6 @@ export default function TaskDetail() {
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl shadow p-5 text-sm space-y-3">
             <div className="flex justify-between items-center">

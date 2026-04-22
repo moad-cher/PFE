@@ -2,7 +2,7 @@
 WebSocket endpoint for streaming AI responses token-by-token.
 
 WS /ws/ai/stream
-(Authenticate via Sec-WebSocket-Protocol: [token])
+(Authenticate via query parameter: ?token=[token])
 
 Protocol (client → server):
     { "prompt": "...", "system": "...(optional)" }

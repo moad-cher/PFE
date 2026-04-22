@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, listDepartments } from '../../api';
 import Spinner from '../../components/Spinner';
-import { useAuth } from '../../context/AuthContext';
+import Guard from '../../components/Guard';
 
-function MemberCard({ member, isManager, onRemove }) {
+function MemberCard({ member, project, onRemove }) {
   const u = member.user;
   const initials = [u.first_name, u.last_name].filter(Boolean).map(n => n[0]).join('').toUpperCase()
     || u.username[0].toUpperCase();
@@ -20,12 +20,12 @@ function MemberCard({ member, isManager, onRemove }) {
             <p className="text-xs text-gray-400">{u.username} · {u.role?.replace(/_/g, ' ')}</p>
           </div>
         </div>
-        {isManager && (
+        <Guard isProjectManager project={project}>
           <button onClick={() => onRemove(u.id)}
             className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded border border-red-200 hover:border-red-400 transition-colors">
             Remove
           </button>
-        )}
+        </Guard>
       </div>
       {u.skills && (
         <div className="flex flex-wrap gap-1 mb-3">
@@ -53,7 +53,6 @@ function MemberCard({ member, isManager, onRemove }) {
 
 export default function Members() {
   const { pk } = useParams();
-  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
   const [searchQ, setSearchQ] = useState('');
@@ -98,8 +97,6 @@ export default function Members() {
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
 
-  const isManager = user?.role === 'admin' || user?.role === 'project_manager' || project?.manager?.id === user?.id;
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
@@ -110,7 +107,7 @@ export default function Members() {
         Team Members <span className="text-gray-400 text-lg font-normal">({members.length})</span>
       </h1>
 
-      {isManager && (
+      <Guard isProjectManager project={project}>
         <div className="bg-white rounded-2xl shadow p-5 mb-6">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Add Member</h2>
           <div className="flex flex-col md:flex-row gap-3">
@@ -158,14 +155,13 @@ export default function Members() {
             </div>
           )}
         </div>
-      )}
+      </Guard>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {members.map(m => (
-          <MemberCard key={m.user.id} member={m} isManager={isManager} onRemove={removeMember} />
+          <MemberCard key={m.user.id} member={m} project={project} onRemove={removeMember} />
         ))}
       </div>
     </div>
   );
 }
-

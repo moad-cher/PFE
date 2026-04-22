@@ -4,6 +4,7 @@ import { getJob, getJobApplications, updateApplicationStatus, deleteJob } from '
 import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../context/AuthContext';
+import Guard, { usePermissions } from '../../components/Guard';
 import EditJobModal from '../../components/EditJobModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
@@ -32,17 +33,17 @@ function ScoreBar({ score }) {
 export default function JobDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { canManageHiring } = usePermissions();
   const { subscribe } = useRealTime();
   const [job, setJob] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const isHR = user?.role === 'hr_manager' || user?.role === 'admin';
   const [editOpen, setEditOpen] = useState(false);
 
   const loadData = () => {
     const p = [getJob(id)];
-    if (isHR) p.push(getJobApplications(id));
+    if (canManageHiring) p.push(getJobApplications(id));
     return Promise.all(p).then(([j, a]) => {
       setJob(j.data);
       if (a) setApplications(a.data);
@@ -52,18 +53,18 @@ export default function JobDetail() {
 
   useEffect(() => {
     loadData().finally(() => setLoading(false));
-  }, [id, isHR]);
+  }, [id, canManageHiring]);
 
   // WebSocket for live AI updates
   useEffect(() => {
-    if (!isHR) return;
+    if (!canManageHiring) return;
     return subscribe((data) => {
       if (data.type === 'ai_complete' && data.job_id === parseInt(id)) {
         // Refresh the whole list or fetch the specific application
         getJobApplications(id).then(r => setApplications(r.data));
       }
     });
-  }, [id, isHR, subscribe]);
+  }, [id, canManageHiring, subscribe]);
 
   const navigate = useNavigate();
 
@@ -79,7 +80,6 @@ export default function JobDetail() {
       navigate('/hiring/jobs');
     } catch (err) {
       console.error('Failed to delete job', err);
-      // Could show an error UI here
       setDeleteConfirm(false);
     }
   };
@@ -122,8 +122,7 @@ export default function JobDetail() {
             </div>
           </div>
           <div className="flex gap-2 flex-shrink-0">
-            {isHR && (
-              <>
+            <Guard canManageHiring>
                 <button type="button" onClick={() => setEditOpen(true)} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</button>
                 {deleteConfirm ? (
                   <div className="flex items-center gap-2">
@@ -149,8 +148,7 @@ export default function JobDetail() {
                     Delete
                   </button>
                 )}
-              </>
-            )}
+            </Guard>
             {job.status === 'published' ? (
               <Link to={`/hiring/jobs/${id}/apply`} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
                 Apply Now
@@ -173,7 +171,7 @@ export default function JobDetail() {
       </div>
 
       {/* Applications table */}
-      {isHR && (
+      <Guard canManageHiring>
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
             Applications <span className="text-gray-400 font-normal">({applications.length})</span>
@@ -216,7 +214,7 @@ export default function JobDetail() {
             </table>
           </div>
         </div>
-      )}
+      </Guard>
       <EditJobModal open={editOpen} onClose={() => setEditOpen(false)} jobId={id} onSaved={(updated) => setJob(updated)} />
     </div>
   );

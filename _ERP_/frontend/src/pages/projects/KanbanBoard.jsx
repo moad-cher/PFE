@@ -5,6 +5,7 @@ import { getKanban, moveTask, getProject } from '../../api';
 import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
+import Guard, { usePermissions } from '../../components/Guard';
 import TaskNew from './TaskNew';
 
 function TaskCard({ task, projectId, isDragging, isLocked }) {
@@ -49,6 +50,7 @@ function TaskCard({ task, projectId, isDragging, isLocked }) {
 export default function KanbanBoard() {
   const { pk } = useParams();
   const { user } = useAuth();
+  const { isProjectManager } = usePermissions();
   const [columns, setColumns] = useState([]);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,41 +68,28 @@ export default function KanbanBoard() {
 
   const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
-    
-    // Dropped outside a droppable area
     if (!destination) return;
-    
-    // Dropped in the same position
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
     
     const taskId = parseInt(draggableId.replace('task-', ''));
     const sourceColSlug = source.droppableId;
     const destColSlug = destination.droppableId;
     
-    // Optimistically update UI
     setColumns(prev => {
       const newColumns = [...prev];
       const sourceCol = newColumns.find(c => c.status.slug === sourceColSlug);
       const destCol = newColumns.find(c => c.status.slug === destColSlug);
-      
       if (!sourceCol || !destCol) return prev;
-      
-      // Remove from source
       const [movedTask] = sourceCol.tasks.splice(source.index, 1);
       movedTask.status = destColSlug;
-      
-      // Add to destination
       destCol.tasks.splice(destination.index, 0, movedTask);
-      
       return newColumns;
     });
     
-    // If moved to a different column, update the backend
     if (sourceColSlug !== destColSlug) {
       try {
         await moveTask(pk, taskId, destColSlug);
       } catch (error) {
-        // Revert on error by refetching
         const res = await getKanban(pk);
         setColumns(res.data);
       }
@@ -108,8 +97,6 @@ export default function KanbanBoard() {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
-
-  const isManager = user?.role === 'admin' || project?.manager?.id === user?.id;
 
   return (
     <div className="px-4 py-6">
@@ -121,9 +108,9 @@ export default function KanbanBoard() {
           </div>
           <div className="flex gap-2">
             <Link to={`/projects/${pk}/scrum`} className="px-3 py-1.5 text-sm bg-violet-50 text-violet-600 rounded-xl hover:bg-violet-100 transition-colors">Scrum</Link>
-            {isManager && (
+            <Guard isProjectManager project={project}>
               <button onClick={() => setShowTaskModal(true)} className="px-3 py-1.5 text-sm bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:from-purple-600 hover:to-violet-600 transition-all shadow-sm">+ Task</button>
-            )}
+            </Guard>
           </div>
         </div>
 
@@ -155,7 +142,7 @@ export default function KanbanBoard() {
                       >
                         {col.tasks.map((task, index) => {
                           const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
-                          const canDrag = isManager || isAssignee;
+                          const canDrag = isProjectManager(user, project) || isAssignee;
                           
                           return (
                             <Draggable 

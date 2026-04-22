@@ -5,6 +5,7 @@ import Spinner from '../../components/Spinner';
 import PriorityBadge from '../../components/PriorityBadge';
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
+import { isProjectManager } from '../../utils/permissions';
 import TaskNew from './TaskNew';
 
 export default function ScrumBoard() {
@@ -61,8 +62,6 @@ export default function ScrumBoard() {
       alert(err.response?.data?.detail || 'Failed to update sprint');
     }
   };
-
-  const isManager = user?.role === 'admin' || project?.manager?.id === user?.id || user?.role === 'project_manager';
   
   const allMembers = project
     ? [project.manager, ...(project.members || [])]
@@ -142,7 +141,7 @@ export default function ScrumBoard() {
           <h1 className="text-2xl font-bold text-gray-900">Sprint Timeline</h1>
         </div>
         <div className="flex gap-3">
-          {isManager && (
+          {isProjectManager(user, project) && (
             <button onClick={() => setShowSprintModal(true)} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm">
               New Sprint
             </button>
@@ -208,10 +207,10 @@ export default function ScrumBoard() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isManager && sprint.status === 'draft' && (
+                      {isProjectManager(user, project) && sprint.status === 'draft' && (
                         <button onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">Start Sprint</button>
                       )}
-                      {isManager && sprint.status === 'active' && (
+                      {isProjectManager(user, project) && sprint.status === 'active' && (
                         <button onClick={() => handleUpdateSprintStatus(sprint.id, 'completed')} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
                       )}
                       <button onClick={() => openTaskModal(sprint.id)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">

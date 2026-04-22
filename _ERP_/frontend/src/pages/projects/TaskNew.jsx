@@ -42,21 +42,43 @@ export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSucces
         : [...f.assigned_to_ids, id],
     }));
 
+  const selectedSprint = project?.sprints?.find(s => String(s.id) === String(form.sprint_id));
+
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
     try {
+      let startTime = form.start_time;
+      let endTime = form.end_time;
+
+      if (selectedSprint) {
+        if (!startTime) startTime = selectedSprint.start_date;
+        if (!endTime) endTime = selectedSprint.end_date;
+
+        const sStart = new Date(selectedSprint.start_date);
+        const sEnd = new Date(selectedSprint.end_date);
+        const tStart = new Date(startTime);
+        const tEnd = new Date(endTime);
+
+        if (tStart < sStart || tStart > sEnd) {
+          throw new Error(`Start time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
+        }
+        if (tEnd < sStart || tEnd > sEnd) {
+          throw new Error(`End time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
+        }
+      }
+
       const payload = { 
         ...form, 
         points: Number(form.points), 
-        start_time: fromDateTimeLocal(form.start_time),
-        end_time: fromDateTimeLocal(form.end_time),
+        start_time: fromDateTimeLocal(startTime),
+        end_time: fromDateTimeLocal(endTime),
         sprint_id: form.sprint_id ? Number(form.sprint_id) : null
       };
       const res = await createTask(pk, payload);
       if (onSuccess) onSuccess(res.data);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create task');
+      setError(err.message || err.response?.data?.detail || 'Failed to create task');
       setSaving(false);
     }
   };
@@ -71,6 +93,12 @@ export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSucces
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toISOString().slice(0, 16);
+  };
 
   return (
     <div 
@@ -133,11 +161,15 @@ export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSucces
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Start Time</label>
                     <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                      min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
+                      max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                       className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">End Time</label>
                     <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                      min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
+                      max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                       className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white" />
                   </div>
                 </div>

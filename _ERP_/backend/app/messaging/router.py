@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user, get_db
+from app.core.deps import get_current_user, get_db, require_roles
 from app.users.models import User
 from app.messaging.models import ChatMessage
 from app.projects.models import Project, Task
@@ -12,6 +12,7 @@ from app.websockets.manager import ws_manager
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
+_CHAT_PARTICIPANTS = ("admin", "hr_manager", "project_manager", "team_member")
 
 # ── History endpoints ─────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ async def project_chat_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_CHAT_PARTICIPANTS)),
 ):
     result = await db.execute(
         select(ChatMessage)
@@ -40,7 +41,7 @@ async def task_chat_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_CHAT_PARTICIPANTS)),
 ):
     result = await db.execute(
         select(ChatMessage)
@@ -60,7 +61,7 @@ async def send_project_message(
     project_id: int,
     data: ChatMessageCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_CHAT_PARTICIPANTS)),
 ):
     proj = await db.get(Project, project_id)
     if not proj:
@@ -94,7 +95,7 @@ async def send_task_message(
     task_id: int,
     data: ChatMessageCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(*_CHAT_PARTICIPANTS)),
 ):
     task_res = await db.execute(select(Task).where(Task.id == task_id))
     task = task_res.scalar_one_or_none()
@@ -130,14 +131,18 @@ async def send_task_message(
 async def delete_message(
     message_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("admin", "hr_manager", "project_manager", "team_member")),
 ):
     """Author or admin can delete a chat message."""
     result = await db.execute(select(ChatMessage).where(ChatMessage.id == message_id))
     msg = result.scalar_one_or_none()
     if not msg:
         raise HTTPException(404, "Message not found")
-    if msg.author_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(403, "Not your message")
+    
+    # Ownership or admin/hr logic
+    can_delete = msg.author_id == current_user.id or current_user.role in ("admin", "hr_manager")
+    if not can_delete:
+        raise HTTPException(403, "Insufficient permissions to delete this message")
+    
     await db.delete(msg)
     await db.commit()

@@ -4,9 +4,9 @@ from sqlalchemy import select, func, case, extract, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_db, get_current_user
-from app.users.models import User, RoleEnum, Department
-from app.projects.models import Project, Task, RewardLog, project_members, task_assignees
+from app.core.deps import get_db, require_roles
+from app.users.models import User
+from app.projects.models import Project, Task, RewardLog, task_assignees
 from app.hiring.models import Application, JobPosting, ApplicationStatusEnum
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -16,12 +16,9 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 async def get_admin_activity_trend(
     days: int = Query(default=30, ge=1, le=90),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("admin")),
 ):
     """Get activity trends for the last N days (users, tasks, applications)."""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admins only")
-
     cutoff = datetime.now() - timedelta(days=days)
 
     # Users created per day
@@ -73,11 +70,9 @@ async def get_admin_activity_trend(
 @router.get("/hr/pipeline")
 async def get_hr_pipeline(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("admin", "hr_manager")),
 ):
     """HR pipeline analytics: applications per job, conversion rates."""
-    if current_user.role not in ("admin", "hr_manager"):
-        raise HTTPException(status_code=403, detail="HR managers and admins only")
 
     # Applications per job with status breakdown
     jobs_result = await db.execute(
@@ -92,12 +87,10 @@ async def get_hr_pipeline(
         .order_by(JobPosting.created_at.desc())
     )
 
-    # Bulk status breakdown — one query instead of N per-job queries
     status_bulk = await db.execute(
         select(Application.job_id, Application.status, func.count(Application.id))
         .group_by(Application.job_id, Application.status)
     )
-    # Map: job_id -> {status_value: count}
     status_map: dict[int, dict[str, int]] = {}
     for job_id, status, cnt in status_bulk.all():
         status_map.setdefault(job_id, {})[str(status.value)] = cnt
@@ -113,7 +106,6 @@ async def get_hr_pipeline(
             "status_breakdown": status_breakdown,
         })
 
-    # Overall conversion rates
     total_apps = await db.execute(select(func.count(Application.id)))
     total_apps = total_apps.scalar_one() or 0
 
@@ -130,7 +122,6 @@ async def get_hr_pipeline(
     conversion_rate = (accepted / total_apps * 100) if total_apps > 0 else 0
     interview_rate = (interviewed / total_apps * 100) if total_apps > 0 else 0
 
-    # AI score distribution
     score_result = await db.execute(
         select(
             case(
@@ -164,10 +155,9 @@ async def get_hr_pipeline(
 async def get_project_overview(
     project_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("admin", "hr_manager", "project_manager", "team_member")),
 ):
-    """Project manager dashboard: project health, team workload, progress."""
-    # Get project
+    """Project manager/team member dashboard: project health, team workload, progress."""
     result = await db.execute(
         select(Project)
         .where(Project.id == project_id)
@@ -181,7 +171,7 @@ async def get_project_overview(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check access
+    # Membership check
     if current_user.role not in ("admin", "hr_manager"):
         if project.manager_id != current_user.id and not any(m.id == current_user.id for m in project.members):
             raise HTTPException(status_code=403, detail="Access denied")
@@ -194,19 +184,16 @@ async def get_project_overview(
 
     completion_rate = (done_tasks / total_tasks * 100) if total_tasks > 0 else 0
 
-    # Task by priority
     priority_counts = {}
     for t in tasks:
         priority = str(t.priority) if hasattr(t, "priority") and t.priority else "medium"
         priority_counts[priority] = priority_counts.get(priority, 0) + 1
 
-    # Team workload
     members = list({project.manager, *project.members} - {None})
     member_ids = [m.id for m in members]
     
     workload = []
     if member_ids:
-        # Get counts for active, done and total tasks per member in this project
         result = await db.execute(
             select(
                 task_assignees.c.user_id,
@@ -237,7 +224,6 @@ async def get_project_overview(
 
     workload.sort(key=lambda x: x["active_tasks"], reverse=True)
 
-    # Progress over time (tasks completed per week)
     four_weeks_ago = datetime.now() - timedelta(weeks=4)
     weekly_result = await db.execute(
         select(
@@ -273,18 +259,16 @@ async def get_project_overview(
 @router.get("/project-manager/overview")
 async def get_project_manager_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("admin", "project_manager", "hr_manager")),
 ):
     """Project manager overview: all their projects' health."""
     if current_user.role == "admin":
-        # Admin sees all projects
         projects_result = await db.execute(
             select(Project)
             .options(selectinload(Project.tasks), selectinload(Project.manager))
         )
         all_projects = projects_result.scalars().all()
     else:
-        # PM sees only their projects
         projects_result = await db.execute(
             select(Project)
             .where(
@@ -315,7 +299,6 @@ async def get_project_manager_overview(
             "completion_rate": round(completion, 2),
         })
 
-    # Aggregate stats
     total_projects = len(all_projects)
     total_tasks = sum(p["total_tasks"] for p in projects_data)
     total_completed = sum(p["completed_tasks"] for p in projects_data)
@@ -335,12 +318,11 @@ async def get_project_manager_overview(
 @router.get("/team-member/performance")
 async def get_team_member_performance(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("admin", "project_manager", "hr_manager", "team_member")),
 ):
     """Team member performance analytics."""
     user_id = current_user.id
 
-    # Get all tasks assigned to this user
     tasks_result = await db.execute(
         select(Task)
         .where(Task.assigned_to.any(User.id == user_id))
@@ -352,7 +334,6 @@ async def get_team_member_performance(
     done_tasks = [t for t in all_tasks if t.status == "done"]
     active_tasks = [t for t in all_tasks if t.status != "done"]
 
-    # On-time vs late completions
     on_time = sum(
         1
         for t in done_tasks
@@ -360,7 +341,6 @@ async def get_team_member_performance(
     )
     late = len(done_tasks) - on_time
 
-    # Points history (last 30 days)
     thirty_days_ago = datetime.now() - timedelta(days=30)
     points_result = await db.execute(
         select(
@@ -377,19 +357,16 @@ async def get_team_member_performance(
     )
     points_history = [{"day": int(row.day), "month": int(row.month), "points": row.points or 0} for row in points_result.all()]
 
-    # Task status distribution
     status_counts = {}
     for t in all_tasks:
         status_counts[t.status] = status_counts.get(t.status, 0) + 1
 
-    # Project × Status distribution — one pass, grouped
     project_status_map: dict[str, dict[str, int]] = {}
     for t in all_tasks:
         proj_name = t.project.name if t.project else "Unknown"
         project_status_map.setdefault(proj_name, {})
         project_status_map[proj_name][t.status] = project_status_map[proj_name].get(t.status, 0) + 1
 
-    # Build ordered list for chart: top 5 projects by total, include all known statuses
     project_distribution = [
         {"project": p, "total": sum(v.values()), **v}
         for p, v in sorted(project_status_map.items(), key=lambda x: sum(x[1].values()), reverse=True)[:5]

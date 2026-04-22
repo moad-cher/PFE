@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getProject, deleteProject, getKanban } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { canManageProjects } from '../../utils/permissions';
 import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
 import PriorityBadge from '../../components/PriorityBadge';
@@ -90,8 +91,6 @@ export default function ProjectDetail() {
     }
   };
 
-  const canEdit = user?.role === 'admin' || user?.role === 'project_manager';
-
   const [taskModalSprintId, setTaskModalSprintId] = useState('');
   const openTaskModal = (sprintId = '') => {
     setTaskModalSprintId(sprintId);
@@ -133,7 +132,7 @@ export default function ProjectDetail() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          {canEdit && (
+          {canManageProjects(user) && (
             <>
               <Link
                 to={`/projects/${pk}/settings`}
