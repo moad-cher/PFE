@@ -27,33 +27,35 @@ function StatCard({ icon, label, value, color, subtext }) {
 
 function PieChartCard({ title, data, dataKey, nameKey }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
       <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
       {data && data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey={dataKey}
-              nameKey={nameKey}
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              innerRadius={40}
-              paddingAngle={2}
-              label={({ name, value }) => `${name}: ${value}`}
-              labelLine={false}
-            >
-              {data.map((entry, index) => (
-                <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+        <div className="flex-1 min-h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey={dataKey}
+                nameKey={nameKey}
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                innerRadius={40}
+                paddingAngle={2}
+                label={({ name, value }) => `${name}: ${value}`}
+                labelLine={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       ) : (
-        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
           No data available
         </div>
       )}
@@ -72,19 +74,21 @@ function BarChartCard({ title, data, dataKey, nameKey }) {
   });
 
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
       <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
       {chartData.length > 0 ? (
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
-            <XAxis type="number" />
-            <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey={dataKey} fill="#8B5CF6" radius={[0, 4, 4, 0]} minPointSize={2} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex-1 min-h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
+              <XAxis type="number" />
+              <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey={dataKey} fill="#8B5CF6" radius={[0, 4, 4, 0]} minPointSize={2} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       ) : (
-        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
           No data available
         </div>
       )}
@@ -94,20 +98,22 @@ function BarChartCard({ title, data, dataKey, nameKey }) {
 
 function LineChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
       <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
       {data && data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="flex-1 min-h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       ) : (
-        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
           No data available
         </div>
       )}
@@ -117,31 +123,33 @@ function LineChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
 
 function AreaChartCard({ title, data, dataKeys, colors }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
       <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
       {data && data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Legend />
-            {dataKeys.map((key, i) => (
-              <Area
-                key={key}
-                type="monotone"
-                dataKey={key}
-                stroke={colors[i]}
-                fill={colors[i]}
-                fillOpacity={0.2}
-                strokeWidth={2}
-              />
-            ))}
-          </AreaChart>
-        </ResponsiveContainer>
+        <div className="flex-1 min-h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Legend />
+              {dataKeys.map((key, i) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={colors[i]}
+                  fill={colors[i]}
+                  fillOpacity={0.2}
+                  strokeWidth={2}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       ) : (
-        <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
           No data available
         </div>
       )}
@@ -469,13 +477,15 @@ export default function AdminDashboard() {
       */}
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid lg:grid-cols-3 lg:auto-rows-[320px] gap-6 mb-8">
+        <div className="lg:col-span-2 lg:row-span-2">
         <PieChartCard
           title="Role Distribution"
           data={roleChartData}
           dataKey="value"
           nameKey="name"
         />
+        </div>
         <BarChartCard
           title="Users per Department"
           data={departmentChartData}
