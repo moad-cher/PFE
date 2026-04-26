@@ -8,7 +8,7 @@ import logging
 from app.core.deps import get_db, require_roles
 from app.messaging.models import ChatMessage
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Task, TaskStatus, project_members, task_assignees
+from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, project_members, task_assignees
 from app.projects.schemas import (
     ProjectConfigRead,
     ProjectConfigUpdate,
@@ -18,6 +18,9 @@ from app.projects.schemas import (
     SprintCreate,
     SprintRead,
     SprintUpdate,
+    StoryCreate,
+    StoryRead,
+    StoryUpdate,
     TaskRead,
     TaskStatusCreate,
     TaskStatusRead,
@@ -29,16 +32,21 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-_PROJECT_MANAGERS = ("admin", "hr_manager", "project_manager")
-_PROJECT_PARTICIPANTS = ("admin", "hr_manager", "project_manager", "team_member")
+_PROJECT_MANAGERS = ("admin",
+                    #  "hr_manager", 
+                     "project_manager")
+_PROJECT_PARTICIPANTS = ("admin", 
+                        # "hr_manager",
+                        "project_manager",
+                        "team_member")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 DEFAULT_STATUSES = [
-    ("À faire",  "todo",        0, "#e74c3c"),
-    ("En cours", "in_progress", 1, "#f39c12"),
-    ("En revue", "review",      2, "#3498db"),
-    ("Terminé",  "done",        3, "#2ecc71"),
+    ("To do",  "todo",        0, "#e74c3c"),
+    ("In progress", "in_progress", 1, "#f39c12"),
+    ("Review", "review",      2, "#3498db"),
+    ("Done",  "done",        3, "#2ecc71"),
 ]
 
 ESSENTIAL_SLUGS = {"todo", "done"}
@@ -66,6 +74,7 @@ async def _load_project(pk: int, db: AsyncSession) -> Project:
             selectinload(Project.manager),
             selectinload(Project.members),
             selectinload(Project.tasks).selectinload(Task.assigned_to),
+            selectinload(Project.stories),
             selectinload(Project.statuses),
             selectinload(Project.config),
             selectinload(Project.sprints),
@@ -97,6 +106,7 @@ async def dashboard(
         selectinload(Project.manager),
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
+        selectinload(Project.stories),
         selectinload(Project.statuses),
         selectinload(Project.config),
         selectinload(Project.sprints),
@@ -131,6 +141,7 @@ async def list_projects(
         selectinload(Project.manager),
         selectinload(Project.members),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
+        selectinload(Project.stories),
         selectinload(Project.statuses),
         selectinload(Project.config),
         selectinload(Project.sprints),
@@ -225,8 +236,7 @@ async def create_project(
     await _ensure_default_statuses(project, db)
     await _ensure_config(project, db)
     await db.commit()
-    await db.refresh(project, ["manager", "members", "tasks", "statuses", "config", "sprints"])
-    return project
+    return await _load_project(project.id, db)
 
 
 @router.get("/{pk}", response_model=ProjectRead)
@@ -438,11 +448,13 @@ async def scrum_board(
     
     if sprint_id:
         if sprint_id.lower() == "null":
-            tasks = [t for t in tasks if t.sprint_id is None]
+            # Backlog: Tasks with no story, OR tasks with a story that has no sprint
+            tasks = [t for t in tasks if t.story_id is None or (t.story and t.story.sprint_id is None)]
         else:
             try:
                 sid = int(sprint_id)
-                tasks = [t for t in tasks if t.sprint_id == sid]
+                # Tasks in sprint: Tasks whose story belongs to this sprint
+                tasks = [t for t in tasks if t.story and t.story.sprint_id == sid]
             except ValueError:
                 pass
 
@@ -528,6 +540,81 @@ async def delete_sprint(
         raise HTTPException(404, "Sprint not found")
     
     await db.delete(sprint)
+    await db.commit()
+
+
+# ── Stories ───────────────────────────────────────────────────────────────────
+
+@router.get("/{pk}/stories", response_model=list[StoryRead])
+async def list_stories(
+    pk: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+):
+    project = await _load_project(pk, db)
+    if not _can_access(project, current_user):
+        raise HTTPException(403, "Access denied")
+    return project.stories
+
+
+@router.post("/{pk}/stories", response_model=StoryRead, status_code=201)
+async def create_story(
+    pk: int,
+    data: StoryCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+    story = Story(**data.model_dump(), project_id=pk)
+    db.add(story)
+    await db.commit()
+    await db.refresh(story)
+    return story
+
+
+@router.patch("/{pk}/stories/{story_id}", response_model=StoryRead)
+async def update_story(
+    pk: int,
+    story_id: int,
+    data: StoryUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+    
+    result = await db.execute(select(Story).where(Story.id == story_id, Story.project_id == pk))
+    story = result.scalar_one_or_none()
+    if not story:
+        raise HTTPException(404, "Story not found")
+    
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(story, field, value)
+    await db.commit()
+    await db.refresh(story)
+    return story
+
+
+@router.delete("/{pk}/stories/{story_id}", status_code=204)
+async def delete_story(
+    pk: int,
+    story_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+    
+    result = await db.execute(select(Story).where(Story.id == story_id, Story.project_id == pk))
+    story = result.scalar_one_or_none()
+    if not story:
+        raise HTTPException(404, "Story not found")
+    
+    await db.delete(story)
     await db.commit()
 
 

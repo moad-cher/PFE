@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getTask, updateTask, getProject, getProjectStatuses, getProjectMembers } from '../../api';
+import { getTask, updateTask, getProject, getProjectStatuses, getProjectMembers, getStories } from '../../api';
 import Spinner from '../../components/ui/Spinner';
 
 export default function TaskEdit() {
   const { pk, taskId } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
+  const [stories, setStories] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [members, setMembers] = useState([]);
   const [form, setForm] = useState(null);
@@ -22,10 +23,11 @@ export default function TaskEdit() {
   const fromDateTimeLocal = (value) => (value ? new Date(value).toISOString() : null);
 
   useEffect(() => {
-    Promise.all([getTask(pk, taskId), getProject(pk), getProjectStatuses(pk), getProjectMembers(pk)])
-      .then(([t, p, s, m]) => {
+    Promise.all([getTask(pk, taskId), getProject(pk), getProjectStatuses(pk), getProjectMembers(pk), getStories(pk)])
+      .then(([t, p, s, m, st]) => {
         setProject(p.data);
         setStatuses(s.data);
+        setStories(st.data);
         // Extract user objects from MemberStatsRead response
         const users = m.data.map(stat => stat.user);
         setMembers(users);
@@ -35,7 +37,7 @@ export default function TaskEdit() {
           status: d.status, priority: d.priority,
           start_time: toDateTimeLocal(d.start_time), end_time: toDateTimeLocal(d.end_time),
           points: d.points, assigned_to_ids: d.assigned_to?.map(u => u.id) || [],
-          sprint_id: d.sprint_id || '',
+          story_id: d.story_id || '',
         });
       });
   }, [pk, taskId]);
@@ -51,37 +53,14 @@ export default function TaskEdit() {
     });
   };
 
-  const selectedSprint = project?.sprints?.find(s => String(s.id) === String(form.sprint_id));
-
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      let startTime = form.start_time;
-      let endTime = form.end_time;
-
-      if (selectedSprint) {
-        if (!startTime) startTime = selectedSprint.start_date;
-        if (!endTime) endTime = selectedSprint.end_date;
-
-        const sStart = new Date(selectedSprint.start_date);
-        const sEnd = new Date(selectedSprint.end_date);
-        const tStart = new Date(startTime);
-        const tEnd = new Date(endTime);
-
-        if (tStart < sStart || tStart > sEnd) {
-          throw new Error(`Start time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
-        }
-        if (tEnd < sStart || tEnd > sEnd) {
-          throw new Error(`End time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
-        }
-      }
-
       const payload = { 
         ...form, 
         points: Number(form.points), 
-        start_time: fromDateTimeLocal(startTime),
-        end_time: fromDateTimeLocal(endTime),
-        sprint_id: form.sprint_id ? Number(form.sprint_id) : null
+        start_time: fromDateTimeLocal(form.start_time),
+        end_time: fromDateTimeLocal(form.end_time),
       };
       await updateTask(pk, taskId, payload);
       navigate(`/projects/${pk}/tasks/${taskId}`);
@@ -160,12 +139,12 @@ export default function TaskEdit() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
-              <select value={form.sprint_id} onChange={e => setForm(f => ({ ...f, sprint_id: e.target.value }))}
+              <label className="block text-sm font-medium text-gray-700 mb-1">User Story</label>
+              <select value={form.story_id} onChange={e => setForm(f => ({ ...f, story_id: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="">Backlog (No Sprint)</option>
-                {project?.sprints?.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
+                <option value="">Standalone (No Story)</option>
+                {stories.map(s => (
+                  <option key={s.id} value={s.id}>{s.title}</option>
                 ))}
               </select>
             </div>
@@ -188,15 +167,11 @@ export default function TaskEdit() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
-                max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
               <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
-                max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                 className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
             </div>
             <div>

@@ -26,13 +26,6 @@ every project has tasks, deadlines, and tasks have assigned team members.
 
 - [x] chaque employé a un profil avec ses compétences et son historique de travail
 
-
-# what i'm thinking right now
-
-thesis would be on 10/06/2026
-but i need to understand where i'm going and to delever something reflecting good understanding of AI agents, ML and/or data 
-i don't want a simple AI engineering project or an AI wrapper. tool call with structured output seems to be the most basic form of AI agents
-
 | What                                   |     Why it matters for thesis      |
 | -------------------------------------- | :--------------------------------: |
 | ML models as LLM tools                 |    Core thesis argument (maybe)    |
@@ -42,46 +35,40 @@ i don't want a simple AI engineering project or an AI wrapper. tool call with st
 # features
 
 ## AI
-
-### project assistance workflow:
-
-workflow (skill with defined tool use or organique json output):
-
-- **fn 1:** suggest project name description and project backlog if one of them is provided
-- **fn 2:** suggest sprints backlogs decomposition and tasks based on product backlog
-- **fn3:** eterative refinement with previous sprint retrospection analysis
-~~- **fn 4:** suggest task assignment~~ (partially implemented, not so important for now)
-
+<!--  -->
 
 ## dev
 
 ### high priority
 
 - [ ] scrum
-    - [ ] working sprints
-        - [ ] sprint goal and retrospective notes
-        - [x] sprint backlog
-        - [ ] separate scrum board view with swimlanes for each sprint and backlog items colored by status
-    - [x] in project details instead of recent tasks, show horizontally scrollable gantt chart with colored tasks, assignees, with sprints separated (like an area or something) and current sprint highlighted and current day marked
+    - [x] sprint stories
+    - [ ] sprint burndown chart
+```
+Product
+    │
+    ├── Product Backlog
+    │   └── Stories
+    │       └── Tasks
+    │
+    └── Sprints
+        └── Sprint Backlog
+            └── Stories
+                └── Tasks
+```
+
+![image](./docs/what-is-scrum-process.jpg)
 
 
 ### medium priority
 - [ ] task status need refinement
 - [ ] points must not be issued until sprint is completed
+
 - [ ] resume bulk appraisal for a job posting
 - [ ] assignment suggestions should be integrated into the assignment component
 
 ### low priority
-- [ ] calendar for users
-    - [ ] interview scheduling for HR manager
-    - [ ] tasks time tracking for team members
-
 - @mentions in group chat and comments
-
-
-
-# to do if i have time
-
 
 # role permissions matrix
 

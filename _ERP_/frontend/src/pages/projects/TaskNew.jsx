@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { createTask, getProject } from '../../api';
 import Spinner from '../../components/ui/Spinner';
 
-export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSuccess }) {
+export default function TaskNew({ isOpen, onClose, pk, initialStoryId, onSuccess }) {
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
   const fromDateTimeLocal = (value) => (value ? new Date(value).toISOString() : null);
   const [form, setForm] = useState({
     title: '', description: '', status: 'todo', priority: 'medium',
     start_time: '', end_time: '', points: 10, assigned_to_ids: [],
-    sprint_id: initialSprintId || '',
+    story_id: initialStoryId || '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -22,17 +22,17 @@ export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSucces
           .filter((v, i, a) => a.findIndex(x => x.id === v.id) === i);
         setMembers(all);
       });
-      // Reset form or set initial sprint id
+      // Reset form or set initial values
       setForm(prev => ({
         ...prev,
         title: '', description: '', status: 'todo', priority: 'medium',
         start_time: '', end_time: '', points: 10, assigned_to_ids: [],
-        sprint_id: initialSprintId || '',
+        story_id: initialStoryId || '',
       }));
       setError('');
       setSaving(false);
     }
-  }, [isOpen, pk, initialSprintId]);
+  }, [isOpen, pk, initialStoryId]);
 
   const toggleAssignee = id =>
     setForm(f => ({
@@ -42,37 +42,14 @@ export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSucces
         : [...f.assigned_to_ids, id],
     }));
 
-  const selectedSprint = project?.sprints?.find(s => String(s.id) === String(form.sprint_id));
-
   const submit = async e => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      let startTime = form.start_time;
-      let endTime = form.end_time;
-
-      if (selectedSprint) {
-        if (!startTime) startTime = selectedSprint.start_date;
-        if (!endTime) endTime = selectedSprint.end_date;
-
-        const sStart = new Date(selectedSprint.start_date);
-        const sEnd = new Date(selectedSprint.end_date);
-        const tStart = new Date(startTime);
-        const tEnd = new Date(endTime);
-
-        if (tStart < sStart || tStart > sEnd) {
-          throw new Error(`Start time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
-        }
-        if (tEnd < sStart || tEnd > sEnd) {
-          throw new Error(`End time must be within sprint range (${selectedSprint.start_date} to ${selectedSprint.end_date})`);
-        }
-      }
-
       const payload = { 
         ...form, 
         points: Number(form.points), 
-        start_time: fromDateTimeLocal(startTime),
-        end_time: fromDateTimeLocal(endTime),
-        sprint_id: form.sprint_id ? Number(form.sprint_id) : null
+        start_time: fromDateTimeLocal(form.start_time),
+        end_time: fromDateTimeLocal(form.end_time),
       };
       const res = await createTask(pk, payload);
       if (onSuccess) onSuccess(res.data);
@@ -161,25 +138,21 @@ export default function TaskNew({ isOpen, onClose, pk, initialSprintId, onSucces
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Start Time</label>
                     <input type="datetime-local" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                      min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
-                      max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                       className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">End Time</label>
                     <input type="datetime-local" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                      min={selectedSprint ? formatDateForInput(selectedSprint.start_date) : undefined}
-                      max={selectedSprint ? formatDateForInput(selectedSprint.end_date) : undefined}
                       className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Sprint</label>
-                  <select value={form.sprint_id} onChange={e => setForm(f => ({ ...f, sprint_id: e.target.value }))}
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">User Story</label>
+                  <select value={form.story_id} onChange={e => setForm(f => ({ ...f, story_id: e.target.value }))}
                     className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white">
-                    <option value="">Backlog (No Sprint)</option>
-                    {project.sprints?.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
+                    <option value="">Standalone (No Story)</option>
+                    {project.stories?.map(s => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
                     ))}
                   </select>
                 </div>

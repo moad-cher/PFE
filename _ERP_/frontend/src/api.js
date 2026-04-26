@@ -134,6 +134,12 @@ export const createSprint = (pk, data) => api.post(`/projects/${pk}/sprints`, da
 export const updateSprint = (pk, sprintId, data) => api.patch(`/projects/${pk}/sprints/${sprintId}`, data);
 export const deleteSprint = (pk, sprintId) => api.delete(`/projects/${pk}/sprints/${sprintId}`);
 
+// Stories
+export const getStories = (pk) => api.get(`/projects/${pk}/stories`);
+export const createStory = (pk, data) => api.post(`/projects/${pk}/stories`, data);
+export const updateStory = (pk, storyId, data) => api.patch(`/projects/${pk}/stories/${storyId}`, data);
+export const deleteStory = (pk, storyId) => api.delete(`/projects/${pk}/stories/${storyId}`);
+
 // ===================== Tasks =====================
 export const listTasks = (projectId, params) =>
   api.get(`/projects/${projectId}/tasks/`, { params });

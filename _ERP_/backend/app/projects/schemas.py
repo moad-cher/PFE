@@ -40,6 +40,37 @@ class SprintUpdate(BaseModel):
     status: Optional[SprintStatus] = None
 
 
+# ── Story ─────────────────────────────────────────────────────────────────────
+
+class StoryCreate(BaseModel):
+    title: str
+    description: str = ""
+    status: str = "todo"
+    points: int = 0
+    sprint_id: Optional[int] = None
+
+
+class StoryRead(BaseModel):
+    id: int
+    project_id: int
+    sprint_id: Optional[int]
+    title: str
+    description: str
+    status: str
+    points: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class StoryUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    points: Optional[int] = None
+    sprint_id: Optional[int] = None
+
+
 # ── TaskStatus ────────────────────────────────────────────────────────────────
 
 class TaskStatusRead(BaseModel):
@@ -63,13 +94,13 @@ class TaskCreate(BaseModel):
     end_time: Optional[datetime] = None
     points: int = 10
     assigned_to_ids: list[int] = []
-    sprint_id: Optional[int] = None
+    story_id: Optional[int] = None
 
 
 class TaskRead(BaseModel):
     id: int
     project_id: int
-    sprint_id: Optional[int]
+    story_id: Optional[int] = None
     title: str
     description: str
     status: str
@@ -108,7 +139,7 @@ class TaskUpdate(BaseModel):
     end_time: Optional[datetime] = None
     points: Optional[int] = None
     assigned_to_ids: Optional[list[int]] = None
-    sprint_id: Optional[int] = None
+    story_id: Optional[int] = None
 
 
 # ── ProjectConfig ─────────────────────────────────────────────────────────────
@@ -149,6 +180,7 @@ class ProjectRead(BaseModel):
     manager: Optional[UserBrief] = None
     members: list[UserBrief] = []
     tasks: list[TaskRead] = []
+    stories: list[StoryRead] = []
     statuses: list[TaskStatusRead] = []
     sprints: list[SprintRead] = []
     config: Optional[ProjectConfigRead] = None
