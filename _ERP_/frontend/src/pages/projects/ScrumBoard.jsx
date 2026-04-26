@@ -168,20 +168,20 @@ export default function ScrumBoard() {
     </div>
   );
 
-  const renderStory = (story, index) => {
+  const renderStory = (story, index, isDragDisabled = false) => {
     const storyTasks = tasksByStory[story.id] || [];
     const totalTasks = storyTasks.length;
     const doneTasks = storyTasks.filter(t => t.status === 'done').length;
     const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
     return (
-      <Draggable key={story.id} draggableId={`story-${story.id}`} index={index}>
+      <Draggable key={story.id} draggableId={`story-${story.id}`} index={index} isDragDisabled={isDragDisabled}>
         {(provided, snapshot) => (
           <div 
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
-            className={`mb-4 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all ${snapshot.isDragging ? 'shadow-xl ring-2 ring-indigo-500 z-50' : ''}`}
+            className={`mb-4 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all ${snapshot.isDragging ? 'shadow-xl ring-2 ring-indigo-500 z-50' : ''} ${isDragDisabled ? 'opacity-80' : ''}`}
             style={provided.draggableProps.style}
           >
             <div className="px-4 py-3 bg-gray-50/50 flex items-center justify-between border-b border-gray-100">
@@ -229,11 +229,6 @@ export default function ScrumBoard() {
             <h1 className="text-2xl font-bold text-gray-900">Sprint Timeline</h1>
           </div>
           <div className="flex gap-3">
-            {isProjectManager(user, project) && (
-              <button onClick={() => setShowSprintModal(true)} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm">
-                New Sprint
-              </button>
-            )}
             <button onClick={() => openStoryModal()} className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-all shadow-sm">
                New Story
             </button>
@@ -280,124 +275,157 @@ export default function ScrumBoard() {
           <div className="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 via-gray-200 to-transparent"></div>
 
           <div className="space-y-16">
-            {sprints.map((sprint, idx) => {
-              const isActive = sprint.status === 'active';
-              const isCompleted = sprint.status === 'completed';
-              const sprintStories = storiesBySprint[sprint.id] || [];
-              
-              return (
-                <div key={sprint.id} className={`relative pl-12 md:pl-20 transition-all`}>
-                  {/* Node Dot */}
-                  <div className={`absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 bg-white z-10 top-2 transition-all duration-500
-                    ${isActive ? 'border-indigo-600 scale-125 ring-4 ring-indigo-50' : isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
-                  </div>
-
-                  {/* Sprint Card */}
-                  <div className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden ${isActive ? 'border-indigo-500 border-2 ring-4 ring-indigo-50/50 shadow-indigo-100 shadow-xl' : 'border-gray-200 hover:border-gray-300'}`}>
-
-                    <div className={`px-6 py-4 flex flex-wrap items-center justify-between gap-4 ${isActive ? 'bg-indigo-50/30' : isCompleted ? 'bg-gray-50/50' : ''}`}>
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-bold text-gray-900">{sprint.name}</h3>
-                          {isActive && <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
-                          {isCompleted && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Completed</span>}
-                        </div>
-                        <p className="text-xs text-gray-500 font-medium">
-                          {formatDate(sprint.start_date)} — {formatDate(sprint.end_date)}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {isProjectManager(user, project) && sprint.status === 'draft' && (
-                          <button onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">Start</button>
-                        )}
-                        {isProjectManager(user, project) && sprint.status === 'active' && (
-                          <button onClick={() => handleUpdateSprintStatus(sprint.id, 'completed')} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
-                        )}
-                        <button onClick={() => openStoryModal(sprint.id)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                          + Story
-                        </button>
-                        <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
-                        <div className="text-right hidden sm:block">
-                          <div className="text-xs font-bold text-gray-900">{sprintStories.length} Stories</div>
-                          <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                             {sprintStories.reduce((acc, s) => acc + s.points, 0)} Story Pts
-                          </div>
-                        </div>
-                      </div>
+            {(() => {
+              const activeSprintIdx = sprints.findIndex(s => s.status === 'active');
+              const renderedSprints = sprints.map((sprint, idx) => {
+                const isActive = sprint.status === 'active';
+                const isCompleted = sprint.status === 'completed';
+                const sprintStories = storiesBySprint[sprint.id] || [];
+                
+                return (
+                  <div key={sprint.id} className="relative pl-12 md:pl-20 transition-all">
+                    {/* Node Dot */}
+                    <div className={`absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 bg-white z-10 top-2 transition-all duration-500
+                      ${isActive ? 'border-indigo-600 scale-125 ring-4 ring-indigo-50' : isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
                     </div>
 
-                    {sprint.goal && (
-                      <div className="px-6 py-2 bg-amber-50/30 border-y border-amber-100/50">
-                        <p className="text-xs text-amber-800 italic leading-relaxed"><span className="font-bold mr-1">Goal:</span>{sprint.goal}</p>
-                      </div>
-                    )}
+                    {/* Sprint Card */}
+                    <div className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden ${isActive ? 'border-indigo-500 border-2 ring-4 ring-indigo-50/50 shadow-indigo-100 shadow-xl' : 'border-gray-200 hover:border-gray-300'}`}>
 
-                    <Droppable droppableId={String(sprint.id)}>
-                      {(provided, snapshot) => (
-                        <div 
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`p-4 bg-gray-50/30 min-h-[50px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
-                        >
-                          {/* Render Stories */}
-                          {sprintStories.map((story, sIdx) => renderStory(story, sIdx))}
-                          
-                          {sprintStories.length === 0 && !snapshot.isDraggingOver && (
-                             <div className="py-12 text-center text-gray-400 italic text-sm">No stories in this sprint</div>
-                          )}
-                          {provided.placeholder}
+                      <div className={`px-6 py-4 flex flex-wrap items-center justify-between gap-4 ${isActive ? 'bg-indigo-50/30' : isCompleted ? 'bg-gray-50/50' : ''}`}>
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-lg font-bold text-gray-900">{sprint.name}</h3>
+                            {isActive && <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
+                            {isCompleted && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Completed</span>}
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium">
+                            {formatDate(sprint.start_date)} — {formatDate(sprint.end_date)}
+                          </p>
                         </div>
-                      )}
-                    </Droppable>
-                  </div>
-                </div>
-              );
-            })}
 
-            {/* Backlog Section */}
-            <div className="relative pl-12 md:pl-20">
-              {/* Node Dot for Backlog */}
-              <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
-              
-              <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
-                <div className="px-6 py-4 border-b border-dashed border-gray-300 flex items-center justify-between bg-gray-100/50">
-                  <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
-                    <button onClick={() => openStoryModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                      + Story
-                    </button>
-                    <button onClick={() => openTaskModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                      + Task
-                    </button>
-                  </div>
-                  <span className="text-xs font-bold text-gray-400 uppercase">{backlogStories.length} stories, {backlogTasksNoStory.length} standalone tasks</span>
-                </div>
-                
-                <Droppable droppableId="backlog">
-                  {(provided, snapshot) => (
-                    <div 
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`p-4 min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
-                    >
-                       {/* Backlog Stories */}
-                       {backlogStories.map((story, sIdx) => renderStory(story, sIdx))}
-
-                       {/* Backlog Standalone Tasks */}
-                       {backlogTasksNoStory.length > 0 && (
-                          <div className="mt-6">
-                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Uncategorized Tasks</h4>
-                            <div className="bg-white/80 border border-gray-200 rounded-xl overflow-hidden">
-                              {renderTaskTable(backlogTasksNoStory)}
+                        <div className="flex items-center gap-2">
+                          {isProjectManager(user, project) && sprint.status === 'draft' && (
+                            <button onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">Start</button>
+                          )}
+                          {isProjectManager(user, project) && sprint.status === 'active' && (
+                            <button onClick={() => handleUpdateSprintStatus(sprint.id, 'completed')} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
+                          )}
+                          <button onClick={() => openStoryModal(sprint.id)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                            + Story
+                          </button>
+                          <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
+                          <div className="text-right hidden sm:block">
+                            <div className="text-xs font-bold text-gray-900">{sprintStories.length} Stories</div>
+                            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                               {sprintStories.reduce((acc, s) => acc + s.points, 0)} Story Pts
                             </div>
                           </div>
-                       )}
-                       {provided.placeholder}
+                        </div>
+                      </div>
+
+                      {sprint.goal && (
+                        <div className="px-6 py-2 bg-amber-50/30 border-y border-amber-100/50">
+                          <p className="text-xs text-amber-800 italic leading-relaxed"><span className="font-bold mr-1">Goal:</span>{sprint.goal}</p>
+                        </div>
+                      )}
+
+                      <Droppable droppableId={String(sprint.id)} isDropDisabled={isCompleted}>
+                        {(provided, snapshot) => (
+                          <div 
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`p-4 bg-gray-50/30 min-h-[50px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
+                          >
+                            {/* Render Stories */}
+                            {sprintStories.map((story, sIdx) => renderStory(story, sIdx, isCompleted))}
+                            {sprintStories.length === 0 && !snapshot.isDraggingOver && (
+                               <div className="py-12 text-center text-gray-400 italic text-sm">No stories in this sprint</div>
+                            )}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
                     </div>
-                  )}
-                </Droppable>
+                    
+                    {/* Add Next Sprint trigger immediately after active sprint */}
+                    {isActive && isProjectManager(user, project) && (
+                      <div className="mt-12 relative opacity-60 hover:opacity-100 transition-opacity pb-8">
+                        <div className="absolute -left-8 md:-left-12 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
+                        <button 
+                          onClick={() => setShowSprintModal(true)}
+                          className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all shadow-sm"
+                        >
+                          <span className="text-xl font-bold">+</span>
+                          <span className="text-xs font-bold uppercase tracking-wider">Plan Next Sprint</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+
+              // If no active sprint, show at bottom or top (default to bottom if there are completed ones)
+              if (activeSprintIdx === -1 && isProjectManager(user, project)) {
+                renderedSprints.push(
+                  <div key="next-sprint-trigger" className="relative pl-12 md:pl-20 opacity-60 hover:opacity-100 transition-opacity">
+                    <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
+                    <button 
+                      onClick={() => setShowSprintModal(true)}
+                      className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all shadow-sm"
+                    >
+                      <span className="text-xl font-bold">+</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">{sprints.length === 0 ? 'Initialize First Sprint' : 'Plan Next Sprint'}</span>
+                    </button>
+                  </div>
+                );
+              }
+              return renderedSprints;
+            })()}
+          </div>
+
+          {/* Backlog Section */}
+          <div className="relative pl-12 md:pl-20 mt-16">
+            {/* Node Dot for Backlog */}
+            <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
+            
+            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
+              <div className="px-6 py-4 border-b border-dashed border-gray-300 flex items-center justify-between bg-gray-100/50">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
+                  <button onClick={() => openStoryModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                    + Story
+                  </button>
+                  <button onClick={() => openTaskModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                    + Task
+                  </button>
+                </div>
+                <span className="text-xs font-bold text-gray-400 uppercase">{backlogStories.length} stories, {backlogTasksNoStory.length} standalone tasks</span>
               </div>
+              
+              <Droppable droppableId="backlog">
+                {(provided, snapshot) => (
+                  <div 
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`p-4 min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
+                  >
+                     {/* Backlog Stories */}
+                     {backlogStories.map((story, sIdx) => renderStory(story, sIdx))}
+
+                     {/* Backlog Standalone Tasks */}
+                     {backlogTasksNoStory.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Uncategorized Tasks</h4>
+                          <div className="bg-white/80 border border-gray-200 rounded-xl overflow-hidden">
+                            {renderTaskTable(backlogTasksNoStory)}
+                          </div>
+                        </div>
+                     )}
+                     {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
             </div>
           </div>
         </div>
