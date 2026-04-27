@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { createStory } from '../../api';
 
-export default function StoryNew({ isOpen, onClose, pk, initialSprintId, onSuccess }) {
+export default function StoryNew({ isOpen, onClose, pk, onSuccess }) {
   const [form, setForm] = useState({
     title: '',
     description: '',
     points: 0,
-    sprint_id: initialSprintId || null,
   });
   const [loading, setLoading] = useState(false);
 
@@ -16,10 +15,10 @@ export default function StoryNew({ isOpen, onClose, pk, initialSprintId, onSucce
     e.preventDefault();
     setLoading(true);
     try {
-      await createStory(pk, { ...form, sprint_id: form.sprint_id || null });
+      await createStory(pk, { ...form, sprint_id: null });
       onSuccess();
       onClose();
-      setForm({ title: '', description: '', points: 0, sprint_id: initialSprintId || null });
+      setForm({ title: '', description: '', points: 0 });
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to create story');
     } finally {

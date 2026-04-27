@@ -567,6 +567,12 @@ async def create_story(
     project = await _load_project(pk, db)
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
+    
+    if data.sprint_id:
+        sprint = await db.get(Sprint, data.sprint_id)
+        if sprint and sprint.status == "completed":
+            raise HTTPException(400, "Cannot add stories to a completed sprint")
+
     story = Story(**data.model_dump(), project_id=pk)
     db.add(story)
     await db.commit()
@@ -590,9 +596,15 @@ async def update_story(
     story = result.scalar_one_or_none()
     if not story:
         raise HTTPException(404, "Story not found")
-    
-    for field, value in data.model_dump(exclude_none=True).items():
-        setattr(story, field, value)
+
+    if data.sprint_id is not None:
+        sprint = await db.get(Sprint, data.sprint_id)
+        if sprint and sprint.status == "completed":
+            raise HTTPException(400, "Cannot move stories to a completed sprint")
+
+    # Apply only fields explicitly sent by client, allowing null to clear sprint_id (move to backlog).
+    for field in data.model_fields_set:
+        setattr(story, field, getattr(data, field))
     await db.commit()
     await db.refresh(story)
     return story

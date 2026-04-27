@@ -55,7 +55,15 @@ export default function ProjectManagerDashboard() {
         getProjectManagerOverview(),
       ]);
       setStats(statsRes.data);
-      setProjects(projectsRes.data);
+      
+      // Filter projects to only show those the user is involved in
+      const userProjects = projectsRes.data.filter(project => {
+        const isManager = project.manager?.id === user?.id;
+        const isMember = project.members?.some(member => member.id === user?.id);
+        return isManager || isMember;
+      });
+      setProjects(userProjects);
+      
       setDashboardData(dashboardRes.data);
       setOverview(overviewRes.data);
 
@@ -244,6 +252,8 @@ export default function ProjectManagerDashboard() {
               {projects.map((project) => {
                 const projectOverview = overview?.projects?.find(p => p.id === project.id);
                 const completionRate = projectOverview?.completion_rate || 0;
+                const isManager = project.manager?.id === user?.id;
+
                 return (
                   <Link
                     key={project.id}
@@ -252,9 +262,16 @@ export default function ProjectManagerDashboard() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 truncate transition-colors">
-                          {project.name}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 truncate transition-colors">
+                            {project.name}
+                          </h3>
+                          {isManager && (
+                            <span className="flex-shrink-0 text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-200 font-medium">
+                              Manager
+                            </span>
+                          )}
+                        </div>
                         {project.description && (
                           <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
                         )}

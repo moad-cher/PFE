@@ -64,7 +64,9 @@ Product
 - [ ] task status need refinement
 - [ ] points must not be issued until sprint is completed
 
-- [ ] editable dahsboards
+- [ ] wanna make UI feel interactive more like an editor than buttons and popup forms
+
+- [x] editable dahsboards
     - [x] colspan and rowspan for charts
     - [x] dry
 

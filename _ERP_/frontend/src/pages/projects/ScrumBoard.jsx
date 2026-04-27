@@ -21,11 +21,10 @@ export default function ScrumBoard() {
   const [loading, setLoading] = useState(true);
   const [showSprintModal, setShowSprintModal] = useState(false);
   const [sprintForm, setSprintForm] = useState({ name: '', start_date: '', end_date: '', goal: '' });
+  const [minStartDate, setMinStartDate] = useState('');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskModalStoryId, setTaskModalStoryId] = useState('');
   const [showStoryModal, setShowStoryModal] = useState(false);
-  const [storyModalSprintId, setStoryModalSprintId] = useState('');
-  const [minStartDate, setMinStartDate] = useState('');
 
   const fetchData = () => {
     Promise.all([getProject(pk), getProjectStatuses(pk), getSprints(pk), getStories(pk)])
@@ -48,8 +47,7 @@ export default function ScrumBoard() {
     setShowTaskModal(true);
   };
 
-  const openStoryModal = (sprintId = '') => {
-    setStoryModalSprintId(sprintId);
+  const openStoryModal = () => {
     setShowStoryModal(true);
   };
 
@@ -69,13 +67,13 @@ export default function ScrumBoard() {
       defaultEnd = d.toISOString().split('T')[0];
     }
 
+    setMinStartDate(defaultStart);
     setSprintForm({
       name: `Sprint ${sprints.length + 1}`,
       start_date: defaultStart,
       end_date: defaultEnd,
       goal: ''
     });
-    setMinStartDate(defaultStart);
     setShowSprintModal(true);
   };
 
@@ -96,6 +94,34 @@ export default function ScrumBoard() {
       setSprints(sprints.map(s => s.id === sprintId ? res.data : s));
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to update sprint');
+    }
+  };
+
+  const handleCompleteSprint = async (sprintId) => {
+    try {
+      // 1. Mark sprint completed
+      await updateSprint(pk, sprintId, { status: 'completed' });
+      
+      // 2. Determine destination (next sprint or backlog)
+      const idx = sprints.findIndex(s => s.id === sprintId);
+      const nextSprint = sprints[idx + 1];
+      const destSprintId = nextSprint ? nextSprint.id : null;
+
+      // 3. Find incomplete stories
+      const incompleteStories = stories.filter(s => s.sprint_id === sprintId && s.status !== 'done');
+
+      // 4. Move them
+      if (incompleteStories.length > 0) {
+        await Promise.all(
+          incompleteStories.map(s => updateStory(pk, s.id, { sprint_id: destSprintId }))
+        );
+      }
+
+      // 5. Refresh data to reflect moves
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to complete sprint');
+      fetchData();
     }
   };
 
@@ -120,7 +146,6 @@ export default function ScrumBoard() {
     }
   };
   
-  const canManage = isProjectManager(user, project);
   const allMembers = project
     ? [project.manager, ...(project.members || [])]
         .filter(Boolean)
@@ -241,6 +266,8 @@ export default function ScrumBoard() {
 
   if (loading) return <div className="flex justify-center py-24"><Spinner /></div>;
 
+  const canManage = isProjectManager(user, project);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -274,7 +301,6 @@ export default function ScrumBoard() {
           isOpen={showStoryModal}
           onClose={() => setShowStoryModal(false)}
           pk={pk}
-          initialSprintId={storyModalSprintId}
           onSuccess={fetchData}
         />
 
@@ -297,7 +323,8 @@ export default function ScrumBoard() {
 
           <div className="space-y-16">
             {(() => {
-              const activeSprintIdx = sprints.findIndex(s => s.status === 'active');
+              const lastSprint = sprints[sprints.length - 1];
+              const isLastSprintDraft = lastSprint?.status === 'draft';
               const renderedSprints = sprints.map((sprint, idx) => {
                 const isActive = sprint.status === 'active';
                 const isCompleted = sprint.status === 'completed';
@@ -327,11 +354,8 @@ export default function ScrumBoard() {
                             <button onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">Start</button>
                           )}
                           {canManage && sprint.status === 'active' && (
-                            <button onClick={() => handleUpdateSprintStatus(sprint.id, 'completed')} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
+                            <button onClick={() => handleCompleteSprint(sprint.id)} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
                           )}
-                          <button onClick={() => openStoryModal(sprint.id)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                            + Story
-                          </button>
                           <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
                           <div className="text-right hidden sm:block">
                             <div className="text-xs font-bold text-gray-900">{sprintStories.length} Stories</div>
@@ -365,23 +389,11 @@ export default function ScrumBoard() {
                       </Droppable>
                     </div>
                     
-                    {isActive && canManage && (
-                      <div className="mt-12 relative opacity-60 hover:opacity-100 transition-opacity pb-8">
-                        <div className="absolute -left-8 md:-left-12 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
-                        <button 
-                          onClick={openSprintModal}
-                          className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all shadow-sm"
-                        >
-                          <span className="text-xl font-bold">+</span>
-                          <span className="text-xs font-bold uppercase tracking-wider">Plan Next Sprint</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 );
               });
 
-              if (activeSprintIdx === -1 && canManage) {
+              if (canManage && !isLastSprintDraft) {
                 renderedSprints.push(
                   <div key="next-sprint-trigger" className="relative pl-12 md:pl-20 opacity-60 hover:opacity-100 transition-opacity">
                     <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>

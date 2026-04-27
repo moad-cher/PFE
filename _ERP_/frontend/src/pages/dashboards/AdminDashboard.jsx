@@ -343,7 +343,7 @@ export default function AdminDashboard() {
       */}
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 lg:auto-rows-[320px] gap-6 mb-8">
+      <div className="grid lg:grid-cols-4 lg:auto-rows-[320px] gap-6 mb-8">
         <ChartCard
           colSpan={2}
           rowSpan={2}
@@ -355,13 +355,13 @@ export default function AdminDashboard() {
         />
         <ChartCard
           title="Users per Department"
+          colSpan={2}
           type={CHART_TYPES.BAR}
           data={departmentChartData}
           dataKey="value"
           nameKey="name"
         />
         <ChartCard
-          rowSpan={2}
           title="Task Status"
           type={CHART_TYPES.PIE}
           data={taskStatsData}
