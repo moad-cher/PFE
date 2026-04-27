@@ -4,156 +4,22 @@ import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, 
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
 import Spinner from '../../components/ui/Spinner';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts';
+import DashboardChartCard from '../../components/ui/DashboardChartCard';
+import StatCard from '../../components/ui/StatCard';
+import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
 
-const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899', '#06B6D4', '#F97316'];
-
-function StatCard({ icon, label, value, color, subtext }) {
+function ChartCard({ title, type, data, dataKey, nameKey, color, rowSpan, colSpan }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-600">{label}</p>
-          {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PieChartCard({ title, data, dataKey, nameKey }) {
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {data && data.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey={dataKey}
-                nameKey={nameKey}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                innerRadius={40}
-                paddingAngle={2}
-                label={({ name, value }) => `${name}: ${value}`}
-                labelLine={false}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BarChartCard({ title, data, dataKey, nameKey }) {
-  const chartData = (data || []).map((item) => {
-    const numericValue = Number(item?.[dataKey]);
-    return {
-      ...item,
-      [dataKey]: Number.isFinite(numericValue) ? numericValue : 0,
-      [nameKey]: item?.[nameKey] ?? 'Unknown',
-    };
-  });
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
-              <XAxis type="number" />
-              <YAxis type="category" dataKey={nameKey} width={100} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey={dataKey} fill="#8B5CF6" radius={[0, 4, 4, 0]} minPointSize={2} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LineChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {data && data.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AreaChartCard({ title, data, dataKeys, colors }) {
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {data && data.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              {dataKeys.map((key, i) => (
-                <Area
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={colors[i]}
-                  fill={colors[i]}
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
+    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
+      <DashboardChart 
+        type={type} 
+        data={data} 
+        dataKey={dataKey} 
+        nameKey={nameKey} 
+        color={color} 
+        horizontal={type === CHART_TYPES.BAR}
+      />
+    </DashboardChartCard>
   );
 }
 
@@ -478,22 +344,26 @@ export default function AdminDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 lg:auto-rows-[320px] gap-6 mb-8">
-        <div className="lg:col-span-2 lg:row-span-2">
-        <PieChartCard
+        <ChartCard
+          colSpan={2}
+          rowSpan={2}
           title="Role Distribution"
+          type={CHART_TYPES.PIE}
           data={roleChartData}
           dataKey="value"
           nameKey="name"
         />
-        </div>
-        <BarChartCard
+        <ChartCard
           title="Users per Department"
+          type={CHART_TYPES.BAR}
           data={departmentChartData}
           dataKey="value"
           nameKey="name"
         />
-        <PieChartCard
+        <ChartCard
+          rowSpan={2}
           title="Task Status"
+          type={CHART_TYPES.PIE}
           data={taskStatsData}
           dataKey="value"
           nameKey="name"

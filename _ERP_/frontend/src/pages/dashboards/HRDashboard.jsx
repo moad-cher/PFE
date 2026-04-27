@@ -5,9 +5,10 @@ import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import CreateJobModal from '../../components/features/hiring/CreateJobModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
 import Spinner from '../../components/ui/Spinner';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, FunnelChart, Funnel, LabelList } from 'recharts';
+import DashboardChartCard from '../../components/ui/DashboardChartCard';
+import StatCard from '../../components/ui/StatCard';
+import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
 
-const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
 const HR_PIPELINE_COLORS = {
   pending: '#e74c3c',
   reviewed: '#3498db',
@@ -16,141 +17,17 @@ const HR_PIPELINE_COLORS = {
   rejected: '#6b7280',
 };
 
-function StatCard({ icon, label, value, color, trend }) {
+function ChartCard({ title, type, data, dataKey, nameKey, color, rowSpan, colSpan }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-            {icon}
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
-            <p className="text-sm text-gray-600">{label}</p>
-          </div>
-        </div>
-        {trend && (
-          <span className={`text-sm font-medium ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {trend > 0 ? '+' : ''}{trend}%
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PieChartCard({ title, data, dataKey, nameKey }) {
-  const chartData = (data || []).map(item => ({
-    ...item,
-    [dataKey]: Number(item?.[dataKey]) || 0,
-  }));
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey={dataKey}
-                nameKey={nameKey}
-                cx="50%"
-                cy="50%"
-                outerRadius={70}
-                innerRadius={40}
-                paddingAngle={2}
-                label={({ payload }) => `${payload?.[nameKey] || ''}: ${payload?.[dataKey] || 0}`}
-                labelLine={false}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`${entry?.[nameKey] || index}`}
-                    fill={entry.fill || CHART_COLORS[index % CHART_COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BarChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
-  const chartData = (data || []).map(item => ({
-    ...item,
-    [dataKey]: Number(item?.[dataKey]) || 0,
-  }));
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} angle={-10} textAnchor="end" height={60} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} minPointSize={2} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FunnelChartCard({ title, data }) {
-  const chartData = (data || []).map(item => ({
-    ...item,
-    value: Number(item?.value) || 0,
-  }));
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <FunnelChart>
-              <Funnel
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                isAnimationActive={true}
-                labelLine={false}
-              >
-                <LabelList position="right" fill="#000" stroke="none" dataKey="name" style={{ fontSize: 12 }} />
-                <LabelList position="center" fill="#fff" stroke="none" dataKey="value" style={{ fontSize: 14, fontWeight: 'bold' }} />
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill || CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Funnel>
-              <Tooltip />
-            </FunnelChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[220px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
+    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
+      <DashboardChart 
+        type={type} 
+        data={data} 
+        dataKey={dataKey} 
+        nameKey={nameKey} 
+        color={color} 
+      />
+    </DashboardChartCard>
   );
 }
 
@@ -439,31 +316,29 @@ export default function HRDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 lg:auto-rows-[320px] gap-6 mb-8">
-        <div className="lg:col-span-2">
-          <BarChartCard
-            title="Applications per Job"
-            data={jobsChartData}
-            dataKey="applications"
-            nameKey="name"
-            color="#10B981"
-          />
-        </div>
-        <BarChartCard
+        <ChartCard
+          rowSpan={2}
+          title="Recruitment Funnel"
+          type={CHART_TYPES.FUNNEL}
+          data={funnelData}
+        />
+        <ChartCard
+          colSpan={2}
+          title="Applications per Job"
+          type={CHART_TYPES.BAR}
+          data={jobsChartData}
+          dataKey="applications"
+          nameKey="name"
+          color="#10B981"
+        />
+        <ChartCard
           title="AI Score Distribution"
+          type={CHART_TYPES.BAR}
           data={aiScoreData}
           dataKey="count"
           nameKey="category"
           color="#3498db"
         />
-        <div className="lg:row-span-2">
-        <FunnelChartCard
-          title="Recruitment Funnel"
-          data={funnelData}
-        />
-        </div>
-        <BarChartCard>
-          
-        </BarChartCard>
       </div>
 
       {/* Applications by Status */}

@@ -5,9 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/ui/Spinner';
 import StatusBadge from '../../components/ui/StatusBadge';
 import PriorityBadge from '../../components/ui/PriorityBadge';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts';
+import DashboardChartCard from '../../components/ui/DashboardChartCard';
+import StatCard from '../../components/ui/StatCard';
+import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
 
-const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
 const KANBAN_STATUS_COLORS = {
   todo: '#e74c3c',
   in_progress: '#f39c12',
@@ -15,137 +16,21 @@ const KANBAN_STATUS_COLORS = {
   done: '#2ecc71',
 };
 
-function StatCard({ icon, label, value, color, subtext }) {
+function ChartCard({ title, type, data, dataKey, nameKey, color, colorMap, stacked, stackKeys, stackColors, rowSpan, colSpan }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-600">{label}</p>
-          {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PieChartCard({ title, data, dataKey, nameKey, colorByName = {} }) {
-  const chartData = (data || []).map(item => ({
-    ...item,
-    [dataKey]: Number(item?.[dataKey]) || 0,
-  }));
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey={dataKey}
-                nameKey={nameKey}
-                cx="50%"
-                cy="50%"
-                outerRadius={70}
-                innerRadius={40}
-                paddingAngle={2}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`${entry?.[nameKey] || entry?.name || index}`}
-                    fill={
-                      entry.fill
-                      || colorByName[String(entry?.[nameKey] || '').toLowerCase()]
-                      || CHART_COLORS[index % CHART_COLORS.length]
-                    }
-                  />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[200px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BarChartCard({ title, data, dataKey, nameKey, color = KANBAN_STATUS_COLORS.review, stacked = false }) {
-  const chartData = (data || []).map(item => ({
-    ...item,
-    [dataKey]: Number(item?.[dataKey]) || 0,
-  }));
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ left: 20 }}>
-              <XAxis type="category" dataKey={nameKey} tick={{ fontSize: 11 }} />
-              <YAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              {stacked ? (
-                <>
-                  <Bar dataKey="todo" stackId="status" fill={KANBAN_STATUS_COLORS.todo} name="To Do" radius={[0, 0, 0, 0]} minPointSize={2} />
-                  <Bar dataKey="in_progress" stackId="status" fill={KANBAN_STATUS_COLORS.in_progress} name="In Progress" radius={[0, 0, 0, 0]} minPointSize={2} />
-                  <Bar dataKey="review" stackId="status" fill={KANBAN_STATUS_COLORS.review} name="Review" radius={[0, 0, 0, 0]} minPointSize={2} />
-                  <Bar dataKey="done" stackId="status" fill={KANBAN_STATUS_COLORS.done} name="Done" radius={[0, 4, 4, 0]} minPointSize={2} />
-                </>
-              ) : (
-                <Bar dataKey={dataKey} fill={color} radius={[0, 4, 4, 0]} minPointSize={2} />
-              )}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[200px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LineChartCard({ title, data, dataKey, nameKey, color = "#8B5CF6" }) {
-  const chartData = (data || []).map(item => ({
-    ...item,
-    [dataKey]: Number(item?.[dataKey]) || 0,
-  }));
-
-  return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col">
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
-      {chartData.length > 0 ? (
-        <div className="flex-1 min-h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-[200px] flex items-center justify-center text-gray-400 text-sm">
-          No data available
-        </div>
-      )}
-    </div>
+    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
+      <DashboardChart 
+        type={type} 
+        data={data} 
+        dataKey={dataKey} 
+        nameKey={nameKey} 
+        color={color} 
+        colorMap={colorMap}
+        stacked={stacked}
+        stackKeys={stackKeys}
+        stackColors={stackColors}
+      />
+    </DashboardChartCard>
   );
 }
 
@@ -408,26 +293,36 @@ export default function TeamMemberDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 lg:auto-rows-[300px] gap-6 mb-8">
-        <PieChartCard
+        <ChartCard
           title="Task Status"
+          type={CHART_TYPES.PIE}
           data={statusData}
           dataKey="value"
           nameKey="name"
-          colorByName={{
+          colorMap={{
             done: KANBAN_STATUS_COLORS.done,
             in_progress: KANBAN_STATUS_COLORS.in_progress,
             review: KANBAN_STATUS_COLORS.review,
             todo: KANBAN_STATUS_COLORS.todo,
           }}
         />
-        <BarChartCard
+        <ChartCard
           title="Projects"
+          type={CHART_TYPES.BAR}
           data={projectData}
           nameKey="project"
           stacked={true}
+          stackKeys={['todo', 'in_progress', 'review', 'done']}
+          stackColors={[
+            KANBAN_STATUS_COLORS.todo,
+            KANBAN_STATUS_COLORS.in_progress,
+            KANBAN_STATUS_COLORS.review,
+            KANBAN_STATUS_COLORS.done
+          ]}
         />
-        <LineChartCard
+        <ChartCard
           title="Points History"
+          type={CHART_TYPES.LINE}
           data={pointsHistoryData}
           dataKey="points"
           nameKey="day"

@@ -64,6 +64,10 @@ Product
 - [ ] task status need refinement
 - [ ] points must not be issued until sprint is completed
 
+- [ ] editable dahsboards
+    - [x] colspan and rowspan for charts
+    - [x] dry
+
 - [ ] resume bulk appraisal for a job posting
 - [ ] assignment suggestions should be integrated into the assignment component
 
