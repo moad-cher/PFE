@@ -25,6 +25,7 @@ export default function ScrumBoard() {
   const [taskModalStoryId, setTaskModalStoryId] = useState('');
   const [showStoryModal, setShowStoryModal] = useState(false);
   const [storyModalSprintId, setStoryModalSprintId] = useState('');
+  const [minStartDate, setMinStartDate] = useState('');
 
   const fetchData = () => {
     Promise.all([getProject(pk), getProjectStatuses(pk), getSprints(pk), getStories(pk)])
@@ -52,13 +53,38 @@ export default function ScrumBoard() {
     setShowStoryModal(true);
   };
 
+  const openSprintModal = () => {
+    let defaultStart = new Date().toISOString().split('T')[0];
+    if (sprints.length > 0) {
+      const lastSprint = sprints[sprints.length - 1];
+      const d = new Date(lastSprint.end_date);
+      d.setDate(d.getDate() + 1);
+      defaultStart = d.toISOString().split('T')[0];
+    }
+    
+    let defaultEnd = '';
+    if (project?.config?.sprint_duration_days) {
+      const d = new Date(defaultStart);
+      d.setDate(d.getDate() + project.config.sprint_duration_days);
+      defaultEnd = d.toISOString().split('T')[0];
+    }
+
+    setSprintForm({
+      name: `Sprint ${sprints.length + 1}`,
+      start_date: defaultStart,
+      end_date: defaultEnd,
+      goal: ''
+    });
+    setMinStartDate(defaultStart);
+    setShowSprintModal(true);
+  };
+
   const handleCreateSprint = async (e) => {
     e.preventDefault();
     try {
       const res = await createSprint(pk, sprintForm);
       setSprints([...sprints, res.data].sort((a, b) => new Date(a.start_date) - new Date(b.start_date)));
       setShowSprintModal(false);
-      setSprintForm({ name: '', start_date: '', end_date: '', goal: '' });
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to create sprint');
     }
@@ -81,7 +107,6 @@ export default function ScrumBoard() {
     const storyId = parseInt(draggableId.replace('story-', ''));
     const destSprintId = destination.droppableId === 'backlog' ? null : parseInt(destination.droppableId);
 
-    // Optimistic update
     const updatedStories = stories.map(s => 
       s.id === storyId ? { ...s, sprint_id: destSprintId } : s
     );
@@ -91,18 +116,18 @@ export default function ScrumBoard() {
       await updateStory(pk, storyId, { sprint_id: destSprintId });
     } catch (err) {
       alert('Failed to move story');
-      fetchData(); // Rollback
+      fetchData();
     }
   };
   
+  const canManage = isProjectManager(user, project);
   const allMembers = project
     ? [project.manager, ...(project.members || [])]
         .filter(Boolean)
         .filter((v, i, a) => a.findIndex(x => x.id === v.id) === i)
     : [];
 
-  // Grouping logic
-  const tasksByStory = {}; // storyId -> tasks
+  const tasksByStory = {}; 
   const backlogTasksNoStory = [];
 
   project?.tasks?.forEach(t => {
@@ -219,7 +244,6 @@ export default function ScrumBoard() {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
@@ -254,7 +278,6 @@ export default function ScrumBoard() {
           onSuccess={fetchData}
         />
 
-        {/* Global Filters */}
         <div className="flex flex-wrap gap-4 mb-12 items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Filters:</span>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
@@ -269,9 +292,7 @@ export default function ScrumBoard() {
           </select>
         </div>
 
-        {/* Timeline Container */}
         <div className="relative">
-          {/* Vertical Line */}
           <div className="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 via-gray-200 to-transparent"></div>
 
           <div className="space-y-16">
@@ -284,14 +305,11 @@ export default function ScrumBoard() {
                 
                 return (
                   <div key={sprint.id} className="relative pl-12 md:pl-20 transition-all">
-                    {/* Node Dot */}
                     <div className={`absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 bg-white z-10 top-2 transition-all duration-500
                       ${isActive ? 'border-indigo-600 scale-125 ring-4 ring-indigo-50' : isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
                     </div>
 
-                    {/* Sprint Card */}
                     <div className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden ${isActive ? 'border-indigo-500 border-2 ring-4 ring-indigo-50/50 shadow-indigo-100 shadow-xl' : 'border-gray-200 hover:border-gray-300'}`}>
-
                       <div className={`px-6 py-4 flex flex-wrap items-center justify-between gap-4 ${isActive ? 'bg-indigo-50/30' : isCompleted ? 'bg-gray-50/50' : ''}`}>
                         <div>
                           <div className="flex items-center gap-3 mb-1">
@@ -305,10 +323,10 @@ export default function ScrumBoard() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {isProjectManager(user, project) && sprint.status === 'draft' && (
+                          {canManage && sprint.status === 'draft' && (
                             <button onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">Start</button>
                           )}
-                          {isProjectManager(user, project) && sprint.status === 'active' && (
+                          {canManage && sprint.status === 'active' && (
                             <button onClick={() => handleUpdateSprintStatus(sprint.id, 'completed')} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
                           )}
                           <button onClick={() => openStoryModal(sprint.id)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
@@ -337,7 +355,6 @@ export default function ScrumBoard() {
                             {...provided.droppableProps}
                             className={`p-4 bg-gray-50/30 min-h-[50px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
                           >
-                            {/* Render Stories */}
                             {sprintStories.map((story, sIdx) => renderStory(story, sIdx, isCompleted))}
                             {sprintStories.length === 0 && !snapshot.isDraggingOver && (
                                <div className="py-12 text-center text-gray-400 italic text-sm">No stories in this sprint</div>
@@ -348,12 +365,11 @@ export default function ScrumBoard() {
                       </Droppable>
                     </div>
                     
-                    {/* Add Next Sprint trigger immediately after active sprint */}
-                    {isActive && isProjectManager(user, project) && (
+                    {isActive && canManage && (
                       <div className="mt-12 relative opacity-60 hover:opacity-100 transition-opacity pb-8">
                         <div className="absolute -left-8 md:-left-12 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
                         <button 
-                          onClick={() => setShowSprintModal(true)}
+                          onClick={openSprintModal}
                           className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all shadow-sm"
                         >
                           <span className="text-xl font-bold">+</span>
@@ -365,13 +381,12 @@ export default function ScrumBoard() {
                 );
               });
 
-              // If no active sprint, show at bottom or top (default to bottom if there are completed ones)
-              if (activeSprintIdx === -1 && isProjectManager(user, project)) {
+              if (activeSprintIdx === -1 && canManage) {
                 renderedSprints.push(
                   <div key="next-sprint-trigger" className="relative pl-12 md:pl-20 opacity-60 hover:opacity-100 transition-opacity">
                     <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
                     <button 
-                      onClick={() => setShowSprintModal(true)}
+                      onClick={openSprintModal}
                       className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all shadow-sm"
                     >
                       <span className="text-xl font-bold">+</span>
@@ -384,9 +399,7 @@ export default function ScrumBoard() {
             })()}
           </div>
 
-          {/* Backlog Section */}
           <div className="relative pl-12 md:pl-20 mt-16">
-            {/* Node Dot for Backlog */}
             <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
             
             <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
@@ -410,10 +423,7 @@ export default function ScrumBoard() {
                     {...provided.droppableProps}
                     className={`p-4 min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
                   >
-                     {/* Backlog Stories */}
                      {backlogStories.map((story, sIdx) => renderStory(story, sIdx))}
-
-                     {/* Backlog Standalone Tasks */}
                      {backlogTasksNoStory.length > 0 && (
                         <div className="mt-6">
                           <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Uncategorized Tasks</h4>
@@ -430,10 +440,9 @@ export default function ScrumBoard() {
           </div>
         </div>
 
-        {/* New Sprint Modal */}
         {showSprintModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-white/20">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
               <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">Setup New Sprint</h3>
               <form onSubmit={handleCreateSprint} className="space-y-5">
                 <div>
@@ -444,7 +453,7 @@ export default function ScrumBoard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Kickoff</label>
-                    <input required type="date" value={sprintForm.start_date} 
+                    <input required type="date" value={sprintForm.start_date} min={minStartDate}
                       onChange={e => {
                         const start = e.target.value;
                         let end = sprintForm.end_date;

@@ -240,7 +240,7 @@ export default function ProjectManagerDashboard() {
               No projects yet
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {projects.map((project) => {
                 const projectOverview = overview?.projects?.find(p => p.id === project.id);
                 const completionRate = projectOverview?.completion_rate || 0;
@@ -299,7 +299,7 @@ export default function ProjectManagerDashboard() {
               No tasks due this week
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {tasksDueThisWeek.map((task) => (
                 <Link
                   key={task.id}
