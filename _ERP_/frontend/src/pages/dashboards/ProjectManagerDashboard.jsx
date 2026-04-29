@@ -1,13 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { getProjectStats, listProjects, getDashboard, getProjectManagerOverview } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { cardRegistry } from '../../components/dashboard/cardRegistry';
 import Spinner from '../../components/ui/Spinner';
-import StatusBadge from '../../components/ui/StatusBadge';
-import PriorityBadge from '../../components/ui/PriorityBadge';
-import DashboardChartCard from '../../components/ui/DashboardChartCard';
-import StatCard from '../../components/ui/StatCard';
-import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
 
 const KANBAN_STATUS_COLORS = {
   todo: '#e74c3c',
@@ -15,22 +10,6 @@ const KANBAN_STATUS_COLORS = {
   review: '#3498db',
   done: '#2ecc71',
 };
-
-function ChartCard({ title, type, data, dataKey, nameKey, color, colorMap, rowSpan, colSpan }) {
-  return (
-    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
-      <DashboardChart 
-        type={type} 
-        data={data} 
-        dataKey={dataKey} 
-        nameKey={nameKey} 
-        color={color} 
-        colorMap={colorMap}
-        horizontal={type === CHART_TYPES.BAR}
-      />
-    </DashboardChartCard>
-  );
-}
 
 export default function ProjectManagerDashboard() {
   const { user } = useAuth();
@@ -151,6 +130,8 @@ export default function ProjectManagerDashboard() {
     );
   }
 
+  const dashboardCards = cardRegistry.filter(card => card.roles.includes('project_manager'));
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
@@ -159,217 +140,24 @@ export default function ProjectManagerDashboard() {
         <p className="text-gray-600 mt-1">Manage projects and team workload</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          label="Total Projects"
-          value={overview?.summary?.total_projects || stats?.total_projects || 0}
-          color="bg-blue-100"
-          icon={
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Total Tasks"
-          value={overview?.summary?.total_tasks || stats?.total_tasks || 0}
-          color="bg-purple-100"
-          icon={
-            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Completion Rate"
-          value={`${overview?.summary?.avg_completion_rate || stats?.completion_rate || 0}%`}
-          color="bg-green-100"
-          icon={
-            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          subtext={`${overview?.summary?.total_completed || stats?.completed_tasks || 0} completed`}
-        />
-        <StatCard
-          label="Overdue Tasks"
-          value={stats?.overdue_tasks || 0}
-          color="bg-red-100"
-          icon={
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {dashboardCards.map(card => {
+          const CardComponent = card.component;
+          const cardProps = {};
+
+          if (card.id === 'pm-stats') { cardProps.overview = overview; cardProps.stats = stats; }
+          if (card.id === 'pm-charts') { cardProps.projectCompletionData = projectCompletionData; cardProps.taskStatusData = taskStatusData; }
+          if (card.id === 'pm-projects-list') { cardProps.projects = projects; cardProps.overview = overview; cardProps.user = user; }
+          if (card.id === 'pm-tasks-due') { cardProps.tasksDueThisWeek = tasksDueThisWeek; }
+          if (card.id === 'pm-overview-summary') { cardProps.overview = overview; }
+
+          return (
+            <div key={card.id} className={card.layout?.gridClass || ''}>
+              <CardComponent {...cardProps} />
+            </div>
+          );
+        })}
       </div>
-
-      {/* Charts Row */}
-      <div className="grid lg:grid-cols-2 lg:auto-rows-[320px] gap-6 mb-8">
-        <ChartCard
-          title="Project Completion Rates"
-          type={CHART_TYPES.BAR}
-          data={projectCompletionData}
-          dataKey="completion"
-          nameKey="name"
-          color={KANBAN_STATUS_COLORS.review}
-        />
-        <ChartCard
-          title="Task Status Distribution"
-          type={CHART_TYPES.PIE}
-          data={taskStatusData}
-          dataKey="value"
-          nameKey="name"
-          colorMap={{
-            completed: KANBAN_STATUS_COLORS.done,
-            'in progress': KANBAN_STATUS_COLORS.in_progress,
-          }}
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* My Projects */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Projects</h2>
-            <Link
-              to="/projects/new"
-              className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-            >
-              + New Project
-            </Link>
-          </div>
-
-          {projects.length === 0 ? (
-            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
-              <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-              </svg>
-              No projects yet
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-              {projects.map((project) => {
-                const projectOverview = overview?.projects?.find(p => p.id === project.id);
-                const completionRate = projectOverview?.completion_rate || 0;
-                const isManager = project.manager?.id === user?.id;
-
-                return (
-                  <Link
-                    key={project.id}
-                    to={`/projects/${project.id}`}
-                    className="block bg-white rounded-xl shadow-lilac border border-purple-100/30 p-5 card-hover group"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 truncate transition-colors">
-                            {project.name}
-                          </h3>
-                          {isManager && (
-                            <span className="flex-shrink-0 text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-200 font-medium">
-                              Manager
-                            </span>
-                          )}
-                        </div>
-                        {project.description && (
-                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
-                        )}
-                      </div>
-                      {completionRate > 0 && (
-                        <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2.5 py-0.5 flex-shrink-0">
-                          {completionRate}%
-                        </span>
-                      )}
-                    </div>
-                    {/* Progress bar */}
-                    <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{ width: `${completionRate}%`, backgroundColor: KANBAN_STATUS_COLORS.review }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-purple-100/50 text-xs text-gray-400">
-                      <span>{project.tasks_count ?? projectOverview?.total_tasks ?? 0} tasks</span>
-                      <span>{project.members_count ?? 0} members</span>
-                      <span>{projectOverview?.completed_tasks ?? 0} completed</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Tasks Due This Week */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Due This Week</h2>
-            <span className="text-sm text-gray-500">{tasksDueThisWeek.length} tasks</span>
-          </div>
-
-          {tasksDueThisWeek.length === 0 ? (
-            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
-              <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              No tasks due this week
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-              {tasksDueThisWeek.map((task) => (
-                <Link
-                  key={task.id}
-                  to={`/projects/${task.project_id}/tasks/${task.id}`}
-                  className="block bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4 card-hover group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-medium text-gray-800 group-hover:text-purple-600 text-sm line-clamp-2 flex-1 transition-colors">
-                      {task.title}
-                    </h4>
-                    <PriorityBadge priority={task.priority} className="flex-shrink-0" />
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <StatusBadge status={task.status} />
-                    {task.project_name && (
-                      <span className="text-xs text-purple-300">{task.project_name}</span>
-                    )}
-                  </div>
-                  {task.end_time && (
-                    <p className="text-xs mt-2 text-gray-400">
-                      Due: {new Date(task.end_time).toLocaleString()}
-                    </p>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Team Workload Section (if data available) */}
-      {overview && overview.projects && overview.projects.length > 0 && (
-        <div className="mt-8 bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Project Overview Summary</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {overview.projects.slice(0, 6).map((proj) => (
-              <div key={proj.id} className="p-4 rounded-lg bg-gray-50 border border-gray-100">
-                <h4 className="font-medium text-gray-900 truncate">{proj.name}</h4>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{proj.completed_tasks}/{proj.total_tasks} tasks</span>
-                  <span className="text-purple-600 font-medium">{proj.completion_rate}%</span>
-                </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
-                  <div
-                    className="bg-purple-500 h-1.5 rounded-full"
-                    style={{ width: `${proj.completion_rate}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
