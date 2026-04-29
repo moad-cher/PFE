@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["tasks"])
 
-_TASK_MANAGERS = ("admin", "project_manager", "hr_manager")
-_TASK_PARTICIPANTS = ("admin", "project_manager", "hr_manager", "team_member")
+_TASK_MANAGERS = ("admin", "project_manager")
+_TASK_PARTICIPANTS = ("admin", "project_manager", "team_member")
 
 
 async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> Project:
@@ -41,7 +41,7 @@ async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> 
     if not project:
         raise HTTPException(404, "Project not found")
     allowed = (
-        user.role in ("admin", "project_manager")
+        user.role == "admin"
         or project.manager_id == user.id
         or any(m.id == user.id for m in project.members)
     )

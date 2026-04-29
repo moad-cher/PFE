@@ -54,7 +54,7 @@ ESSENTIAL_SLUGS = {"todo", "done"}
 
 def _can_access(project: Project, user: User) -> bool:
     return (
-        user.role in ("admin", "hr_manager")
+        user.role == "admin"
         or project.manager_id == user.id
         or any(m.id == user.id for m in project.members)
     )
@@ -62,7 +62,7 @@ def _can_access(project: Project, user: User) -> bool:
 
 def _is_manager(project: Project, user: User) -> bool:
     return (
-        user.role in ("admin", "hr_manager")
+        user.role == "admin"
         or project.manager_id == user.id
         or user.role == "project_manager"
     )
@@ -645,7 +645,16 @@ async def search_members(
         raise HTTPException(403, "Access denied")
 
     member_ids = {m.id for m in project.members} | {project.manager_id}
+    
+    # Exclude current members AND users in HR department
+    from app.users.models import Department
+    hr_dept_q = await db.execute(select(Department.id).where(Department.name.ilike("HR")))
+    hr_dept_id = hr_dept_q.scalar_one_or_none()
+    
     query = select(User).where(User.id.not_in(member_ids))
+    if hr_dept_id:
+        query = query.where(User.department_id != hr_dept_id)
+        
     if q:
         pattern = f"%{q}%"
         query = query.where(User.username.ilike(pattern) | User.first_name.ilike(pattern) | User.last_name.ilike(pattern))
@@ -719,9 +728,16 @@ async def add_member(
         raise HTTPException(404, "Project not found")
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
-    user = await db.get(User, user_id)
+    
+    # Check if user exists and is NOT in HR department
+    from app.users.models import Department
+    user = await db.get(User, user_id, options=[selectinload(User.department)])
     if not user:
         raise HTTPException(404, "User not found")
+    
+    if user.department and user.department.name.upper() == "HR":
+        raise HTTPException(400, "Members of the HR department cannot be added to projects")
+        
     if user not in project.members:
         project.members.append(user)
         await db.commit()

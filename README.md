@@ -42,7 +42,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
 ### high priority
 
 - [ ] scrum
-    - [x] sprint stories
+    - [x] sprint stories (no epics)
     - [ ] sprint burndown chart
     - [ ] kanban for current sprint
     - [x] backlog management with drag and drop to sprints
@@ -58,6 +58,15 @@ Product
             └── Stories
                 └── Tasks
 ```
+
+**scrum process:**
+- product backlog (user stories)
+- loop:
+    - sprint planning: move stories from backlog to sprint, break into tasks, assign
+    <!-- - daily standup: update task status, blockers-->
+    - sprint review: demo completed work, gather feedback
+    - sprint retrospective: discuss what went well and what can be improved
+
 
 ![image](./docs/what-is-scrum-process.jpg)
 
@@ -82,16 +91,79 @@ Product
 
 | Action                     | admin | hr_manager | project_manager | team_member |
 | -------------------------- | :---: | :--------: | :-------------: | :---------: |
-| View all users             |  ✓   |     ✓     |       ✕        |     ✕      |
-| Edit user profile (own)    |  ✓   |     ✓     |       ✓        |     ✓      |
-| Edit user profile (others) |  ✓   |     ✓     |       ✕        |     ✕      |
-| Change roles               |  ✓   |     ✕     |       ✕        |     ✕      |
-| Activate/deactivate        |  ✓   |     ✓     |       ✕        |     ✕      |
-| Delete user (hard)         |  ✓   |     ✕     |       ✕        |     ✕      |
-| Manage departments         |  ✓   |     ✓     |       ✕        |     ✕      |
-| Create job posting         |  ✓   |     ✓     |       ✕        |     ✕      |
-| View applications          |  ✓   |     ✓     |       ✕        |     ✕      |
-| Create project             |  ✓   |     ✕     |       ✓        |     ✕      |
-| Assign tasks               |  ✓   |     ✕     |       ✓        |     ✕      |
-| View own tasks             |  ✓   |     ✓     |       ✓        |     ✓      |
+| View all users             |   O   |     O      |        X        |      X      |
+| Edit user profile (own)    |   O   |     O      |        O        |      O      |
+| Edit user profile (others) |   O   |     O      |        X        |      X      |
+| Change roles               |   O   |     X      |        X        |      X      |
+| Activate/deactivate        |   O   |     O      |        X        |      X      |
+| Delete user (hard)         |   O   |     X      |        X        |      X      |
+| Manage departments         |   O   |     O      |        X        |      X      |
+| Create job posting         |   O   |     O      |        X        |      X      |
+| View applications          |   O   |     O      |        X        |      X      |
+| Create project             |   O   |     X      |        O        |      X      |
+| Assign tasks               |   O   |     X      |        O        |      X      |
+| View own tasks             |   O   |     -      |        O        |      O      |
 
+
+project front end sructures: 
+- pages
+    - common
+    - admin
+        - dashboard
+        - components
+    - hr
+        - dashboard
+        - components
+    - project manager
+        - dashboard
+        - components
+    - team member
+        - das
+            - chart registry
+        
+
+
+
+```mermaid
+mindmap
+  root((Scrum App))
+    Users & Org
+      Departments
+      organization structure mechanics
+      Roles & permissions
+      HR access scope
+      Project manager ownership transfer
+    Projects
+      scrum mode only
+      1 Team per project
+      Multi-PM handling
+    Sprints
+      Sprint state machine
+      %% Incomplete stories
+      Velocity snapshot
+      Sprint close operation
+    Backlog
+      Story points & estimates
+      Priority ordering
+      Unassigned pool
+    Tasks
+      State machine
+      Assignee & self-assign
+      Done definition
+      Partial completion
+    Ceremonies
+      Sprint planning
+      Daily standup
+      Sprint review
+      Retrospective
+    Reporting
+      Burndown chart
+      Velocity history
+      Daily snapshots
+      Capacity view
+    AI Features
+      Sprint planning assist
+      Standup summarizer
+      Velocity predictor
+      Assignee suggester
+```
