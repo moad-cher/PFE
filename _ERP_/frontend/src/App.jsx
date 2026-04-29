@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { RealTimeProvider } from './context/RealTimeContext';
-import ProtectedRoute from './components/features/auth/ProtectedRoute';
-import AppLayout from './components/layout/AppLayout';
-import PublicLayout from './components/layout/PublicLayout';
+import ProtectedRoute from './auth/ProtectedRoute';
+import AppLayout from './components/shared/layout/AppLayout';
+import PublicLayout from './components/shared/layout/PublicLayout';
 
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboards/Dashboard';

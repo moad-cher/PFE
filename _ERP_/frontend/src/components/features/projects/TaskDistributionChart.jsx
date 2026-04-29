@@ -1,4 +1,4 @@
-import DashboardChart, { CHART_TYPES } from '../../ui/DashboardChartRegistry';
+import DashboardChart, { CHART_TYPES } from '../../../pages/dashboards/cards/DashboardChartRegistry';
 
 export default function TaskDistributionChart({ data }) {
   if (!data || data.length === 0) {

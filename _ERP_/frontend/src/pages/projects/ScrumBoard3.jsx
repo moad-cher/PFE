@@ -12,10 +12,10 @@ import {
   updateTask,
   formatDate 
 } from '../../api';
-import Spinner from '../../components/ui/Spinner';
-import StatusBadge from '../../components/ui/StatusBadge';
+import Spinner from '../../components/shared/ui/Spinner';
+import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
-import { isProjectManager } from '../../utils/permissions';
+import { isProjectManager } from '../../auth/permissions';
 import TaskNew from './TaskNew';
 import StoryNew from './StoryNew';
 

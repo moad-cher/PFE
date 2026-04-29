@@ -5,11 +5,11 @@ import {
   deleteTask, moveTask, suggestAssignee, reassignTask, getProjectStatuses, formatDateTime, relativeTime,
 } from '../../api';
 import { useRealTime } from '../../context/RealTimeContext';
-import Spinner from '../../components/ui/Spinner';
-import PriorityBadge from '../../components/ui/PriorityBadge';
-import StatusBadge from '../../components/ui/StatusBadge';
+import Spinner from '../../components/shared/ui/Spinner';
+import PriorityBadge from '../../components/shared/ui/PriorityBadge';
+import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
-import Guard, { usePermissions } from '../../components/features/auth/Guard';
+import Guard, { usePermissions } from '../../auth/Guard';
 
 function AISuggestPanel({ pk, taskId, task, onAssigned }) {
   const [loading, setLoading] = useState(false);

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useRealTime } from '../../context/RealTimeContext';
+import { useAuth } from '../../../context/AuthContext';
+import { useRealTime } from '../../../context/RealTimeContext';
 import {
   listNotifications,
   markAllRead,
   markNotificationRead,
   deleteNotification,
   relativeTime,
-} from '../../api';
+} from '../../../api';
 
 export default function NotificationDropdown() {
   const { refreshUser } = useAuth();

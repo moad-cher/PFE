@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { getKanban, moveTask, getProject } from '../../api';
-import Spinner from '../../components/ui/Spinner';
-import PriorityBadge from '../../components/ui/PriorityBadge';
+import Spinner from '../../components/shared/ui/Spinner';
+import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
-import Guard, { usePermissions } from '../../components/features/auth/Guard';
+import Guard, { usePermissions } from '../../auth/Guard';
 import TaskNew from './TaskNew';
 
 function TaskCard({ task, projectId, isDragging, isLocked }) {

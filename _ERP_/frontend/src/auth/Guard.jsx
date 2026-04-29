@@ -1,4 +1,4 @@
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   hasRole, 
   canManageHiring, 
@@ -6,7 +6,7 @@ import {
   isProjectManager, 
   canEditTask, 
   ROLES 
-} from '../../../utils/permissions';
+} from './permissions';
 
 /**
  * Conditional rendering wrapper based on user role

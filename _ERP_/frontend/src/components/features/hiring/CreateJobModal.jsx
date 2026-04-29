@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Spinner from '../../ui/Spinner';
+import Spinner from '../../shared/ui/Spinner';
 import { createJob } from '../../../api';
 import { useNavigate } from 'react-router-dom';
 import JobForm from './JobForm';

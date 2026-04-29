@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getProject, getProjectStatuses, createProjectStatus, deleteProjectStatus, getProjectConfig, updateProjectConfig } from '../../api';
-import Spinner from '../../components/ui/Spinner';
-import Guard from '../../components/features/auth/Guard';
+import Spinner from '../../components/shared/ui/Spinner';
+import Guard from '../../auth/Guard';
 
 const COLOR_OPTS = ['#e74c3c','#f39c12','#3498db','#2ecc71','#9b59b6','#1abc9c','#e67e22','#34495e'];
 

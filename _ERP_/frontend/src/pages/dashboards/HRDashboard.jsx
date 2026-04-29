@@ -4,10 +4,10 @@ import { getHRStats, listApplications, listJobs, createUser, getHRPipeline, admi
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import CreateJobModal from '../../components/features/hiring/CreateJobModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
-import Spinner from '../../components/ui/Spinner';
-import DashboardChartCard from '../../components/ui/DashboardChartCard';
-import StatCard from '../../components/ui/StatCard';
-import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
+import Spinner from '../../components/shared/ui/Spinner';
+import DashboardChartCard from './cards/DashboardChartCard';
+import StatCard from './cards/StatCard';
+import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
 
 const HR_PIPELINE_COLORS = {
   pending: '#e74c3c',

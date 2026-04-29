@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend, listProjects } from '../../api';
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
-import Spinner from '../../components/ui/Spinner';
-import DashboardChartCard from '../../components/ui/DashboardChartCard';
-import StatCard from '../../components/ui/StatCard';
-import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
+import Spinner from '../../components/shared/ui/Spinner';
+import DashboardChartCard from './cards/DashboardChartCard';
+import StatCard from './cards/StatCard';
+import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
 
 function ChartCard({ title, type, data, dataKey, nameKey, color, rowSpan, colSpan }) {
   return (

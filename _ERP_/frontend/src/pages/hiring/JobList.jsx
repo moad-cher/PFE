@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { listJobs } from '../../api';
-import Spinner from '../../components/ui/Spinner';
-import Guard, { usePermissions } from '../../components/features/auth/Guard';
+import Spinner from '../../components/shared/ui/Spinner';
+import Guard, { usePermissions } from '../../auth/Guard';
 import CreateJobModal from '../../components/features/hiring/CreateJobModal';
 
 const STATUS_STYLES = {

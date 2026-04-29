@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getApplication, updateApplicationStatus, analyzeApplication, formatDateTime, API_BASE } from '../../api';
 import { useRealTime } from '../../context/RealTimeContext';
-import Spinner from '../../components/ui/Spinner';
-import PdfViewer from '../../components/ui/PdfViewer';
+import Spinner from '../../components/shared/ui/Spinner';
+import PdfViewer from '../../components/shared/ui/PdfViewer';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/shared/ui/Spinner';
 
 export default function Login() {
   const { login } = useAuth();

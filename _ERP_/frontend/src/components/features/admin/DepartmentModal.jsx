@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import Spinner from '../../ui/Spinner';
+import Spinner from '../../shared/ui/Spinner';
 
 const initialDepartmentForm = {
   name: '',

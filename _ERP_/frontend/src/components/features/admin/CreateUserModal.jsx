@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Spinner from '../../ui/Spinner';
+import Spinner from '../../shared/ui/Spinner';
 
 const initialForm = {
   username: '',

@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getProjectStats, listProjects, getDashboard, getProjectManagerOverview } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-import Spinner from '../../components/ui/Spinner';
-import StatusBadge from '../../components/ui/StatusBadge';
-import PriorityBadge from '../../components/ui/PriorityBadge';
-import DashboardChartCard from '../../components/ui/DashboardChartCard';
-import StatCard from '../../components/ui/StatCard';
-import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
+import Spinner from '../../components/shared/ui/Spinner';
+import StatusBadge from '../../components/shared/ui/StatusBadge';
+import PriorityBadge from '../../components/shared/ui/PriorityBadge';
+import DashboardChartCard from './cards/DashboardChartCard';
+import StatCard from './cards/StatCard';
+import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
 
 const KANBAN_STATUS_COLORS = {
   todo: '#e74c3c',
