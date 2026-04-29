@@ -1,26 +1,30 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  adminListUsers, 
-  adminGetStats, 
-  adminChangeRole, 
-  adminAssignDepartment, 
-  adminDeactivateUser, 
-  adminActivateUser, 
-  listDepartments, 
-  createUser, 
-  getAdminActivityTrend, 
-  listProjects 
-} from '../../api';
-import { useAuth } from '../../context/AuthContext';
-import { cardRegistry } from '../../components/dashboard/cardRegistry';
+import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend, listProjects } from '../../api';
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
 import Spinner from '../../components/ui/Spinner';
+import DashboardChartCard from '../../components/ui/DashboardChartCard';
+import StatCard from '../../components/ui/StatCard';
+import DashboardChart, { CHART_TYPES } from '../../components/ui/DashboardChartRegistry';
+
+function ChartCard({ title, type, data, dataKey, nameKey, color, rowSpan, colSpan }) {
+  return (
+    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
+      <DashboardChart 
+        type={type} 
+        data={data} 
+        dataKey={dataKey} 
+        nameKey={nameKey} 
+        color={color} 
+        horizontal={type === CHART_TYPES.BAR}
+      />
+    </DashboardChartCard>
+  );
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState(null);
@@ -28,15 +32,12 @@ export default function AdminDashboard() {
   const [activityTrend, setActivityTrend] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Table filters/sort state
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
-  
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
 
@@ -66,6 +67,51 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleChangeRole = async (userId, newRole) => {
+    if (!window.confirm(`Change user role to ${newRole}?`)) return;
+    try {
+      await adminChangeRole(userId, newRole);
+      await loadData();
+    } catch (err) {
+      alert('Failed to change role: ' + (err.response?.data?.detail || 'Unknown error'));
+    }
+  };
+
+  const handleChangeDepartment = async (userId, departmentId) => {
+    try {
+      await adminAssignDepartment(userId, departmentId === '' ? null : parseInt(departmentId));
+      await loadData();
+    } catch (err) {
+      alert('Failed to assign department: ' + (err.response?.data?.detail || 'Unknown error'));
+    }
+  };
+
+  const handleToggleActive = async (userId, isActive) => {
+    if (isActive) {
+      if (!window.confirm('Deactivate user? They will no longer be able to log in.')) return;
+    }
+    try {
+      if (isActive) {
+        await adminDeactivateUser(userId);
+      } else {
+        await adminActivateUser(userId);
+      }
+      await loadData();
+    } catch (err) {
+      alert('Failed to update status: ' + (err.response?.data?.detail || 'Unknown error'));
+    }
+  };
+
+  const handleActivate = async (userId, username) => {
+    if (!window.confirm(`Activate user "${username}"? They will be able to log in.`)) return;
+    try {
+      await adminActivateUser(userId);
+      await loadData();
+    } catch (err) {
+      alert('Failed to activate user: ' + (err.response?.data?.detail || 'Unknown error'));
+    }
+  };
+
   const roleOptions = [
     { value: 'team_member', label: 'Team Member' },
     { value: 'project_manager', label: 'Project Manager' },
@@ -73,49 +119,58 @@ export default function AdminDashboard() {
     { value: 'admin', label: 'Admin' },
   ];
 
+  const handleCreateUser = async (userData) => {
+    await createUser(userData);
+    await loadData();
+  };
+
   const filteredAndSortedUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const filtered = users.filter((u) => {
-      const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim().toLowerCase();
-      const uname = (u.username || '').toLowerCase();
-      const email = (u.email || '').toLowerCase();
-      const deptName = (u.department?.name || '').toLowerCase();
+
+    const filtered = users.filter((user) => {
+      const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const departmentName = (user.department?.name || '').toLowerCase();
 
       const matchesSearch = !normalizedSearch
         || fullName.includes(normalizedSearch)
-        || uname.includes(normalizedSearch)
+        || username.includes(normalizedSearch)
         || email.includes(normalizedSearch)
-        || deptName.includes(normalizedSearch);
-      const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+        || departmentName.includes(normalizedSearch);
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const matchesStatus = statusFilter === 'all'
-        || (statusFilter === 'active' && u.is_active)
-        || (statusFilter === 'inactive' && !u.is_active);
-      const matchesDept = departmentFilter === 'all'
-        || String(u.department?.id || '') === departmentFilter;
+        || (statusFilter === 'active' && user.is_active)
+        || (statusFilter === 'inactive' && !user.is_active);
+      const matchesDepartment = departmentFilter === 'all'
+        || String(user.department?.id || '') === departmentFilter;
 
-      return matchesSearch && matchesRole && matchesStatus && matchesDept;
+      return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
     });
 
     return [...filtered].sort((a, b) => {
-      let aV = '', bV = '';
+      let aValue = '';
+      let bValue = '';
+
       if (sortBy === 'name') {
-        aV = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-        bV = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+        aValue = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+        bValue = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
       } else if (sortBy === 'email') {
-        aV = (a.email || '').toLowerCase();
-        bV = (b.email || '').toLowerCase();
+        aValue = (a.email || '').toLowerCase();
+        bValue = (b.email || '').toLowerCase();
       } else if (sortBy === 'role') {
-        aV = (a.role || '').toLowerCase();
-        bV = (b.role || '').toLowerCase();
+        aValue = (a.role || '').toLowerCase();
+        bValue = (b.role || '').toLowerCase();
       } else if (sortBy === 'department') {
-        aV = (a.department?.name || '').toLowerCase();
-        bV = (b.department?.name || '').toLowerCase();
+        aValue = (a.department?.name || '').toLowerCase();
+        bValue = (b.department?.name || '').toLowerCase();
       } else if (sortBy === 'status') {
-        aV = a.is_active ? 'active' : 'inactive';
-        bV = b.is_active ? 'active' : 'inactive';
+        aValue = a.is_active ? 'active' : 'inactive';
+        bValue = b.is_active ? 'active' : 'inactive';
       }
-      if (aV < bV) return sortOrder === 'asc' ? -1 : 1;
-      if (aV > bV) return sortOrder === 'asc' ? 1 : -1;
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
   }, [users, searchTerm, roleFilter, statusFilter, departmentFilter, sortBy, sortOrder]);
@@ -129,15 +184,52 @@ export default function AdminDashboard() {
   }, [stats?.users_per_role]);
 
   const departmentChartData = useMemo(() => {
-    if (!stats?.users_per_department) return [];
-    if (typeof stats.users_per_department === 'object' && !Array.isArray(stats.users_per_department)) {
-      return Object.entries(stats.users_per_department).map(([name, value]) => ({
-        name,
-        value: Number(value) || 0,
-      }));
+    if (stats?.users_per_department) {
+      if (Array.isArray(stats.users_per_department)) {
+        return stats.users_per_department.map((row, index) => ({
+          name: row?.name || row?.department || row?.department_name || `Department ${index + 1}`,
+          value: Number(row?.value ?? row?.count ?? row?.users ?? row?.total ?? 0) || 0,
+        }));
+      }
+
+      if (typeof stats.users_per_department === 'object') {
+        return Object.entries(stats.users_per_department).map(([name, value]) => ({
+          name,
+          value: Number(value) || 0,
+        }));
+      }
     }
-    return [];
-  }, [stats?.users_per_department]);
+
+    const deptCounts = {};
+    users.forEach(user => {
+      const deptName = user.department?.name || 'No Department';
+      deptCounts[deptName] = (deptCounts[deptName] || 0) + 1;
+    });
+    return Object.entries(deptCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [stats?.users_per_department, users]);
+
+  const activityTrendData = useMemo(() => {
+    if (!activityTrend) return [];
+    // Merge users, tasks, and applications by day
+    const allDays = new Set();
+    activityTrend.users?.forEach(d => allDays.add(d.day));
+    activityTrend.tasks?.forEach(d => allDays.add(d.day));
+    activityTrend.applications?.forEach(d => allDays.add(d.day));
+
+    return Array.from(allDays).sort((a, b) => a - b).map(day => {
+      const userEntry = activityTrend.users?.find(d => d.day === day);
+      const taskEntry = activityTrend.tasks?.find(d => d.day === day);
+      const appEntry = activityTrend.applications?.find(d => d.day === day);
+      return {
+        day,
+        users: userEntry?.users || 0,
+        tasks: taskEntry?.tasks || 0,
+        applications: appEntry?.applications || 0,
+      };
+    });
+  }, [activityTrend]);
 
   const taskStatsData = useMemo(() => {
     if (!stats) return [];
@@ -147,63 +239,472 @@ export default function AdminDashboard() {
     ];
   }, [stats]);
 
-  const handleAction = (actionId) => {
-    if (actionId === 'CREATE_USER') setCreateUserOpen(true);
-    if (actionId === 'MANAGE_DEPTS') setDepartmentModalOpen(true);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
-  if (error) return <div className="max-w-7xl mx-auto px-4 py-8"><div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">{error}</div></div>;
-
-  const dashboardCards = cardRegistry.filter(card => card.roles.includes('admin'));
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">System overview and user management</p>
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-1">System overview and user management</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dashboardCards.map(card => {
-          const CardComponent = card.component;
-          
-          // Map props based on card ID
-          const cardProps = {};
-          if (card.id === 'admin-stats') { cardProps.stats = stats; cardProps.departments = departments; }
-          if (card.id === 'admin-charts') { 
-            cardProps.roleChartData = roleChartData; 
-            cardProps.departmentChartData = departmentChartData; 
-            cardProps.taskStatsData = taskStatsData; 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <StatCard
+          label="Total Users"
+          value={stats?.total_users || 0}
+          color="bg-blue-100"
+          icon={
+            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
           }
-          if (card.id === 'admin-role-breakdown') { cardProps.stats = stats; }
-          if (card.id === 'admin-quick-actions') { cardProps.onAction = handleAction; }
-          if (card.id === 'admin-system-status') { cardProps.stats = stats; }
-          if (card.id === 'admin-projects-overview') { cardProps.projects = projects; cardProps.onProjectClick = (id) => navigate(`/projects/${id}`); }
-          if (card.id === 'admin-user-table') {
-            Object.assign(cardProps, {
-              users, filteredUsers: filteredAndSortedUsers, searchTerm, setSearchTerm,
-              roleFilter, setRoleFilter, statusFilter, setStatusFilter, departmentFilter, setDepartmentFilter,
-              sortBy, setSortBy, sortOrder, setSortOrder, departments, roleOptions,
-              onChangeRole: async (uid, role) => { if(window.confirm(`Change role to ${role}?`)) { await adminChangeRole(uid, role); loadData(); }},
-              onChangeDepartment: async (uid, did) => { await adminAssignDepartment(uid, did === '' ? null : parseInt(did)); loadData(); },
-              onToggleActive: async (uid, active) => { if(active && !window.confirm('Deactivate user?')) return; if(active) await adminDeactivateUser(uid); else await adminActivateUser(uid); loadData(); },
-              onCreateUser: () => setCreateUserOpen(true)
-            });
+        />
+        <StatCard
+          label="Active"
+          value={stats?.active_count || 0}
+          color="bg-green-100"
+          icon={
+            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           }
+          subtext={`${stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}% of total`}
+        />
+        <StatCard
+          label="Inactive"
+          value={stats?.inactive_count || 0}
+          color="bg-red-100"
+          icon={
+            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="Departments"
+          value={stats?.departments_count || departments.length}
+          color="bg-purple-100"
+          icon={
+            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="Projects"
+          value={stats?.total_projects || 0}
+          color="bg-indigo-100"
+          icon={
+            <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="New (7d)"
+          value={stats?.new_users_this_week || 0}
+          color="bg-pink-100"
+          icon={
+            <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          }
+        />
+      </div>
 
-          return (
-            <div key={card.id} className={card.layout?.gridClass || ''}>
-              <CardComponent {...cardProps} />
+      {/* Activity Trend Chart 
+      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
+        <h3 className="font-semibold text-gray-900 mb-4">Activity Trends (Last 30 Days)</h3>
+        <AreaChartCard
+          title=""
+          data={activityTrendData}
+          dataKeys={['users', 'tasks', 'applications']}
+          colors={['#8B5CF6', '#10B981', '#F59E0B']}
+        />
+      </div>
+      */}
+
+      {/* Charts Row */}
+      <div className="grid lg:grid-cols-4 lg:auto-rows-[320px] gap-6 mb-8">
+        <ChartCard
+          colSpan={2}
+          rowSpan={2}
+          title="Role Distribution"
+          type={CHART_TYPES.PIE}
+          data={roleChartData}
+          dataKey="value"
+          nameKey="name"
+        />
+        <ChartCard
+          title="Users per Department"
+          colSpan={2}
+          type={CHART_TYPES.BAR}
+          data={departmentChartData}
+          dataKey="value"
+          nameKey="name"
+        />
+        <ChartCard
+          title="Task Status"
+          type={CHART_TYPES.PIE}
+          data={taskStatsData}
+          dataKey="value"
+          nameKey="name"
+        />
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        {/* Users per Role (List) */}
+        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Role Breakdown</h3>
+          <div className="space-y-3">
+            {Object.entries(stats?.users_per_role || {}).map(([role, count]) => {
+              const percentage = stats?.total_users ? Math.round((count / stats.total_users) * 100) : 0;
+              return (
+                <div key={role}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-700 capitalize text-sm">{role.replace('_', ' ')}</span>
+                    <span className="font-semibold text-purple-600 text-sm">{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="space-y-3">
+            <button
+              onClick={() => setCreateUserOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Create New User</p>
+                <p className="text-xs text-gray-500">Add a new team member</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setDepartmentModalOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Manage Departments</p>
+                <p className="text-xs text-gray-500">View and edit departments</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/admin/')}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /> */}
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900"></p>
+                <p className="text-xs text-gray-500"></p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* System Status */}
+        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">System Status</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">Database</span>
+              <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span> Connected
+              </span>
             </div>
-          );
-        })}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">API Server</span>
+              <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span> Online
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">Total Tasks</span>
+              <span className="text-gray-900 text-sm font-medium">{stats?.total_tasks || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 text-sm">Completion Rate</span>
+              <span className="text-purple-600 text-sm font-medium">
+                {stats?.total_tasks ? Math.round((stats.completed_tasks / stats.total_tasks) * 100) : 0}%
+              </span>
+            </div>
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-sm">User Activity Rate</span>
+                <span className="text-purple-600 text-sm font-medium">
+                  {stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-purple-500 h-2 rounded-full"
+                  style={{ width: `${stats?.total_users ? (stats.active_count / stats.total_users) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Projects Overview */}
+      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden mb-8">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Projects Overview</h2>
+          <p className="text-sm text-gray-600 mt-1">Status and progress of all active projects</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map(project => {
+              const totalTasks = project.tasks?.length || 0;
+              const completedTasks = project.tasks?.filter(t => t.status === 'done').length || 0;
+              const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+              
+              return (
+                <div 
+                  key={project.id} 
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                  className="group cursor-pointer p-4 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all shadow-sm hover:shadow"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="font-bold text-gray-900 group-hover:text-purple-700 transition-colors">{project.name}</h4>
+                      <p className="text-xs text-gray-500 mt-0.5">Manager: {project.manager?.first_name} {project.manager?.last_name}</p>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 bg-purple-100 text-purple-700 rounded-lg">
+                      {progress}%
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Progress</span>
+                      <span>{completedTasks}/{totalTasks} tasks</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-purple-500 h-full transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex -space-x-2 overflow-hidden">
+                    {project.members?.slice(0, 5).map(m => (
+                      <div key={m.id} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-blue-500 flex items-center justify-center text-[10px] text-white font-bold" title={m.username}>
+                        {m.username[0]?.toUpperCase()}
+                      </div>
+                    ))}
+                    {project.members?.length > 5 && (
+                      <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-[10px] text-gray-600 font-bold">
+                        +{project.members.length - 5}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {projects.length === 0 && (
+            <div className="text-center py-10 text-gray-500">No projects found.</div>
+          )}
+        </div>
+      </div>
+
+      {/* User Management Table */}
+      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden">
+        <div className="p-6 border-b border-gray-200 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {filteredAndSortedUsers.length} shown of {users.length} total users
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreateUserOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create User
+          </button>
+        </div>
+
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search name, username, email..."
+              className="lg:col-span-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Roles</option>
+              {roleOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Departments</option>
+              <option value="">No Department</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={String(dept.id)}>{dept.name}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="name">Sort: Name</option>
+                <option value="email">Sort: Email</option>
+                <option value="role">Sort: Role</option>
+                <option value="department">Sort: Department</option>
+                <option value="status">Sort: Status</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Department</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredAndSortedUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className={`font-medium ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>
+                        {user.first_name} {user.last_name}
+                      </div>
+                      <div className={`text-sm ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>@{user.username}</div>
+                    </div>
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${user.is_active ? "text-gray-600" : "text-gray-400"}`}>
+                    {user.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                      className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
+                      disabled={!user.is_active}
+                    >
+                      {roleOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={user.department?.id || ''}
+                      onChange={(e) => handleChangeDepartment(user.id, e.target.value)}
+                      className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
+                      disabled={!user.is_active}
+                    >
+                      <option value="">No Department</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => handleToggleActive(user.id, user.is_active)}
+                      className={`px-2 py-1 text-xs font-medium rounded-full opacity-100 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300 ${user.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900' : 'bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900'}`}>
+                      {user.is_active ? 'Active' : 'Inactive'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <CreateUserModal
         open={createUserOpen}
         onClose={() => setCreateUserOpen(false)}
-        onSubmit={async (data) => { await createUser(data); loadData(); }}
+        onSubmit={handleCreateUser}
         roleOptions={roleOptions}
       />
 
@@ -217,3 +718,7 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+
+

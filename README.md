@@ -107,8 +107,7 @@ Product
 
 project front end sructures: 
 - pages
-    - _common
-        - navbar ...etc
+    - common
     - admin
         - dashboard
         - components
@@ -120,7 +119,7 @@ project front end sructures:
         - components
     - team member
         - das
-    - chart registry
+            - chart registry
         
 
 
