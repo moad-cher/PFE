@@ -276,6 +276,9 @@ export default function ScrumBoard() {
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
               <span>/</span><span className="font-medium text-gray-700">Scrum Roadmap</span>
+              <Link to={`/projects/${pk}/scrum3`} className="ml-4 px-2 py-0.5 bg-pink-50 text-pink-600 text-[10px] font-black uppercase rounded border border-pink-100 hover:bg-pink-100 transition-colors">
+                Try v3 ✨
+              </Link>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Sprint Timeline</h1>
           </div>

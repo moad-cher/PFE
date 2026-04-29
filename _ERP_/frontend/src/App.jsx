@@ -17,6 +17,7 @@ import ProjectSettings from './pages/projects/ProjectSettings';
 import KanbanBoard from './pages/projects/KanbanBoard';
 import ScrumBoard from './pages/projects/ScrumBoard';
 import ScrumBoard2 from './pages/projects/ScrumBoard2';
+import ScrumBoard3 from './pages/projects/ScrumBoard3';
 import TaskDetail from './pages/projects/TaskDetail';
 import TaskEdit from './pages/projects/TaskEdit';
 import Members from './pages/projects/Members';
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="/projects/:pk/kanban" element={<KanbanBoard />} />
             <Route path="/projects/:pk/scrum" element={<ScrumBoard />} />
             <Route path="/projects/:pk/scrum2" element={<ScrumBoard2 />} />
+            <Route path="/projects/:pk/scrum3" element={<ScrumBoard3 />} />
             <Route path="/projects/:pk/tasks/:taskId" element={<TaskDetail />} />
             <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
             <Route path="/projects/:pk/tasks/:taskId/chat" element={<TaskChat />} />

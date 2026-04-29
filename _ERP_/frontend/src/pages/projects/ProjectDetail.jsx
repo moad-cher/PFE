@@ -205,7 +205,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Quick action cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <QuickCard
           to={`/projects/${pk}/kanban`}
           label="Kanban"
@@ -217,6 +217,12 @@ export default function ProjectDetail() {
           label="Scrum"
           color="bg-indigo-100"
           icon={<svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>}
+        />
+        <QuickCard
+          to={`/projects/${pk}/scrum3`}
+          label="Scrum v3"
+          color="bg-pink-100"
+          icon={<svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
         />
         <QuickCard
           to={`/projects/${pk}/members`}

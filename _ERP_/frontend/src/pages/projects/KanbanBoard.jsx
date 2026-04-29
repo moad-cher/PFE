@@ -108,7 +108,7 @@ export default function KanbanBoard() {
           </div>
           <div className="flex gap-2">
             <Link to={`/projects/${pk}/scrum`} className="px-3 py-1.5 text-sm bg-violet-50 text-violet-600 rounded-xl hover:bg-violet-100 transition-colors">Scrum</Link>
-            <Link to={`/projects/${pk}/scrum2`} className="px-3 py-1.5 text-sm bg-white text-slate-700 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">ScrumBoard 2</Link>
+            <Link to={`/projects/${pk}/scrum3`} className="px-3 py-1.5 text-sm bg-pink-50 text-pink-600 rounded-xl border border-pink-100 hover:bg-pink-100 transition-colors font-bold">Scrum v3 ✨</Link>
             <Guard isProjectManager project={project}>
               <button onClick={() => setShowTaskModal(true)} className="px-3 py-1.5 text-sm bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:from-purple-600 hover:to-violet-600 transition-all shadow-sm">+ Task</button>
             </Guard>

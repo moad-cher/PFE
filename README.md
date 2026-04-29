@@ -44,6 +44,8 @@ every project has tasks, deadlines, and tasks have assigned team members.
 - [ ] scrum
     - [x] sprint stories
     - [ ] sprint burndown chart
+    - [ ] kanban for current sprint
+    - [x] backlog management with drag and drop to sprints
 ```
 Product
     │
