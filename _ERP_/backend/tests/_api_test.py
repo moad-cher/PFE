@@ -234,6 +234,71 @@ def test_get_nonexistent_project(client, auth_headers):
     assert r.status_code == 404
 
 
+def test_project_ownership_transfer(client, auth_headers):
+    # 1. Create a project (owner is superadmin)
+    project_name = f"Transfer Test {uuid.uuid4().hex[:8]}"
+    r = client.post("/projects/", json={"name": project_name}, headers=auth_headers)
+    assert r.status_code == 201
+    project = r.json()
+    project_id = project["id"]
+
+    try:
+        # 2. Register a new project manager
+        pm_username = f"pm_{uuid.uuid4().hex[:8]}"
+        r = client.post(
+            "/auth/register",
+            json={
+                "username": pm_username,
+                "email": f"{pm_username}@example.com",
+                "password": "Password123",
+                "role": "project_manager"
+            }
+        )
+        assert r.status_code == 201
+        new_pm = r.json()
+        new_pm_id = new_pm["id"]
+
+        # 3. Transfer ownership to the new PM
+        r = client.patch(
+            f"/projects/{project_id}",
+            json={"manager_id": new_pm_id},
+            headers=auth_headers
+        )
+        assert r.status_code == 200
+        updated_project = r.json()
+        assert updated_project["manager"]["id"] == new_pm_id
+
+        # 4. Verify it actually changed
+        r = client.get(f"/projects/{project_id}", headers=auth_headers)
+        assert r.status_code == 200
+        assert r.json()["manager"]["id"] == new_pm_id
+
+        # 5. Attempt unauthorized transfer
+        tm_username = f"tm_{uuid.uuid4().hex[:8]}"
+        r = client.post(
+            "/auth/register",
+            json={
+                "username": tm_username,
+                "email": f"{tm_username}@example.com",
+                "password": "Password123",
+                "role": "team_member"
+            }
+        )
+        tm = r.json()
+        
+        r = client.post("/auth/token", data={"username": tm_username, "password": "Password123"})
+        tm_headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+        r = client.patch(
+            f"/projects/{project_id}",
+            json={"manager_id": tm["id"]},
+            headers=tm_headers
+        )
+        assert r.status_code == 403
+    finally:
+        client.delete(f"/projects/{project_id}", headers=auth_headers)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Task Tests
 # ══════════════════════════════════════════════════════════════════════════════
@@ -248,16 +313,25 @@ def test_task_crud_full_cycle(client, auth_headers):
     )
     project_id = r.json()["id"]
     
+    # Create story
+    r = client.post(
+        f"/projects/{project_id}/stories",
+        json={"title": "Test Story"},
+        headers=auth_headers
+    )
+    story_id = r.json()["id"]
+
     # Create task
     r = client.post(
         f"/projects/{project_id}/tasks/",
-        json={"title": "Test Task", "priority": "high"},
+        json={"title": "Test Task", "priority": "high", "story_id": story_id},
         headers=auth_headers
     )
     assert r.status_code == 201
     task = r.json()
     assert task["title"] == "Test Task"
     assert task["priority"] == "high"
+    assert task["story_id"] == story_id
     task_id = task["id"]
     
     # Read task
@@ -287,10 +361,18 @@ def test_task_move_status(client, auth_headers):
     r = client.post("/projects/", json={"name": unique_name}, headers=auth_headers)
     project_id = r.json()["id"]
     
+    # Create story
+    r = client.post(
+        f"/projects/{project_id}/stories",
+        json={"title": "Story for Move"},
+        headers=auth_headers
+    )
+    story_id = r.json()["id"]
+
     # Create task
     r = client.post(
         f"/projects/{project_id}/tasks/",
-        json={"title": "Task to Move"},
+        json={"title": "Task to Move", "story_id": story_id},
         headers=auth_headers
     )
     task_id = r.json()["id"]

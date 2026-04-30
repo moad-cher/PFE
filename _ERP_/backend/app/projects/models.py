@@ -121,7 +121,7 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
-    story_id: Mapped[int | None] = mapped_column(ForeignKey("stories.id", ondelete="SET NULL"), nullable=True)
+    story_id: Mapped[int] = mapped_column(ForeignKey("stories.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(50), default="todo")
@@ -135,7 +135,7 @@ class Task(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     project: Mapped["Project"] = relationship("Project", back_populates="tasks")
-    story: Mapped["Story | None"] = relationship("Story", back_populates="tasks")
+    story: Mapped["Story"] = relationship("Story", back_populates="tasks")
     assigned_to: Mapped[list["User"]] = relationship("User", secondary=task_assignees)  # noqa: F821
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="task", cascade="all, delete-orphan")
     chat_messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="task")  # noqa: F821

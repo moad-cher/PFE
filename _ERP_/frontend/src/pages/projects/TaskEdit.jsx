@@ -243,13 +243,14 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, initialStoryId, 
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">User Story</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">User Story *</label>
           <select
             value={form.story_id}
             onChange={(e) => setForm((prev) => ({ ...prev, story_id: e.target.value }))}
+            required
             className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            <option value="">Standalone (No Story)</option>
+            <option value="" disabled>Select a Story</option>
             {stories.map((story) => (
               <option key={story.id} value={story.id}>
                 {story.title}

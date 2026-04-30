@@ -187,49 +187,6 @@ export default function GanttChart({ tasks, sprints, statuses, project_id, onAdd
           );
         })}
 
-        {/* Project Backlog Card */}
-        {tasksBySprint.backlog.length > 0 && (
-          <div className="flex-shrink-0 bg-gray-50/50 rounded-3xl border border-dashed border-gray-300 w-80">
-            <div className="px-6 py-4 border-b border-dashed border-gray-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest italic">Project Backlog</h4>
-                <button onClick={() => onAddTask && onAddTask()} className="p-1 hover:bg-gray-200 rounded-lg transition-colors" title="Add Task to Backlog">
-                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-              </div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase">{tasksBySprint.backlog.length} tasks</span>
-            </div>
-            <div className="p-4 space-y-2 max-h-[250px] overflow-y-auto scrollbar-hide">
-              {tasksBySprint.backlog.map(task => {
-                const color = statuses.find(s => s.slug === task.status)?.color || '#94a3b8';
-                return (
-                  <Link 
-                    key={task.id} 
-                    to={`/projects/${project_id}/tasks/${task.id}`}
-                    className="block bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm hover:border-indigo-300 transition-all group"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }}></div>
-                      <span className="text-[10px] font-bold text-gray-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">{task.title}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex -space-x-1">
-                        {task.assigned_to?.map(u => (
-                          <div key={u.id} className="w-4 h-4 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[7px] font-bold text-gray-600">
-                            {u.username[0]}
-                          </div>
-                        ))}
-                      </div>
-                      <span className="text-[8px] font-black text-gray-300 uppercase">{task.points} pts</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

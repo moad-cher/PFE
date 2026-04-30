@@ -92,6 +92,15 @@ export default function ScrumBoard3() {
     setActiveSprintId(null);
   };
 
+  const handleCompleteSprint = async (sprintId) => {
+    try {
+      await updateSprint(pk, sprintId, { status: 'completed' });
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to complete sprint');
+    }
+  };
+
   // Drag & Drop Logic
   const onDragEnd = async (result) => {
     const { destination, source, draggableId, type } = result;
@@ -138,7 +147,6 @@ export default function ScrumBoard3() {
   }, [project, stories, view, activeSprintId]);
 
   const backlogStories = useMemo(() => stories.filter(s => !s.sprint_id), [stories]);
-  const backlogTasksNoStory = useMemo(() => (project?.tasks || []).filter(t => !t.story_id), [project]);
 
   if (loading) return <div className="flex justify-center py-24"><Spinner /></div>;
 
@@ -238,7 +246,7 @@ export default function ScrumBoard3() {
                   <>
                     {activeSprint?.status === 'active' && (
                       <button 
-                        onClick={() => updateSprint(pk, activeSprint.id, { status: 'completed' }).then(fetchData)}
+                        onClick={() => handleCompleteSprint(activeSprint.id)}
                         className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black shadow-md shadow-gray-100 transition-all"
                       >
                         Complete Sprint

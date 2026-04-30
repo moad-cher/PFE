@@ -8,7 +8,7 @@ import logging
 from app.core.deps import get_db, require_roles
 from app.messaging.models import ChatMessage
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, project_members, task_assignees
+from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, project_members, task_assignees
 from app.projects.schemas import (
     ProjectConfigRead,
     ProjectConfigUpdate,
@@ -267,6 +267,16 @@ async def update_project(
         if existing_project.scalars().first():
             raise HTTPException(400, "A project with this name already exists")
 
+    if data.manager_id is not None and data.manager_id != project.manager_id:
+        if current_user.role != "admin" and project.manager_id != current_user.id:
+            raise HTTPException(403, "Only the current manager or an admin can transfer ownership")
+        
+        new_manager = await db.get(User, data.manager_id)
+        if not new_manager:
+            raise HTTPException(404, "New manager user not found")
+        if new_manager.role not in _PROJECT_MANAGERS:
+            raise HTTPException(400, "New manager must have 'admin' or 'project_manager' role")
+
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(project, field, value)
     await db.commit()
@@ -448,8 +458,8 @@ async def scrum_board(
     
     if sprint_id:
         if sprint_id.lower() == "null":
-            # Backlog: Tasks with no story, OR tasks with a story that has no sprint
-            tasks = [t for t in tasks if t.story_id is None or (t.story and t.story.sprint_id is None)]
+            # Backlog: Tasks with a story that has no sprint
+            tasks = [t for t in tasks if t.story and t.story.sprint_id is None]
         else:
             try:
                 sid = int(sprint_id)
@@ -518,6 +528,29 @@ async def update_sprint(
     
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(sprint, field, value)
+    
+    if data.status == SprintStatus.completed:
+        # Find next sprint (earliest non-completed sprint starting after this one)
+        next_sprint_res = await db.execute(
+            select(Sprint)
+            .where(Sprint.project_id == pk, Sprint.id != sprint_id, Sprint.status != SprintStatus.completed)
+            .where(Sprint.start_date >= sprint.end_date)
+            .order_by(Sprint.start_date.asc())
+        )
+        next_sprint = next_sprint_res.scalars().first()
+        next_sprint_id = next_sprint.id if next_sprint else None
+
+        # Move stories with unfinished tasks
+        result = await db.execute(
+            select(Story).where(Story.sprint_id == sprint_id).options(selectinload(Story.tasks))
+        )
+        stories = result.scalars().all()
+        for story in stories:
+            # A story is considered unfinished if it has no tasks or if any task is not 'done'
+            unfinished = (not story.tasks) or any(t.status != "done" for t in story.tasks)
+            if unfinished:
+                story.sprint_id = next_sprint_id
+
     await db.commit()
     await db.refresh(sprint)
     return sprint

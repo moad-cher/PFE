@@ -231,16 +231,6 @@ export default function ScrumBoard2() {
   const handleCompleteSprint = async (sprintId) => {
     try {
       await updateSprint(pk, sprintId, { status: 'completed' });
-
-      const idx = sprints.findIndex((s) => s.id === sprintId);
-      const nextSprint = sprints[idx + 1];
-      const destSprintId = nextSprint ? nextSprint.id : null;
-
-      const incompleteStories = stories.filter((s) => s.sprint_id === sprintId && s.status !== 'done');
-      if (incompleteStories.length > 0) {
-        await Promise.all(incompleteStories.map((s) => updateStory(pk, s.id, { sprint_id: destSprintId })));
-      }
-
       fetchData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to complete sprint');
@@ -346,10 +336,6 @@ export default function ScrumBoard2() {
 
   const backlogStories = useMemo(() => stories.filter((story) => !story.sprint_id), [stories]);
 
-  const backlogTasksNoStory = useMemo(() => {
-    return filteredTasks.filter((task) => !task.story_id);
-  }, [filteredTasks]);
-
   const selectedSprint = useMemo(
     () => sprints.find((s) => s.id === selectedSprintId) || null,
     [sprints, selectedSprintId]
@@ -386,7 +372,7 @@ export default function ScrumBoard2() {
   const sidebarTitle = project?.name || 'Project';
   const contentTitle = view === 'backlog' ? 'Backlog Planning Board' : selectedSprint?.name || 'Sprint';
   const contentSubtitle = view === 'backlog'
-    ? `${backlogStories.length} stories • ${backlogTasksNoStory.length} standalone tasks`
+    ? `${backlogStories.length} stories`
     : selectedSprint
     ? `${formatDate(selectedSprint.start_date)} — ${formatDate(selectedSprint.end_date)}`
     : '';
@@ -652,45 +638,8 @@ export default function ScrumBoard2() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-                      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-slate-800">Standalone Backlog Tasks</h3>
-                        <span className="text-[11px] text-slate-500">{backlogTasksNoStory.length}</span>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                          <thead className="text-[10px] uppercase text-slate-500 bg-slate-50">
-                            <tr>
-                              <th className="px-4 py-2 font-bold">Task</th>
-                              <th className="px-4 py-2 font-bold">Status</th>
-                              <th className="px-4 py-2 font-bold">Assignees</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {backlogTasksNoStory.length === 0 ? (
-                              <tr>
-                                <td colSpan={3} className="px-4 py-5 text-center text-slate-400 italic">No standalone tasks</td>
-                              </tr>
-                            ) : (
-                              backlogTasksNoStory.map((task) => (
-                                <tr key={task.id} className="hover:bg-slate-50/70">
-                                  <td className="px-4 py-2">
-                                    <Link to={`/projects/${pk}/tasks/${task.id}`} className="font-medium text-slate-700 hover:text-indigo-700">
-                                      {task.title}
-                                    </Link>
-                                  </td>
-                                  <td className="px-4 py-2"><StatusBadge status={task.status} /></td>
-                                  <td className="px-4 py-2 text-xs text-slate-500">
-                                    {task.assigned_to?.length
-                                      ? task.assigned_to.map((u) => u.username).join(', ')
-                                      : 'Unassigned'}
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden hidden">
+                      {/* Standalone Backlog Tasks - Removed as all tasks must belong to a story */}
                     </div>
                   </div>
                 ) : (

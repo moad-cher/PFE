@@ -105,38 +105,20 @@ Product
 | View own tasks             |   O   |     -      |        O        |      O      |
 
 
-project front end sructures: 
-- pages
-    - common
-    - admin
-        - dashboard
-        - components
-    - hr
-        - dashboard
-        - components
-    - project manager
-        - dashboard
-        - components
-    - team member
-        - das
-            - chart registry
-        
-
-
 
 ```mermaid
 mindmap
   root((Scrum App))
     Users & Org
-      Departments
-      organization structure mechanics
+      %% Departments
+      %% organization structure mechanics
       Roles & permissions
-      HR access scope
-      Project manager ownership transfer
+      %% HR access scope
     Projects
-      scrum mode only
-      1 Team per project
+      %% scrum mode only
+      %% 1 Team per project
       Multi-PM handling
+      %% Project manager ownership transfer
     Sprints
       Sprint state machine
       %% Incomplete stories
@@ -147,7 +129,7 @@ mindmap
       Priority ordering
       Unassigned pool
     Tasks
-      State machine
+      %% State machine
       Assignee & self-assign
       Done definition
       Partial completion

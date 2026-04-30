@@ -94,13 +94,13 @@ class TaskCreate(BaseModel):
     end_time: Optional[datetime] = None
     points: int = 10
     assigned_to_ids: list[int] = []
-    story_id: Optional[int] = None
+    story_id: int
 
 
 class TaskRead(BaseModel):
     id: int
     project_id: int
-    story_id: Optional[int] = None
+    story_id: int
     title: str
     description: str
     status: str
@@ -195,6 +195,7 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    manager_id: Optional[int] = None
 
 
 # ── Comment ───────────────────────────────────────────────────────────────────

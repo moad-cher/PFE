@@ -99,25 +99,7 @@ export default function ScrumBoard() {
 
   const handleCompleteSprint = async (sprintId) => {
     try {
-      // 1. Mark sprint completed
       await updateSprint(pk, sprintId, { status: 'completed' });
-      
-      // 2. Determine destination (next sprint or backlog)
-      const idx = sprints.findIndex(s => s.id === sprintId);
-      const nextSprint = sprints[idx + 1];
-      const destSprintId = nextSprint ? nextSprint.id : null;
-
-      // 3. Find incomplete stories
-      const incompleteStories = stories.filter(s => s.sprint_id === sprintId && s.status !== 'done');
-
-      // 4. Move them
-      if (incompleteStories.length > 0) {
-        await Promise.all(
-          incompleteStories.map(s => updateStory(pk, s.id, { sprint_id: destSprintId }))
-        );
-      }
-
-      // 5. Refresh data to reflect moves
       fetchData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to complete sprint');
@@ -153,8 +135,6 @@ export default function ScrumBoard() {
     : [];
 
   const tasksByStory = {}; 
-  const backlogTasksNoStory = [];
-
   project?.tasks?.forEach(t => {
     if (filterStatus && t.status !== filterStatus) return;
     if (filterAssignee && !t.assigned_to?.some(a => a.id === parseInt(filterAssignee))) return;
@@ -162,8 +142,6 @@ export default function ScrumBoard() {
     if (t.story_id) {
       if (!tasksByStory[t.story_id]) tasksByStory[t.story_id] = [];
       tasksByStory[t.story_id].push(t);
-    } else {
-      backlogTasksNoStory.push(t);
     }
   });
 
@@ -424,11 +402,8 @@ export default function ScrumBoard() {
                   <button onClick={() => openStoryModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
                     + Story
                   </button>
-                  <button onClick={() => openTaskModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                    + Task
-                  </button>
                 </div>
-                <span className="text-xs font-bold text-gray-400 uppercase">{backlogStories.length} stories, {backlogTasksNoStory.length} standalone tasks</span>
+                <span className="text-xs font-bold text-gray-400 uppercase">{backlogStories.length} stories</span>
               </div>
               
               <Droppable droppableId="backlog">
@@ -439,14 +414,6 @@ export default function ScrumBoard() {
                     className={`p-4 min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
                   >
                      {backlogStories.map((story, sIdx) => renderStory(story, sIdx))}
-                     {backlogTasksNoStory.length > 0 && (
-                        <div className="mt-6">
-                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Uncategorized Tasks</h4>
-                          <div className="bg-white/80 border border-gray-200 rounded-xl overflow-hidden">
-                            {renderTaskTable(backlogTasksNoStory)}
-                          </div>
-                        </div>
-                     )}
                      {provided.placeholder}
                   </div>
                 )}
