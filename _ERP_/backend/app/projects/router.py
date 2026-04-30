@@ -23,6 +23,8 @@ from app.projects.schemas import (
     StoryUpdate,
     TaskRead,
     TaskStatusCreate,
+    TaskStatusOrderUpdate,
+    StatusOrderUpdateRequest,
     TaskStatusRead,
     KanbanColumnRead,
     MemberStatsRead,
@@ -403,6 +405,49 @@ async def delete_status(
 
     await db.delete(target)
     await db.commit()
+
+
+@router.patch("/{pk}/statuses/order")
+async def update_status_order(
+    pk: int,
+    data: StatusOrderUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+):
+    project = await _load_project(pk, db)
+    if not _is_manager(project, current_user):
+        raise HTTPException(403, "Access denied")
+
+    # Validate all statuses exist and collect order info
+    status_map = {s.id: s for s in project.statuses}
+    for item in data.statuses:
+        if item.id not in status_map:
+            raise HTTPException(404, f"Status {item.id} not found")
+
+    # Validate essential statuses stay in place by checking their order values
+    # todo must have the minimum order, done must have the maximum order
+    todo_status = next((s for s in project.statuses if s.slug == 'todo'), None)
+    done_status = next((s for s in project.statuses if s.slug == 'done'), None)
+    
+    if todo_status:
+        todo_order = next((item.order for item in data.statuses if item.id == todo_status.id), None)
+        min_order = min(item.order for item in data.statuses)
+        if todo_order != min_order:
+            raise HTTPException(400, "Todo status must have the lowest order value (first)")
+    
+    if done_status:
+        done_order = next((item.order for item in data.statuses if item.id == done_status.id), None)
+        max_order = max(item.order for item in data.statuses)
+        if done_order != max_order:
+            raise HTTPException(400, "Done status must have the highest order value (last)")
+
+    # Update order
+    for item in data.statuses:
+        status = status_map[item.id]
+        status.order = item.order
+
+    await db.commit()
+    return {"message": "Order updated"}
 
 
 # ── Kanban board ──────────────────────────────────────────────────────────────

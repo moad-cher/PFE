@@ -223,6 +223,21 @@ class TaskStatusCreate(BaseModel):
     color: str = "#3498db"
 
 
+class TaskStatusOrderUpdate(BaseModel):
+    id: int
+    order: int
+
+
+class StatusOrderUpdateRequest(BaseModel):
+    statuses: list[TaskStatusOrderUpdate]
+
+class TaskStatusCreateLegacy(BaseModel):
+    name: str
+    slug: str
+    order: int = 0
+    color: str = "#3498db"
+
+
 # ── Kanban board ──────────────────────────────────────────────────────────────
 
 class KanbanColumnRead(BaseModel):

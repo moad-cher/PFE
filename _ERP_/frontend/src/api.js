@@ -119,6 +119,7 @@ export const updateProjectConfig = (pk, data) => api.patch(`/projects/${pk}/conf
 export const getProjectStatuses = (pk) => api.get(`/projects/${pk}/statuses`);
 export const createProjectStatus = (pk, data) => api.post(`/projects/${pk}/statuses`, data);
 export const deleteProjectStatus = (pk, id) => api.delete(`/projects/${pk}/statuses/${id}`);
+export const updateProjectStatusOrder = (pk, orderData) => api.patch(`/projects/${pk}/statuses/order`, orderData);
 export const getKanban = (pk) => api.get(`/projects/${pk}/kanban`);
 export const getScrum = (pk, params) => api.get(`/projects/${pk}/scrum`, { params });
 export const searchProjectMembers = (pk, q, departmentId) => api.get(`/projects/${pk}/members/search`, { params: { q, department_id: departmentId } });

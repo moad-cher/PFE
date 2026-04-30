@@ -104,7 +104,8 @@ Product
 | Assign tasks               |   O   |     X      |        O        |      X      |
 | View own tasks             |   O   |     -      |        O        |      O      |
 
-
+<br>
+<br>
 
 ```mermaid
 mindmap
@@ -114,10 +115,9 @@ mindmap
       %% organization structure mechanics
       Roles & permissions
       %% HR access scope
-    Projects
+    %% Projects
       %% scrum mode only
       %% 1 Team per project
-      Multi-PM handling
       %% Project manager ownership transfer
     Sprints
       Sprint state machine
@@ -132,13 +132,12 @@ mindmap
       %% State machine
       Assignee & self-assign
       Done definition
-      Partial completion
     Ceremonies
       Sprint planning
-      Daily standup
       Sprint review
       Retrospective
     Reporting
+      %% team workload
       Burndown chart
       Velocity history
       Daily snapshots

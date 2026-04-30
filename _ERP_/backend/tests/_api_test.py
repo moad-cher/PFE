@@ -295,6 +295,30 @@ def test_project_ownership_transfer(client, auth_headers):
             headers=tm_headers
         )
         assert r.status_code == 403
+
+        # 6. Attempt transfer by a PM who is NOT the owner
+        pm2_username = f"pm2_{uuid.uuid4().hex[:8]}"
+        r = client.post(
+            "/auth/register",
+            json={
+                "username": pm2_username,
+                "email": f"{pm2_username}@example.com",
+                "password": "Password123",
+                "role": "project_manager"
+            }
+        )
+        pm2 = r.json()
+        
+        r = client.post("/auth/token", data={"username": pm2_username, "password": "Password123"})
+        pm2_headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+        r = client.patch(
+            f"/projects/{project_id}",
+            json={"manager_id": pm2["id"]},
+            headers=pm2_headers
+        )
+        assert r.status_code == 403
+        assert r.json()["detail"] == "Only the current manager or an admin can transfer ownership"
     finally:
         client.delete(f"/projects/{project_id}", headers=auth_headers)
 

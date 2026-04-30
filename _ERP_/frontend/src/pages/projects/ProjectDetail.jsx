@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getProject, deleteProject, getKanban } from '../../api';
 import { useAuth } from '../../context/AuthContext';
@@ -6,7 +6,8 @@ import { canManageProjects } from '../../auth/permissions';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
-import TaskDistributionChart from '../../components/features/projects/TaskDistributionChart';
+import DashboardChart, { CHART_TYPES } from '../dashboards/cards/DashboardChartRegistry';
+import DashboardChartCard from '../dashboards/cards/DashboardChartCard';
 import GanttChart from '../../components/features/projects/GanttChart';
 import TaskEdit from './TaskEdit';
 
@@ -96,6 +97,27 @@ export default function ProjectDetail() {
     setTaskModalSprintId(sprintId);
     setShowTaskModal(true);
   };
+
+  const workloadData = useMemo(() => {
+    if (!project || !project.members) return [];
+    
+    const memberWorkload = project.members.map(member => {
+      const activeTasks = project.tasks.filter(t => 
+        t.status !== 'done' && t.assigned_to.some(a => a.id === member.id)
+      ).length;
+      const completedTasks = project.tasks.filter(t => 
+        t.status === 'done' && t.assigned_to.some(a => a.id === member.id)
+      ).length;
+      
+      return {
+        name: `${member.first_name} ${member.last_name}`,
+        active: activeTasks,
+        completed: completedTasks,
+      };
+    });
+    
+    return memberWorkload;
+  }, [project]);
 
   if (loading) {
     return (
@@ -198,12 +220,6 @@ export default function ProjectDetail() {
         initialStoryId={taskModalSprintId}
         onSuccess={fetchProject} 
       />
-
-      {/* Task Distribution Chart */}
-      <div className="mb-8 max-w-md">
-        <TaskDistributionChart data={kanbanData} />
-      </div>
-
       {/* Quick action cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <QuickCard
@@ -243,6 +259,36 @@ export default function ProjectDetail() {
           icon={<svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
         />
       </div>
+      {/* Dashboard Charts */}
+      <div className="grid lg:grid-cols-3 mb-8 lg:auto-rows-[320px] gap-6 mb-8">
+        {/* Task Distribution Chart */}
+        {kanbanData.length > 0 && (
+          <DashboardChartCard colSpan={1} title="Task Distribution">
+            <DashboardChart 
+              type={CHART_TYPES.DONUT}
+              data={kanbanData}
+              dataKey="value"
+              nameKey="name"
+              height={220}
+              showLegend={true}
+            />
+          </DashboardChartCard>
+        )}
+        {/* Team Workload */}
+        {workloadData.length > 0 && (
+          <DashboardChartCard title="Team Workload" colSpan={2}>
+            <DashboardChart 
+              type={CHART_TYPES.BAR} 
+              data={workloadData} 
+              nameKey="name" 
+              stacked={true} 
+              stackKeys={['active', 'completed']} 
+              stackColors={['#F59E0B', '#10B981']}
+            />
+          </DashboardChartCard>
+        )}
+      </div>
+
 
       {/* Project Roadmap / Gantt */}
       <div className="mb-8">

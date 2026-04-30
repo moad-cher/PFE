@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, listDepartments } from '../../api';
+import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, listDepartments, updateProject } from '../../api';
 import Spinner from '../../components/shared/ui/Spinner';
 import Guard from '../../auth/Guard';
+import { useAuth } from '../../context/AuthContext';
 
-function MemberCard({ member, project, onRemove, onTransfer }) {
+function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnership }) {
   const u = member.user;
   const isOwner = project.manager?.id === u.id;
   const canBeOwner = u.role === 'project_manager' || u.role === 'admin';
@@ -36,14 +37,12 @@ function MemberCard({ member, project, onRemove, onTransfer }) {
               </button>
             )}
           </Guard>
-          <Guard isProjectManager project={project}>
-            {!isOwner && canBeOwner && (
-              <button onClick={() => onTransfer(u.id)}
-                className="text-blue-500 hover:text-blue-700 text-xs px-2 py-1 rounded border border-blue-200 hover:border-blue-400 transition-colors">
-                Set as Owner
-              </button>
-            )}
-          </Guard>
+          {canTransferOwnership && !isOwner && canBeOwner && (
+            <button onClick={() => onTransfer(u.id)}
+              className="text-blue-500 hover:text-blue-700 text-xs px-2 py-1 rounded border border-blue-200 hover:border-blue-400 transition-colors">
+              Set as Owner
+            </button>
+          )}
         </div>
       </div>
       {u.skills && (
@@ -72,6 +71,7 @@ function MemberCard({ member, project, onRemove, onTransfer }) {
 
 export default function Members() {
   const { pk } = useParams();
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
   const [searchQ, setSearchQ] = useState('');
@@ -79,6 +79,8 @@ export default function Members() {
   const [departments, setDepartments] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const canTransferOwnership = user?.role === 'admin' || project?.manager?.id === user?.id;
 
   const loadAll = useCallback(() => {
     Promise.all([getProject(pk), getProjectMembers(pk), listDepartments()])
@@ -192,7 +194,14 @@ export default function Members() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {members.map(m => (
-          <MemberCard key={m.user.id} member={m} project={project} onRemove={removeMember} onTransfer={transferOwnership} />
+          <MemberCard 
+            key={m.user.id} 
+            member={m} 
+            project={project} 
+            onRemove={removeMember} 
+            onTransfer={transferOwnership}
+            canTransferOwnership={canTransferOwnership}
+          />
         ))}
       </div>
     </div>
