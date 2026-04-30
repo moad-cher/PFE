@@ -6,7 +6,7 @@ import Spinner from '../../components/shared/ui/Spinner';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
 import Guard, { usePermissions } from '../../auth/Guard';
-import TaskNew from './TaskNew';
+import TaskEdit from './TaskEdit';
 
 function TaskCard({ task, projectId, isDragging, isLocked }) {
   return (
@@ -115,7 +115,7 @@ export default function KanbanBoard() {
           </div>
         </div>
 
-        <TaskNew 
+        <TaskEdit 
           isOpen={showTaskModal} 
           onClose={() => setShowTaskModal(false)} 
           pk={pk} 

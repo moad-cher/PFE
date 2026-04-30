@@ -6,7 +6,7 @@ import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import { isProjectManager } from '../../auth/permissions';
-import TaskNew from './TaskNew';
+import TaskEdit from './TaskEdit';
 import StoryNew from './StoryNew';
 
 export default function ScrumBoard() {
@@ -292,7 +292,7 @@ export default function ScrumBoard() {
           </div>
         </div>
 
-        <TaskNew 
+        <TaskEdit 
           isOpen={showTaskModal} 
           onClose={() => setShowTaskModal(false)} 
           pk={pk} 

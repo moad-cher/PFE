@@ -8,7 +8,7 @@ import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import TaskDistributionChart from '../../components/features/projects/TaskDistributionChart';
 import GanttChart from '../../components/features/projects/GanttChart';
-import TaskNew from './TaskNew';
+import TaskEdit from './TaskEdit';
 
 function QuickCard({ to, icon, label, color }) {
   return (
@@ -191,11 +191,11 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      <TaskNew 
+      <TaskEdit 
         isOpen={showTaskModal} 
         onClose={() => setShowTaskModal(false)} 
         pk={pk} 
-        initialSprintId={taskModalSprintId}
+        initialStoryId={taskModalSprintId}
         onSuccess={fetchProject} 
       />
 
