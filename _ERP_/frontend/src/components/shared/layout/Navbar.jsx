@@ -77,14 +77,7 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
-            <Guard canManageProjects>
-              <Link
-                to="/projects/new"
-                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-              >
-                New Project
-              </Link>
-            </Guard>
+
             <Guard canManageHiring>
               <Link
                 to="/hiring/jobs"
@@ -93,6 +86,7 @@ export default function Navbar() {
                 Hiring
               </Link>
             </Guard>
+            
             <Guard roles={['team_member', 'project_manager']}>
               <Link
                 to="/hiring/jobs"
@@ -101,6 +95,7 @@ export default function Navbar() {
                 Jobs
               </Link>
             </Guard>
+            
           </div>
         </div>
 

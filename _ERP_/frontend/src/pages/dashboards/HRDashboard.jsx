@@ -318,7 +318,6 @@ export default function HRDashboard() {
           dataKey="applications"
           nameKey="name"
           color="#10B981"
-          horizontal={true}
         />
         <DashboardChartCard
           title="AI Score Distribution"
