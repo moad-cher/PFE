@@ -6,8 +6,8 @@ import { canManageProjects } from '../../auth/permissions';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
-import DashboardChart, { CHART_TYPES } from '../dashboards/cards/DashboardChartRegistry';
 import DashboardChartCard from '../dashboards/cards/DashboardChartCard';
+import { CHART_TYPES } from '../dashboards/cards/DashboardChartRegistry';
 import GanttChart from '../../components/features/projects/GanttChart';
 import TaskEdit from './TaskEdit';
 
@@ -263,29 +263,29 @@ export default function ProjectDetail() {
       <div className="grid lg:grid-cols-3 mb-8 lg:auto-rows-[320px] gap-6 mb-8">
         {/* Task Distribution Chart */}
         {kanbanData.length > 0 && (
-          <DashboardChartCard colSpan={1} title="Task Distribution">
-            <DashboardChart 
-              type={CHART_TYPES.DONUT}
-              data={kanbanData}
-              dataKey="value"
-              nameKey="name"
-              height={220}
-              showLegend={true}
-            />
-          </DashboardChartCard>
+          <DashboardChartCard 
+            colSpan={1} 
+            title="Task Distribution"
+            type={CHART_TYPES.DONUT}
+            data={kanbanData}
+            dataKey="value"
+            nameKey="name"
+            height={220}
+            showLegend={true}
+          />
         )}
         {/* Team Workload */}
         {workloadData.length > 0 && (
-          <DashboardChartCard title="Team Workload" colSpan={2}>
-            <DashboardChart 
-              type={CHART_TYPES.BAR} 
-              data={workloadData} 
-              nameKey="name" 
-              stacked={true} 
-              stackKeys={['active', 'completed']} 
-              stackColors={['#F59E0B', '#10B981']}
-            />
-          </DashboardChartCard>
+          <DashboardChartCard 
+            title="Team Workload" 
+            colSpan={2}
+            type={CHART_TYPES.BAR}
+            data={workloadData}
+            nameKey="name"
+            stacked={true}
+            stackKeys={['active', 'completed']}
+            stackColors={['#F59E0B', '#10B981']}
+          />
         )}
       </div>
 

@@ -17,19 +17,7 @@ const HR_PIPELINE_COLORS = {
   rejected: '#6b7280',
 };
 
-function ChartCard({ title, type, data, dataKey, nameKey, color, rowSpan, colSpan }) {
-  return (
-    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
-      <DashboardChart 
-        type={type} 
-        data={data} 
-        dataKey={dataKey} 
-        nameKey={nameKey} 
-        color={color} 
-      />
-    </DashboardChartCard>
-  );
-}
+// ChartCard helper removed — use DashboardChartCard directly where needed
 
 export default function HRDashboard() {
   const [stats, setStats] = useState(null);
@@ -316,13 +304,13 @@ export default function HRDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 lg:auto-rows-[320px] gap-6 mb-8">
-        <ChartCard
+        <DashboardChartCard
           rowSpan={2}
           title="Recruitment Funnel"
           type={CHART_TYPES.FUNNEL}
           data={funnelData}
         />
-        <ChartCard
+        <DashboardChartCard
           colSpan={2}
           title="Applications per Job"
           type={CHART_TYPES.BAR}
@@ -330,14 +318,16 @@ export default function HRDashboard() {
           dataKey="applications"
           nameKey="name"
           color="#10B981"
+          horizontal={true}
         />
-        <ChartCard
+        <DashboardChartCard
           title="AI Score Distribution"
           type={CHART_TYPES.BAR}
           data={aiScoreData}
           dataKey="count"
           nameKey="category"
           color="#3498db"
+          horizontal={true}
         />
       </div>
 

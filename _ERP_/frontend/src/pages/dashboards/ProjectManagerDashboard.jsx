@@ -16,21 +16,7 @@ const KANBAN_STATUS_COLORS = {
   done: '#2ecc71',
 };
 
-function ChartCard({ title, type, data, dataKey, nameKey, color, colorMap, rowSpan, colSpan }) {
-  return (
-    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
-      <DashboardChart 
-        type={type} 
-        data={data} 
-        dataKey={dataKey} 
-        nameKey={nameKey} 
-        color={color} 
-        colorMap={colorMap}
-        horizontal={type === CHART_TYPES.BAR}
-      />
-    </DashboardChartCard>
-  );
-}
+// ChartCard helper removed — use DashboardChartCard directly where needed
 
 export default function ProjectManagerDashboard() {
   const { user } = useAuth();
@@ -206,15 +192,16 @@ export default function ProjectManagerDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 lg:auto-rows-[320px] gap-6 mb-8">
-        <ChartCard
+        <DashboardChartCard
           title="Project Completion Rates"
           type={CHART_TYPES.BAR}
           data={projectCompletionData}
           dataKey="completion"
           nameKey="name"
           color={KANBAN_STATUS_COLORS.review}
+          horizontal={true}
         />
-        <ChartCard
+        <DashboardChartCard
           title="Task Status Distribution"
           type={CHART_TYPES.PIE}
           data={taskStatusData}

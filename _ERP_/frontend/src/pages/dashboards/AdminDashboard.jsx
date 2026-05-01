@@ -8,20 +8,7 @@ import DashboardChartCard from './cards/DashboardChartCard';
 import StatCard from './cards/StatCard';
 import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
 
-function ChartCard({ title, type, data, dataKey, nameKey, color, rowSpan, colSpan }) {
-  return (
-    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
-      <DashboardChart 
-        type={type} 
-        data={data} 
-        dataKey={dataKey} 
-        nameKey={nameKey} 
-        color={color} 
-        horizontal={type === CHART_TYPES.BAR}
-      />
-    </DashboardChartCard>
-  );
-}
+// ChartCard helper removed — use DashboardChartCard directly where needed
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -344,29 +331,32 @@ export default function AdminDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-4 lg:auto-rows-[320px] gap-6 mb-8">
-        <ChartCard
-          colSpan={2}
-          rowSpan={2}
+        <DashboardChartCard
           title="Role Distribution"
+          rowSpan={2}
+          colSpan={2}
           type={CHART_TYPES.PIE}
           data={roleChartData}
           dataKey="value"
           nameKey="name"
+          horizontal={false}
         />
-        <ChartCard
+        <DashboardChartCard
           title="Users per Department"
           colSpan={2}
           type={CHART_TYPES.BAR}
           data={departmentChartData}
           dataKey="value"
           nameKey="name"
+          horizontal={true}
         />
-        <ChartCard
+        <DashboardChartCard
           title="Task Status"
           type={CHART_TYPES.PIE}
           data={taskStatsData}
           dataKey="value"
           nameKey="name"
+          horizontal={false}
         />
       </div>
 

@@ -16,23 +16,7 @@ const KANBAN_STATUS_COLORS = {
   done: '#2ecc71',
 };
 
-function ChartCard({ title, type, data, dataKey, nameKey, color, colorMap, stacked, stackKeys, stackColors, rowSpan, colSpan }) {
-  return (
-    <DashboardChartCard title={title} rowSpan={rowSpan} colSpan={colSpan} hasData={data && data.length > 0}>
-      <DashboardChart 
-        type={type} 
-        data={data} 
-        dataKey={dataKey} 
-        nameKey={nameKey} 
-        color={color} 
-        colorMap={colorMap}
-        stacked={stacked}
-        stackKeys={stackKeys}
-        stackColors={stackColors}
-      />
-    </DashboardChartCard>
-  );
-}
+// ChartCard helper removed — use DashboardChartCard directly where needed
 
 export default function TeamMemberDashboard() {
   const { user } = useAuth();
@@ -293,7 +277,7 @@ export default function TeamMemberDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 lg:auto-rows-[300px] gap-6 mb-8">
-        <ChartCard
+        <DashboardChartCard
           title="Task Status"
           type={CHART_TYPES.PIE}
           data={statusData}
@@ -306,7 +290,7 @@ export default function TeamMemberDashboard() {
             todo: KANBAN_STATUS_COLORS.todo,
           }}
         />
-        <ChartCard
+        <DashboardChartCard
           title="Projects"
           type={CHART_TYPES.BAR}
           data={projectData}
@@ -320,7 +304,7 @@ export default function TeamMemberDashboard() {
             KANBAN_STATUS_COLORS.done
           ]}
         />
-        <ChartCard
+        <DashboardChartCard
           title="Points History"
           type={CHART_TYPES.LINE}
           data={pointsHistoryData}
