@@ -7,7 +7,7 @@ import logging
 
 from app.core.deps import get_db, require_roles
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, project_members, task_assignees
+from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, Comment, project_members, task_assignees
 from app.projects.schemas import (
     ProjectConfigRead,
     ProjectConfigUpdate,
@@ -460,10 +460,33 @@ async def kanban_board(
     if not _can_access(project, current_user):
         raise HTTPException(403, "Access denied")
 
+    # Find the active sprint
+    active_sprint = next((s for s in project.sprints if s.status == SprintStatus.active), None)
+    
+    # Get tasks for the active sprint (tasks -> story -> active sprint)
+    if active_sprint:
+        active_story_ids = {s.id for s in project.stories if s.sprint_id == active_sprint.id}
+        sprint_tasks = [t for t in project.tasks if t.story_id in active_story_ids]
+    else:
+        sprint_tasks = []
+
+    # Fetch comment counts for these tasks
+    task_ids = [t.id for t in sprint_tasks]
+    counts_map = {}
+    if task_ids:
+        counts_res = await db.execute(
+            select(Comment.task_id, func.count(Comment.id))
+            .where(Comment.task_id.in_(task_ids))
+            .group_by(Comment.task_id)
+        )
+        counts_map = {task_id: count for task_id, count in counts_res.all()}
+
     statuses = sorted(project.statuses, key=lambda s: s.order)
     task_map: dict[str, list[Task]] = {s.slug: [] for s in statuses}
-    for task in project.tasks:
+    for task in sprint_tasks:
         if task.status in task_map:
+            # Attach comments_count to the task object for TaskRead validation
+            task.comments_count = counts_map.get(task.id, 0)
             task_map[task.status].append(task)
 
     return [

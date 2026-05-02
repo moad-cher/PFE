@@ -24,6 +24,7 @@ export default function ScrumBoard() {
   const [minStartDate, setMinStartDate] = useState('');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskModalStoryId, setTaskModalStoryId] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [showStoryModal, setShowStoryModal] = useState(false);
 
   const fetchData = () => {
@@ -42,8 +43,9 @@ export default function ScrumBoard() {
     fetchData();
   }, [pk]);
 
-  const openTaskModal = (storyId = '') => {
+  const openTaskModal = (storyId = '', taskId = null) => {
     setTaskModalStoryId(storyId);
+    setEditingTaskId(taskId);
     setShowTaskModal(true);
   };
 
@@ -179,9 +181,12 @@ export default function ScrumBoard() {
                     {t.is_blocked && (
                       <span className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.5)] animate-pulse" title={`Blocked: ${t.blocker_reason}`}></span>
                     )}
-                    <Link to={`/projects/${pk}/tasks/${t.id}`} className={`font-medium hover:text-blue-600 line-clamp-1 ${t.is_blocked ? 'text-amber-900' : 'text-gray-700'}`}>
+                    <button 
+                      onClick={() => openTaskModal(t.story_id, t.id)}
+                      className={`font-medium text-left hover:text-blue-600 line-clamp-1 ${t.is_blocked ? 'text-amber-900' : 'text-gray-700'}`}
+                    >
                       {t.title}
-                    </Link>
+                    </button>
                   </div>
                 </td>
                 <td className="px-4 py-2">
@@ -290,8 +295,9 @@ export default function ScrumBoard() {
 
         <TaskEdit 
           isOpen={showTaskModal} 
-          onClose={() => setShowTaskModal(false)} 
+          onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }} 
           pk={pk} 
+          taskId={editingTaskId}
           initialStoryId={taskModalStoryId}
           onSuccess={fetchData} 
         />

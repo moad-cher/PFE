@@ -38,6 +38,7 @@ export default function ScrumBoard3() {
   const [showStoryModal, setShowStoryModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskModalStoryId, setTaskModalStoryId] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState(null);
   
   const [sprintForm, setSprintForm] = useState({ name: '', start_date: '', end_date: '', goal: '' });
 
@@ -67,6 +68,12 @@ export default function ScrumBoard3() {
     setLoading(true);
     fetchData();
   }, [pk]);
+
+  const openTaskModal = (storyId = '', taskId = null) => {
+    setTaskModalStoryId(storyId);
+    setEditingTaskId(taskId);
+    setShowTaskModal(true);
+  };
 
   const canManage = isProjectManager(user, project);
 
@@ -358,7 +365,8 @@ export default function ScrumBoard3() {
                                           ref={provided.innerRef}
                                           {...provided.draggableProps}
                                           {...provided.dragHandleProps}
-                                          className={`bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-indigo-300 transition-all ${snapshot.isDragging ? 'shadow-xl rotate-2 scale-105 ring-2 ring-indigo-500 z-50' : ''}`}
+                                          onClick={() => openTaskModal(task.story_id, task.id)}
+                                          className={`bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-indigo-300 cursor-pointer transition-all ${snapshot.isDragging ? 'shadow-xl rotate-2 scale-105 ring-2 ring-indigo-500 z-50' : ''}`}
                                         >
                                           <div className="flex items-start justify-between gap-2 mb-2">
                                             <h5 className="text-xs font-bold text-gray-800 leading-snug">{task.title}</h5>
@@ -434,8 +442,9 @@ export default function ScrumBoard3() {
       
       <TaskEdit 
         isOpen={showTaskModal} 
-        onClose={() => setShowTaskModal(false)} 
+        onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }} 
         pk={pk} 
+        taskId={editingTaskId}
         initialStoryId={taskModalStoryId} 
         onSuccess={fetchData} 
       />

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const DAY_WIDTH = 44;
 const TASK_HEIGHT = 28;
 
-function MiniGantt({ tasks, startDate, endDate, statuses, project_id }) {
+function MiniGantt({ tasks, startDate, endDate, statuses, project_id, onEditTask }) {
   const minDate = new Date(startDate);
   const maxDate = new Date(endDate);
   // Add 1 day buffer to end date to ensure the bar fits
@@ -92,15 +92,15 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id }) {
 
               return (
                 <div key={task.id} className="absolute flex items-center group transition-all" style={{ left: `${startX}px`, top: `${rIdx * (TASK_HEIGHT + 6)}px`, width: `${width}px` }}>
-                  <Link
-                    to={`/projects/${project_id}/tasks/${task.id}`}
-                    className="h-6 w-full rounded-md shadow-sm border border-black/5 hover:brightness-110 flex items-center px-1.5 overflow-hidden transition-all"
+                  <button
+                    onClick={() => onEditTask && onEditTask(task.sprint_id, task.id)}
+                    className="h-6 w-full rounded-md shadow-sm border border-black/5 hover:brightness-110 flex items-center px-1.5 overflow-hidden transition-all text-left"
                     style={{ backgroundColor: color }}
                   >
                     <span className="text-white text-[9px] font-bold truncate leading-none drop-shadow-sm">
                       {task.title}
                     </span>
-                  </Link>
+                  </button>
                   <div className="absolute left-full flex -space-x-1 pl-1 items-center pointer-events-none group-hover:z-50">
                     {task.assigned_to?.map(u => (
                       <div key={u.id} className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[7px] font-black text-gray-700 shadow-sm uppercase">
@@ -119,7 +119,7 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id }) {
   );
 }
 
-export default function GanttChart({ tasks, sprints, statuses, project_id, onAddTask }) {
+export default function GanttChart({ tasks, sprints, statuses, project_id, onAddTask, onEditTask }) {
   const sortedSprints = useMemo(() => 
     [...(sprints || [])].sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
   , [sprints]);
@@ -182,6 +182,7 @@ export default function GanttChart({ tasks, sprints, statuses, project_id, onAdd
                   endDate={sprint.end_date} 
                   statuses={statuses}
                   project_id={project_id}
+                  onEditTask={onEditTask}
                 />
               </div>
 

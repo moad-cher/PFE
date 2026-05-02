@@ -39,7 +39,19 @@ export default function ProjectDetail() {
   const fetchProject = () => {
     getProject(pk)
       .then((projRes) => {
-        setProject(projRes.data);
+        const data = projRes.data;
+        // Enrich tasks with sprint_id from their stories
+        if (data.tasks && data.stories) {
+          const storySprintMap = data.stories.reduce((acc, s) => {
+            acc[s.id] = s.sprint_id;
+            return acc;
+          }, {});
+          data.tasks = data.tasks.map(t => ({
+            ...t,
+            sprint_id: storySprintMap[t.story_id]
+          }));
+        }
+        setProject(data);
         
         // Fetch kanban data separately
         getKanban(pk)
@@ -73,9 +85,6 @@ export default function ProjectDetail() {
   useEffect(() => {
     setLoading(true);
     fetchProject();
-    // setLoading is handled by finally in original code, but since I extracted fetchProject, 
-    // I should ensure it's handled. 
-    // Actually, I'll just put the logic back or wrap it.
   }, [pk]);
 
   useEffect(() => {
@@ -93,8 +102,10 @@ export default function ProjectDetail() {
   };
 
   const [taskModalSprintId, setTaskModalSprintId] = useState('');
-  const openTaskModal = (sprintId = '') => {
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const openTaskModal = (sprintId = '', taskId = null) => {
     setTaskModalSprintId(sprintId);
+    setEditingTaskId(taskId);
     setShowTaskModal(true);
   };
 
@@ -176,8 +187,11 @@ export default function ProjectDetail() {
     const sprintTasks = tasks.filter((t) => t.sprint_id === activeSprint.id);
     if (sprintTasks.length === 0) return [];
 
-    const totalPoints = sprintTasks.reduce((sum, t) => sum + Number(t.points || 0), 0);
-    if (totalPoints <= 0) return [];
+    const usePoints = sprintTasks.some(t => Number(t.points || 0) > 0);
+    const getVal = (t) => usePoints ? Number(t.points || 0) : 1;
+    
+    const totalValue = sprintTasks.reduce((sum, t) => sum + getVal(t), 0);
+    if (totalValue <= 0) return [];
 
     const start = new Date(activeSprint.start_date);
     const end = new Date(activeSprint.end_date);
@@ -187,8 +201,7 @@ export default function ProjectDetail() {
 
     const getDoneDate = (task) => {
       if (task.completed_at) return new Date(task.completed_at);
-      if (task.end_time) return new Date(task.end_time);
-      if (task.updated_at) return new Date(task.updated_at);
+      if (task.updated_at && task.status === 'done') return new Date(task.updated_at);
       if (task.created_at) return new Date(task.created_at);
       return null;
     };
@@ -204,12 +217,12 @@ export default function ProjectDetail() {
         if (task.status !== 'done') return sum;
         const doneDate = getDoneDate(task);
         if (!doneDate) return sum;
-        return doneDate <= dayEnd ? sum + Number(task.points || 0) : sum;
+        return doneDate <= dayEnd ? sum + getVal(task) : sum;
       }, 0);
 
-      const remaining = Math.max(totalPoints - completed, 0);
+      const remaining = Math.max(totalValue - completed, 0);
       const ratio = totalDays > 1 ? i / (totalDays - 1) : 1;
-      const ideal = Math.max(totalPoints - totalPoints * ratio, 0);
+      const ideal = Math.max(totalValue - totalValue * ratio, 0);
 
       data.push({
         name: day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
@@ -218,8 +231,17 @@ export default function ProjectDetail() {
       });
     }
 
+    if (data.length === 1) {
+      data.push({ ...data[0], name: 'End', ideal: 0 });
+    }
+
     return data;
   }, [project, activeSprint]);
+
+  const burndownEmptyText = useMemo(() => {
+    if (!activeSprint) return "No active sprint";
+    return "No tasks in the active sprint to burn down";
+  }, [activeSprint]);
 
   const hasScrumContext = (project?.sprints?.length || 0) > 0 || (project?.tasks?.length || 0) > 0;
 
@@ -319,8 +341,9 @@ export default function ProjectDetail() {
 
       <TaskEdit 
         isOpen={showTaskModal} 
-        onClose={() => setShowTaskModal(false)} 
+        onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }} 
         pk={pk} 
+        taskId={editingTaskId}
         initialStoryId={taskModalSprintId}
         onSuccess={fetchProject} 
       />
@@ -411,6 +434,7 @@ export default function ProjectDetail() {
               type={CHART_TYPES.BAR}
               data={sprintVelocityData}
               nameKey="name"
+              height={250}
               stacked={true}
               stackKeys={['committed', 'done']}
               stackColors={['#93C5FD', '#22C55E']}
@@ -436,11 +460,12 @@ export default function ProjectDetail() {
               data={sprintBurndownData}
               dataKey="actual"
               nameKey="name"
+              height={300}
               lineKeys={['actual', 'ideal']}
               lineNames={{ actual: 'Actual', ideal: 'Ideal' }}
               lineColors={['#EF4444', '#94A3B8']}
               showLegend={true}
-              emptyText="No sprint points to burn down"
+              emptyText={burndownEmptyText}
             />
           </div>
         </>
@@ -465,6 +490,7 @@ export default function ProjectDetail() {
           statuses={project?.statuses || []}
           project_id={pk} 
           onAddTask={openTaskModal}
+          onEditTask={openTaskModal}
         />
       </div>
     </div>

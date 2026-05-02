@@ -115,6 +115,7 @@ class TaskRead(BaseModel):
     blocker_reason: Optional[str] = None
     created_at: datetime
     assigned_to: list[UserBrief]
+    comments_count: int = 0
     ai_suggestions: Optional[str] = None
 
     model_config = {"from_attributes": True}
