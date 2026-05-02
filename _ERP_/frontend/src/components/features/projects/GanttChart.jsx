@@ -140,6 +140,7 @@ export default function GanttChart({ tasks, sprints, statuses, project_id, onAdd
       <div className="flex overflow-x-auto pb-6 gap-6 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
         {sortedSprints.map(sprint => {
           const isActive = sprint.status === 'active';
+          const isCompleted = sprint.status === 'completed';
           return (
             <div 
               key={sprint.id} 
@@ -153,9 +154,15 @@ export default function GanttChart({ tasks, sprints, statuses, project_id, onAdd
                   <div className="flex items-center gap-2 mb-0.5">
                     <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">{sprint.name}</h4>
                     {isActive && <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded-full uppercase">Active</span>}
-                    <button onClick={() => onAddTask && onAddTask(sprint.id)} className="p-1 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-[10px] font-bold px-2" title="Add Task to Sprint">
-                      + task
-                    </button>
+                    {!isCompleted && (
+                      <button
+                        onClick={() => onAddTask && onAddTask(sprint.id)}
+                        className="p-1 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-[10px] font-bold px-2"
+                        title="Add Task to Sprint"
+                      >
+                        + task
+                      </button>
+                    )}
                   </div>
                   <p className="text-[10px] font-bold text-gray-400">
                     {new Date(sprint.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} — {new Date(sprint.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

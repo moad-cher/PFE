@@ -193,15 +193,6 @@ export default function Navbar() {
           >
             <Guard canManageHiring fallback="Jobs">Hiring</Guard>
           </Link>
-          <Guard canManageProjects>
-            <Link
-              to="/projects/new"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-            >
-              New Project
-            </Link>
-          </Guard>
         </div>
       )}
     </nav>

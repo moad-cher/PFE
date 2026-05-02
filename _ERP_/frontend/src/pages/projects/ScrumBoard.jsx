@@ -196,7 +196,7 @@ export default function ScrumBoard() {
     </div>
   );
 
-  const renderStory = (story, index, isDragDisabled = false) => {
+  const renderStory = (story, index, isDragDisabled = false, isReadOnly = false) => {
     const storyTasks = tasksByStory[story.id] || [];
     const totalTasks = storyTasks.length;
     const doneTasks = storyTasks.filter(t => t.status === 'done').length;
@@ -229,9 +229,14 @@ export default function ScrumBoard() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => openTaskModal(story.id)} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded-md transition-colors">
-                + Task
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => openTaskModal(story.id)}
+                  className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded-md transition-colors"
+                >
+                  + Task
+                </button>
+              )}
             </div>
             <div className="p-1">
               {renderTaskTable(storyTasks)}
@@ -299,10 +304,11 @@ export default function ScrumBoard() {
           </select>
         </div>
 
-        <div className="relative">
-          <div className="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 via-gray-200 to-transparent"></div>
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
+          <div className="relative">
+            <div className="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 via-gray-200 to-transparent"></div>
 
-          <div className="space-y-16">
+            <div className="space-y-16">
             {(() => {
               const lastSprint = sprints[sprints.length - 1];
               const isLastSprintDraft = lastSprint?.status === 'draft';
@@ -360,7 +366,7 @@ export default function ScrumBoard() {
                             {...provided.droppableProps}
                             className={`p-4 bg-gray-50/30 min-h-[50px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
                           >
-                            {sprintStories.map((story, sIdx) => renderStory(story, sIdx, isCompleted))}
+                            {sprintStories.map((story, sIdx) => renderStory(story, sIdx, isCompleted, isCompleted))}
                             {sprintStories.length === 0 && !snapshot.isDraggingOver && (
                                <div className="py-12 text-center text-gray-400 italic text-sm">No stories in this sprint</div>
                             )}
@@ -390,12 +396,11 @@ export default function ScrumBoard() {
               }
               return renderedSprints;
             })()}
+            </div>
           </div>
 
-          <div className="relative pl-12 md:pl-20 mt-16">
-            <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
-            
-            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
+          <div className="relative">
+            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden lg:sticky lg:top-6 flex flex-col max-h-[640px] lg:max-h-[calc(100vh-220px)]">
               <div className="px-6 py-4 border-b border-dashed border-gray-300 flex items-center justify-between bg-gray-100/50">
                 <div className="flex items-center gap-4">
                   <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
@@ -405,16 +410,16 @@ export default function ScrumBoard() {
                 </div>
                 <span className="text-xs font-bold text-gray-400 uppercase">{backlogStories.length} stories</span>
               </div>
-              
+
               <Droppable droppableId="backlog">
                 {(provided, snapshot) => (
-                  <div 
+                  <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`p-4 min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
+                    className={`p-4 min-h-[100px] flex-1 overflow-y-auto transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''}`}
                   >
-                     {backlogStories.map((story, sIdx) => renderStory(story, sIdx))}
-                     {provided.placeholder}
+                    {backlogStories.map((story, sIdx) => renderStory(story, sIdx))}
+                    {provided.placeholder}
                   </div>
                 )}
               </Droppable>

@@ -10,6 +10,13 @@ const ESSENTIAL_SLUGS = ['todo', 'done'];
 const TODO_ORDER = -1000;  // Fixed order for todo (always first)
 const DONE_ORDER = 1000;   // Fixed order for done (always last)
 
+const getMovableStatuses = (list) => (
+  list
+    .filter(s => !ESSENTIAL_SLUGS.includes(s.slug))
+    .slice()
+    .sort((a, b) => a.order - b.order)
+);
+
 export default function ProjectSettings() {
   const { pk } = useParams();
   const [project, setProject] = useState(null);
@@ -59,17 +66,7 @@ export default function ProjectSettings() {
     
     const statusToCreate = { ...newStatus, order: maxOrder + 1 };
     const res = await createProjectStatus(pk, statusToCreate);
-    setStatuses(prev => {
-      const updated = [...prev, res.data];
-      // Re-sort by order
-      return updated.sort((a, b) => {
-        if (a.slug === 'todo') return -1;
-        if (b.slug === 'todo') return 1;
-        if (a.slug === 'done') return 1;
-        if (b.slug === 'done') return -1;
-        return a.order - b.order;
-      });
-    });
+    setStatuses(prev => [...prev, res.data]);
     setNewStatus({ name:'', slug:'', order: 0, color:'#3498db' });
     setMsg('Column added.');
   };
@@ -81,30 +78,14 @@ export default function ProjectSettings() {
     if (source.index === destination.index) return;
 
     // Keep todo and done fixed with special order values
-    const movableStatuses = statuses.filter(s => !ESSENTIAL_SLUGS.includes(s.slug));
+    const movableStatuses = getMovableStatuses(statuses);
     const todoStatus = statuses.find(s => s.slug === 'todo');
     const doneStatus = statuses.find(s => s.slug === 'done');
 
-    // Adjust indices for movable items only (skip todo at index 0)
-    const adjustedSourceIndex = source.index - 1;
-    const adjustedDestIndex = destination.index - 1;
-
-    // Don't allow dragging essential items
-    if (source.index === 0 || source.index === statuses.length - 1) {
-      setMsg('Cannot move essential columns (todo, done).');
-      return;
-    }
-
-    // Prevent dragging outside valid range
-    if (adjustedDestIndex < 0 || adjustedDestIndex >= movableStatuses.length) {
-      setMsg('Invalid drop position.');
-      return;
-    }
-
     // Reorder movable items
     const newMovableStatuses = Array.from(movableStatuses);
-    const [reordered] = newMovableStatuses.splice(adjustedSourceIndex, 1);
-    newMovableStatuses.splice(adjustedDestIndex, 0, reordered);
+    const [reordered] = newMovableStatuses.splice(source.index, 1);
+    newMovableStatuses.splice(destination.index, 0, reordered);
 
     // Assign new orders to movable items (1-based, leaving room for todo=-1000, done=1000)
     const updatedMovable = newMovableStatuses.map((s, i) => ({ ...s, order: i + 1 }));
@@ -145,7 +126,6 @@ export default function ProjectSettings() {
 
 
   const removeStatus = async (id) => {
-    if (!window.confirm('Delete this column? Tasks will move to the first column.')) return;
     try {
       await deleteProjectStatus(pk, id);
       setStatuses(prev => prev.filter(s => s.id !== id));
@@ -187,6 +167,22 @@ export default function ProjectSettings() {
 
       <div className="bg-white rounded-2xl shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Kanban Columns</h2>
+        <div className="space-y-2 mb-6">
+          {(() => {
+            const s = statuses.find(status => status.slug === 'todo');
+            if (!s) return null;
+            return (
+              <div key={s.id} className="flex items-center justify-between border rounded-xl px-4 py-3 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <span className="w-4 h-4 rounded-full" style={{background: s.color}} />
+                  <span className="font-medium text-sm">{s.name}</span>
+                  <span className="text-xs text-gray-400">{s.slug}</span>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">Fixed</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
         <Guard isProjectManager project={project}>
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="columns">
@@ -196,12 +192,11 @@ export default function ProjectSettings() {
                   ref={provided.innerRef}
                   className="space-y-2 mb-6"
                 >
-                  {statuses.map((s, index) => (
+                  {getMovableStatuses(statuses).map((s, index) => (
                     <Draggable 
                       key={s.id} 
                       draggableId={String(s.id)} 
                       index={index}
-                      isDragDisabled={ESSENTIAL_SLUGS.includes(s.slug)}
                     >
                       {(provided, snapshot) => (
                         <div
@@ -212,25 +207,20 @@ export default function ProjectSettings() {
                             snapshot.isDragging 
                               ? 'shadow-lg scale-105 bg-blue-50 border-blue-300' 
                               : 'hover:shadow-md'
-                          } ${ESSENTIAL_SLUGS.includes(s.slug) ? 'opacity-75 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+                          } cursor-grab active:cursor-grabbing`}
                           style={{ ...provided.draggableProps.style }}
                         >
                           <div className="flex items-center gap-3">
-                            {!ESSENTIAL_SLUGS.includes(s.slug) && (
-                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                              </svg>
-                            )}
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
                             <span className="w-4 h-4 rounded-full" style={{background: s.color}} />
                             <span className="font-medium text-sm">{s.name}</span>
-                            <span className="text-xs text-gray-400">{s.slug}{!ESSENTIAL_SLUGS.includes(s.slug) && ` · order ${s.order}`}</span>
-                            {ESSENTIAL_SLUGS.includes(s.slug) && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">Fixed</span>
-                            )}
+                            <span className="text-xs text-gray-400">{s.slug} · order {s.order}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Guard isProjectManager project={project}>
-                              {statuses.length > 1 && !ESSENTIAL_SLUGS.includes(s.slug) && (
+                              {statuses.length > 1 && (
                                 <button onClick={() => removeStatus(s.id)} className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded border border-red-200">Remove</button>
                               )}
                             </Guard>
@@ -245,6 +235,22 @@ export default function ProjectSettings() {
             </Droppable>
           </DragDropContext>
         </Guard>
+        <div className="space-y-2 mb-6">
+          {(() => {
+            const s = statuses.find(status => status.slug === 'done');
+            if (!s) return null;
+            return (
+              <div key={s.id} className="flex items-center justify-between border rounded-xl px-4 py-3 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <span className="w-4 h-4 rounded-full" style={{background: s.color}} />
+                  <span className="font-medium text-sm">{s.name}</span>
+                  <span className="text-xs text-gray-400">{s.slug}</span>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">Fixed</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
         
         <Guard isProjectManager project={project}>
           <form onSubmit={addStatus} className="border-t pt-4 space-y-3">

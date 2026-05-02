@@ -7,7 +7,7 @@ import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import DashboardChartCard from '../dashboards/cards/DashboardChartCard';
-import { CHART_TYPES } from '../dashboards/cards/DashboardChartRegistry';
+import { CHART_COLORS, CHART_TYPES } from '../dashboards/cards/DashboardChartRegistry';
 import GanttChart from '../../components/features/projects/GanttChart';
 import TaskEdit from './TaskEdit';
 
@@ -118,6 +118,110 @@ export default function ProjectDetail() {
     
     return memberWorkload;
   }, [project]);
+
+  const activeSprint = useMemo(() => {
+    const sprints = project?.sprints || [];
+    if (sprints.length === 0) return null;
+    const active = sprints.find((s) => s.status === 'active');
+    if (active) return active;
+    return [...sprints].sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+  }, [project]);
+
+  const sprintVelocityData = useMemo(() => {
+    const sprints = project?.sprints || [];
+    const tasks = project?.tasks || [];
+    if (sprints.length === 0 || tasks.length === 0) return [];
+
+    const sortedSprints = [...sprints].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+    return sortedSprints
+      .map((sprint) => {
+        const sprintTasks = tasks.filter((t) => t.sprint_id === sprint.id);
+        const committed = sprintTasks.reduce((sum, t) => sum + Number(t.points || 0), 0);
+        const done = sprintTasks
+          .filter((t) => t.status === 'done')
+          .reduce((sum, t) => sum + Number(t.points || 0), 0);
+        return { name: sprint.name, committed, done };
+      })
+      .filter((d) => d.committed > 0 || d.done > 0);
+  }, [project]);
+
+  const sprintStatusMixData = useMemo(() => {
+    if (!activeSprint) return [];
+    const tasks = project?.tasks || [];
+    const statuses = project?.statuses || [];
+
+    const statusMap = statuses.reduce((acc, s) => {
+      acc[s.slug] = { name: s.name || s.slug, color: s.color };
+      return acc;
+    }, {});
+
+    const counts = {};
+    tasks
+      .filter((t) => t.sprint_id === activeSprint.id)
+      .forEach((t) => {
+        const key = t.status || 'unknown';
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+    return Object.entries(counts).map(([status, count], index) => ({
+      name: statusMap[status]?.name || status,
+      value: count,
+      fill: statusMap[status]?.color || CHART_COLORS[index % CHART_COLORS.length],
+    }));
+  }, [project, activeSprint]);
+
+  const sprintBurndownData = useMemo(() => {
+    if (!activeSprint) return [];
+    const tasks = project?.tasks || [];
+    const sprintTasks = tasks.filter((t) => t.sprint_id === activeSprint.id);
+    if (sprintTasks.length === 0) return [];
+
+    const totalPoints = sprintTasks.reduce((sum, t) => sum + Number(t.points || 0), 0);
+    if (totalPoints <= 0) return [];
+
+    const start = new Date(activeSprint.start_date);
+    const end = new Date(activeSprint.end_date);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+
+    const totalDays = Math.max(1, Math.ceil((end - start) / 86400000) + 1);
+
+    const getDoneDate = (task) => {
+      if (task.completed_at) return new Date(task.completed_at);
+      if (task.end_time) return new Date(task.end_time);
+      if (task.updated_at) return new Date(task.updated_at);
+      if (task.created_at) return new Date(task.created_at);
+      return null;
+    };
+
+    const data = [];
+    for (let i = 0; i < totalDays; i += 1) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const completed = sprintTasks.reduce((sum, task) => {
+        if (task.status !== 'done') return sum;
+        const doneDate = getDoneDate(task);
+        if (!doneDate) return sum;
+        return doneDate <= dayEnd ? sum + Number(task.points || 0) : sum;
+      }, 0);
+
+      const remaining = Math.max(totalPoints - completed, 0);
+      const ratio = totalDays > 1 ? i / (totalDays - 1) : 1;
+      const ideal = Math.max(totalPoints - totalPoints * ratio, 0);
+
+      data.push({
+        name: day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        actual: remaining,
+        ideal: Math.round(ideal * 100) / 100,
+      });
+    }
+
+    return data;
+  }, [project, activeSprint]);
+
+  const hasScrumContext = (project?.sprints?.length || 0) > 0 || (project?.tasks?.length || 0) > 0;
 
   if (loading) {
     return (
@@ -288,6 +392,59 @@ export default function ProjectDetail() {
           />
         )}
       </div>
+
+      {hasScrumContext && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Scrum Insights</h2>
+            {activeSprint && (
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Active: {activeSprint.name}
+              </span>
+            )}
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6 mb-8">
+            <DashboardChartCard
+              title="Sprint Velocity"
+              colSpan={2}
+              type={CHART_TYPES.BAR}
+              data={sprintVelocityData}
+              nameKey="name"
+              stacked={true}
+              stackKeys={['committed', 'done']}
+              stackColors={['#93C5FD', '#22C55E']}
+              emptyText="No sprint points yet"
+            />
+
+            <DashboardChartCard
+              title={activeSprint ? `Sprint Status Mix - ${activeSprint.name}` : 'Sprint Status Mix'}
+              type={CHART_TYPES.DONUT}
+              data={sprintStatusMixData}
+              dataKey="value"
+              nameKey="name"
+              height={220}
+              showLegend={true}
+              emptyText="No tasks in the active sprint"
+            />
+          </div>
+
+          <div className="mb-8">
+            <DashboardChartCard
+              title={activeSprint ? `Sprint Burndown - ${activeSprint.name}` : 'Sprint Burndown'}
+              type={CHART_TYPES.MULTI_LINE}
+              data={sprintBurndownData}
+              dataKey="actual"
+              nameKey="name"
+              lineKeys={['actual', 'ideal']}
+              lineNames={{ actual: 'Actual', ideal: 'Ideal' }}
+              lineColors={['#EF4444', '#94A3B8']}
+              showLegend={true}
+              emptyText="No sprint points to burn down"
+            />
+          </div>
+        </>
+      )}
 
 
       {/* Project Roadmap / Gantt */}

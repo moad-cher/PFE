@@ -18,6 +18,7 @@ export const CHART_TYPES = {
   AREA: 'area',
   DONUT: 'donut',
   FUNNEL: 'funnel',
+  MULTI_LINE: 'multi_line',
 };
 
 const DefaultTooltip = ({ active, payload, label }) => {
@@ -48,6 +49,9 @@ export default function DashboardChart({
   stacked = false,
   stackKeys = [],
   stackColors = [],
+  lineKeys = [],
+  lineColors = [],
+  lineNames = {},
   showGrid = true,
   showTooltip = true,
   showLegend = true,
@@ -127,6 +131,34 @@ export default function DashboardChart({
             <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 4, fill: color, strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
           </LineChart>
         );
+
+      case CHART_TYPES.MULTI_LINE: {
+        const keys = lineKeys.length > 0 ? lineKeys : [dataKey];
+        return (
+          <LineChart data={data}>
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />}
+            <XAxis dataKey={nameKey} tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+            {showTooltip && <Tooltip content={<DefaultTooltip />} />}
+            {showLegend && <Legend />}
+            {keys.map((key, i) => {
+              const lineColor = lineColors[i] || CHART_COLORS[i % CHART_COLORS.length];
+              return (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  name={lineNames[key] || key}
+                  stroke={lineColor}
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: lineColor, strokeWidth: 1, stroke: '#fff' }}
+                  activeDot={{ r: 5 }}
+                />
+              );
+            })}
+          </LineChart>
+        );
+      }
 
       case CHART_TYPES.AREA:
         return (
