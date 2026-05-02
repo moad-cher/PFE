@@ -66,20 +66,12 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int):
     await _accept_ws(ws)
     accepted = True
 
-    if room_type not in ("project", "task"):
+    if room_type != "project":
         await ws.close(code=status.WS_1003_UNSUPPORTED_DATA, reason="Invalid chat room type")
         return
 
     # Resolve project_id and enforce membership check
     project_id = pk
-    if room_type == "task":
-        async with AsyncSessionLocal() as db:
-            task_res = await db.execute(select(Task).where(Task.id == pk))
-            task = task_res.scalar_one_or_none()
-            if task is None:
-                await close_policy("Task not found")
-                return
-            project_id = task.project_id
 
     async with AsyncSessionLocal() as db:
         proj_res = await db.execute(
@@ -106,14 +98,11 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int):
     async with AsyncSessionLocal() as db:
         q = (
             select(ChatMessage)
+            .where(ChatMessage.project_id == pk)
             .options(selectinload(ChatMessage.author))
             .order_by(ChatMessage.created_at.desc())
             .limit(50)
         )
-        if room_type == "project":
-            q = q.where(ChatMessage.project_id == pk)
-        else:
-            q = q.where(ChatMessage.task_id == pk)
         msgs = (await db.execute(q)).scalars().all()
 
     await ws.send_json({
@@ -180,7 +169,6 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int):
                 async with AsyncSessionLocal() as db:
                     msg = ChatMessage(
                         project_id=project_id,
-                        task_id=pk if room_type == "task" else None,
                         author_id=user.id,
                         content=content,
                     )

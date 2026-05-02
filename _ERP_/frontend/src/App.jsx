@@ -22,7 +22,6 @@ import TaskEdit from './pages/projects/TaskEdit';
 import Members from './pages/projects/Members';
 import Leaderboard from './pages/projects/Leaderboard';
 import ProjectChat from './pages/projects/ProjectChat';
-import TaskChat from './pages/projects/TaskChat';
 
 import JobList from './pages/hiring/JobList';
 import JobDetail from './pages/hiring/JobDetail';
@@ -82,7 +81,6 @@ export default function App() {
             <Route path="/projects/:pk/scrum3" element={<ScrumBoard3 />} />
             <Route path="/projects/:pk/tasks/:taskId" element={<TaskDetail />} />
             <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
-            <Route path="/projects/:pk/tasks/:taskId/chat" element={<TaskChat />} />
             <Route path="/projects/:pk/members" element={<Members />} />
             <Route path="/projects/:pk/leaderboard" element={<Leaderboard />} />
             <Route path="/projects/:pk/chat" element={<ProjectChat />} />

@@ -95,6 +95,8 @@ class TaskCreate(BaseModel):
     points: int = 10
     assigned_to_ids: list[int] = []
     story_id: int
+    is_blocked: bool = False
+    blocker_reason: Optional[str] = None
 
 
 class TaskRead(BaseModel):
@@ -109,6 +111,8 @@ class TaskRead(BaseModel):
     end_time: Optional[datetime]
     points: int
     completed_at: Optional[datetime]
+    is_blocked: bool = False
+    blocker_reason: Optional[str] = None
     created_at: datetime
     assigned_to: list[UserBrief]
     ai_suggestions: Optional[str] = None
@@ -140,6 +144,8 @@ class TaskUpdate(BaseModel):
     points: Optional[int] = None
     assigned_to_ids: Optional[list[int]] = None
     story_id: Optional[int] = None
+    is_blocked: Optional[bool] = None
+    blocker_reason: Optional[str] = None
 
 
 # ── ProjectConfig ─────────────────────────────────────────────────────────────

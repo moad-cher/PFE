@@ -10,6 +10,7 @@ from app.core.base import Base
 class NotifTypeEnum(str, enum.Enum):
     task_assigned = "task_assigned"
     task_updated = "task_updated"
+    task_blocked = "task_blocked"
     deadline = "deadline"
     application = "application"
     interview = "interview"

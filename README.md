@@ -110,20 +110,19 @@ Product
 ```mermaid
 mindmap
   root((Scrum App))
-    Users & Org
+    %% Users & Org
       %% Departments
       %% organization structure mechanics
-      Roles & permissions
+      %% Roles & permissions
       %% HR access scope
     %% Projects
       %% scrum mode only
       %% 1 Team per project
       %% Project manager ownership transfer
     Sprints
-      Sprint state machine
+      %% Sprint state machine
       %% Incomplete stories
-      Velocity snapshot
-      Sprint close operation
+      Sprint timed start/close operation
     Backlog
       Story points & estimates
       Priority ordering
@@ -133,14 +132,13 @@ mindmap
       Assignee & self-assign
       Done definition
     Ceremonies
-      Sprint planning
+      %% Sprint planning
       Sprint review
       Retrospective
     Reporting
       %% team workload
       Burndown chart
       Velocity history
-      Daily snapshots
       Capacity view
     AI Features
       Sprint planning assist

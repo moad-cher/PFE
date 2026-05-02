@@ -197,10 +197,6 @@ export const getProjectChat = (id, params) =>
   api.get(`/chat/project/${id}`, { params });
 export const sendProjectMessage = (id, content) =>
   api.post(`/chat/project/${id}`, { content });
-export const getTaskChat = (id, params) =>
-  api.get(`/chat/task/${id}`, { params });
-export const sendTaskMessage = (id, content) =>
-  api.post(`/chat/task/${id}`, { content });
 export const deleteChatMessage = (id) => api.delete(`/chat/message/${id}`);
 
 // ===================== AI =====================

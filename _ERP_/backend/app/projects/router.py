@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import logging
 
 from app.core.deps import get_db, require_roles
-from app.messaging.models import ChatMessage
 from app.users.models import User
 from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, project_members, task_assignees
 from app.projects.schemas import (
@@ -299,7 +298,6 @@ async def delete_project(
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
     
-    await db.execute(delete(ChatMessage).where(ChatMessage.project_id == pk))
     await db.execute(delete(Project).where(Project.id == pk))
     await db.commit()
 
@@ -548,6 +546,12 @@ async def create_sprint(
     if not _is_manager(project, current_user):
         raise HTTPException(403, "Access denied")
     sprint = Sprint(**data.model_dump(), project_id=pk)
+    
+    # Automate project start date: if this is the first sprint, 
+    # use its start date as the project's start date.
+    if not project.sprints:
+        project.start_date = sprint.start_date
+
     db.add(sprint)
     await db.commit()
     await db.refresh(sprint)

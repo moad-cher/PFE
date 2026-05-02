@@ -173,11 +173,24 @@ export default function ScrumBoard() {
             <tr><td colSpan={4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td></tr>
           ) : (
             taskList.map(t => (
-              <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
+              <tr key={t.id} className={`hover:bg-gray-50/50 transition-colors group ${t.is_blocked ? 'bg-amber-50/30' : ''}`}>
                 <td className="px-4 py-2">
-                  <Link to={`/projects/${pk}/tasks/${t.id}`} className="font-medium text-gray-700 hover:text-blue-600 line-clamp-1">{t.title}</Link>
+                  <div className="flex items-center gap-2">
+                    {t.is_blocked && (
+                      <span className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.5)] animate-pulse" title={`Blocked: ${t.blocker_reason}`}></span>
+                    )}
+                    <Link to={`/projects/${pk}/tasks/${t.id}`} className={`font-medium hover:text-blue-600 line-clamp-1 ${t.is_blocked ? 'text-amber-900' : 'text-gray-700'}`}>
+                      {t.title}
+                    </Link>
+                  </div>
                 </td>
-                <td className="px-4 py-2"><StatusBadge status={t.status} /></td>
+                <td className="px-4 py-2">
+                  {t.is_blocked ? (
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-amber-200">Blocked</span>
+                  ) : (
+                    <StatusBadge status={t.status} />
+                  )}
+                </td>
                 <td className="px-4 py-2 text-center text-gray-500 text-xs">{t.points}</td>
                 <td className="px-4 py-2">
                   <div className="flex -space-x-1.5">

@@ -10,6 +10,7 @@ from app.core.deps import get_db, require_roles
 from app.notifications.service import (
     notify_task_assigned,
     notify_task_completed,
+    notify_task_blocked,
     notify_task_updated,
     notify_reward,
     schedule_notification,
@@ -171,6 +172,15 @@ async def update_task(
 
     for field, value in payload.items():
         setattr(task, field, value)
+
+    if payload.get("is_blocked") is True:
+        background_tasks.add_task(
+            notify_task_blocked,
+            project.manager_id,
+            task.title,
+            task.blocker_reason or "No reason provided",
+            task.id
+        )
 
     if task.status == "done" and not task.completed_at:
         task.completed_at = datetime.now(timezone.utc)

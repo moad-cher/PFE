@@ -95,6 +95,16 @@ async def notify_task_completed(manager_id: int, task_title: str, task_id: int):
     )
 
 
+async def notify_task_blocked(manager_id: int, task_title: str, reason: str, task_id: int):
+    await _create_and_push(
+        recipient_id=manager_id,
+        notif_type=NotifTypeEnum.task_blocked,
+        title="Task Blocked",
+        message=f'Task "{task_title}" is blocked: {reason}',
+        link=f"/tasks/{task_id}",
+    )
+
+
 async def notify_application_received(hr_id: int, job_title: str, app_id: int):
     await _create_and_push(
         recipient_id=hr_id,

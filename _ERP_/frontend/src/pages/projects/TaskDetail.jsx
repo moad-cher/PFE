@@ -198,6 +198,21 @@ export default function TaskDetail() {
                 </div>
               </Guard>
             </div>
+
+            {task.is_blocked && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 animate-in fade-in zoom-in duration-300">
+                <div className="flex items-center gap-2 text-amber-800 font-bold mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                  </svg>
+                  Task is Blocked
+                </div>
+                <p className="text-sm text-amber-700 leading-relaxed bg-white/50 rounded-lg p-2 mt-2 border border-amber-100/50">
+                  {task.blocker_reason || "No reason provided."}
+                </p>
+              </div>
+            )}
+
             {task.description && (
               <p className="text-gray-700 text-sm whitespace-pre-line mb-4 leading-relaxed">{task.description}</p>
             )}
@@ -297,15 +312,6 @@ export default function TaskDetail() {
           </div>
 
           <AISuggestPanel pk={pk} taskId={taskId} task={task} onAssigned={loadTaskData} />
-
-          <Link to={`/projects/${pk}/tasks/${taskId}/chat`}
-            className="flex items-center gap-2 bg-white rounded-2xl shadow p-4 hover:shadow-md transition-shadow text-green-700">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span className="text-sm font-medium">Task Chat</span>
-          </Link>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import enum
 from datetime import date, datetime
 
 from sqlalchemy import (
-    Column, Date, DateTime, Enum, ForeignKey, Integer,
+    Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer,
     String, Table, Text, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -130,6 +130,8 @@ class Task(Base):
     end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=10)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    blocker_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     ai_suggestions: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -138,7 +140,6 @@ class Task(Base):
     story: Mapped["Story"] = relationship("Story", back_populates="tasks")
     assigned_to: Mapped[list["User"]] = relationship("User", secondary=task_assignees)  # noqa: F821
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="task", cascade="all, delete-orphan")
-    chat_messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="task")  # noqa: F821
 
 
 class Comment(Base):
@@ -178,6 +179,3 @@ class ProjectConfig(Base):
     sprint_duration_days: Mapped[int] = mapped_column(Integer, default=14)
 
     project: Mapped["Project"] = relationship("Project", back_populates="config")
-
-
-from app.messaging.models import ChatMessage  # noqa: E402, F401

@@ -21,6 +21,8 @@ const buildDefaultForm = (storyId) => ({
   points: 10,
   assigned_to_ids: [],
   story_id: storyId || '',
+  is_blocked: false,
+  blocker_reason: '',
 });
 
 const toDateTimeLocal = (value) => {
@@ -81,6 +83,8 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, initialStoryId, 
             points: d.points,
             assigned_to_ids: d.assigned_to?.map((u) => u.id) || [],
             story_id: d.story_id || '',
+            is_blocked: d.is_blocked || false,
+            blocker_reason: d.blocker_reason || '',
           });
         })
         .catch((err) => {
@@ -315,6 +319,35 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, initialStoryId, 
           />
         </div>
       </div>
+
+      <div className="border-t border-gray-100 pt-4 mt-2">
+        <label className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors">
+          <input
+            type="checkbox"
+            checked={form.is_blocked}
+            onChange={(e) => setForm((prev) => ({ ...prev, is_blocked: e.target.checked }))}
+            className="w-5 h-5 text-amber-600 rounded-lg focus:ring-amber-500 border-amber-300"
+          />
+          <div>
+            <span className="text-sm font-bold text-amber-900 block">Flag as Blocked</span>
+            <span className="text-xs text-amber-700">Surface this task as blocked on the board and notify manager</span>
+          </div>
+        </label>
+        
+        {form.is_blocked && (
+          <div className="mt-3">
+            <label className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-1.5 ml-1">Blocker Reason</label>
+            <textarea
+              value={form.blocker_reason}
+              onChange={(e) => setForm((prev) => ({ ...prev, blocker_reason: e.target.value }))}
+              placeholder="Why is this task blocked? (e.g. Waiting on design assets)"
+              rows={2}
+              className="w-full border border-amber-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-amber-200 text-amber-900"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-3 pt-2">
         <button
           type="submit"

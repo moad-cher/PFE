@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getKanban, moveTask, getProject } from '../../api';
+import { getKanban, moveTask, getProject, getTaskComments, relativeTime } from '../../api';
 import Spinner from '../../components/shared/ui/Spinner';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -9,8 +9,38 @@ import Guard, { usePermissions } from '../../auth/Guard';
 import TaskEdit from './TaskEdit';
 
 function TaskCard({ task, projectId, isDragging, isLocked }) {
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  const toggleComments = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!showComments && comments.length === 0) {
+      setLoadingComments(true);
+      try {
+        const res = await getTaskComments(projectId, task.id);
+        setComments(res.data);
+      } catch (err) {
+        console.error('Failed to fetch comments:', err);
+      } finally {
+        setLoadingComments(false);
+      }
+    }
+    setShowComments(!showComments);
+  };
+
   return (
-    <div className={`bg-white/95 rounded-2xl border border-purple-100/40 shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 rotate-2 scale-105 cursor-grabbing' : 'hover:shadow-md card-hover'} ${isLocked ? 'opacity-75 grayscale-[0.2]' : ''}`}>
+    <div className={`bg-white/95 rounded-2xl border ${task.is_blocked ? 'border-amber-300 ring-2 ring-amber-100' : 'border-purple-100/40'} shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 rotate-2 scale-105 cursor-grabbing' : 'hover:shadow-md card-hover'} ${isLocked ? 'opacity-75 grayscale-[0.2]' : ''}`}>
+      {task.is_blocked && (
+        <div className="mb-2 flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight w-fit">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+          </svg>
+          Blocked
+        </div>
+      )}
       {isLocked && (
         <div className="absolute top-3 right-3 text-gray-400">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -30,17 +60,51 @@ function TaskCard({ task, projectId, isDragging, isLocked }) {
           {new Date(task.end_time).toLocaleString()}
         </p>
       )}
-      {task.assigned_to?.length > 0 && (
-        <div className="flex -space-x-1">
-          {task.assigned_to.slice(0, 3).map(u => (
-            <div key={u.id} title={u.username}
-              className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center text-white text-[9px] border-2 border-white shadow-sm">
-              {u.username[0].toUpperCase()}
-            </div>
-          ))}
-          {task.assigned_to.length > 3 && (
-            <span className="text-xs text-purple-300 pl-2">+{task.assigned_to.length - 3}</span>
-          )}
+      <div className="flex items-center justify-between mt-2">
+        {task.assigned_to?.length > 0 ? (
+          <div className="flex -space-x-1">
+            {task.assigned_to.slice(0, 3).map(u => (
+              <div key={u.id} title={u.username}
+                className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center text-white text-[9px] border-2 border-white shadow-sm">
+                {u.username[0].toUpperCase()}
+              </div>
+            ))}
+            {task.assigned_to.length > 3 && (
+              <span className="text-xs text-purple-300 pl-2">+{task.assigned_to.length - 3}</span>
+            )}
+          </div>
+        ) : <div />}
+
+        <button 
+          onClick={toggleComments}
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${showComments ? 'bg-purple-100 text-purple-700' : 'text-gray-400 hover:bg-gray-100'}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          Comments
+        </button>
+      </div>
+
+      {showComments && (
+        <div className="mt-3 pt-3 border-t border-purple-50">
+          <div className="max-h-32 overflow-y-auto pr-1 custom-scrollbar space-y-2">
+            {loadingComments ? (
+              <div className="flex justify-center py-2"><Spinner size="sm" /></div>
+            ) : comments.length === 0 ? (
+              <p className="text-[10px] text-gray-400 text-center py-1 italic">No comments</p>
+            ) : (
+              comments.map(c => (
+                <div key={c.id} className="bg-purple-50/50 rounded-lg p-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-purple-700">{c.author?.username}</span>
+                    <span className="text-[9px] text-gray-400">{relativeTime(c.created_at)}</span>
+                  </div>
+                  <p className="text-[10px] text-gray-600 leading-tight">{c.content}</p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
