@@ -84,7 +84,6 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
         is_blocked: isBlocked,
         blocker_reason: isBlocked ? blockerReason : '' 
       });
-      // State is already set by the checkbox/textarea handlers
       setShowBlockForm(false);
     } catch (err) {
       alert('Failed to update task status');
@@ -189,35 +188,43 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
       </div>
 
       {showDetails && (
-        <div className="mt-3 pt-3 border-t border-blue-50 space-y-2 text-[10px]" onClick={e => e.stopPropagation()}>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-500">Start</span>
-            <span className="text-gray-700">{task.start_time ? formatDateTime(task.start_time) : '—'}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-500">End</span>
-            <span className={task.is_overdue ? 'text-red-500 font-semibold' : task.deadline_approaching ? 'text-orange-500' : 'text-gray-700'}>
-              {task.end_time ? formatDateTime(task.end_time) : '—'}
-            </span>
+        <div className="mt-3 pt-3 border-t border-blue-50 space-y-3 text-[10px]" onClick={e => e.stopPropagation()}>
+          {task.description && (
+            <div className="bg-blue-50/30 rounded-lg p-2 border border-blue-100/50">
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-[8px] mb-1">Description</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{task.description}</p>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex justify-between items-center bg-white p-1.5 rounded-md border border-blue-50/50">
+              <span className="text-gray-500 font-medium">Start</span>
+              <span className="text-gray-700 font-bold">{task.start_time ? formatDateTime(task.start_time) : '—'}</span>
+            </div>
+            <div className="flex justify-between items-center bg-white p-1.5 rounded-md border border-blue-50/50">
+              <span className="text-gray-500 font-medium">End</span>
+              <span className={task.is_overdue ? 'text-red-500 font-black' : task.deadline_approaching ? 'text-orange-500' : 'text-gray-700'}>
+                {task.end_time ? formatDateTime(task.end_time) : '—'}
+              </span>
+            </div>
           </div>
           {task.completed_at && (
-            <div className="flex justify-between bg-green-100 items-center">
-              <span className="text-gray-500">Completed</span>
-              <span className="text-green-600 font-medium">{formatDateTime(task.completed_at)}</span>
+            <div className="flex justify-between bg-green-50 items-center p-1.5 rounded-md border border-green-100">
+              <span className="text-green-600 font-medium">Completed</span>
+              <span className="text-green-700 font-black">{formatDateTime(task.completed_at)}</span>
             </div>
           )}
           {task.points > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">Points</span>
-              <span className="bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5 font-bold">{task.points} pts</span>
+            <div className="flex justify-between items-center bg-yellow-50/50 p-1.5 rounded-md border border-yellow-100/50">
+              <span className="text-yellow-700 font-medium">Points</span>
+              <span className="bg-yellow-200 text-yellow-900 rounded-full px-2 py-0.5 font-black">{task.points} pts</span>
             </div>
           )}
           {task.assigned_to?.length > 0 && (
             <div className="border-t border-blue-50/50 pt-2">
-              <p className="text-gray-500 mb-1">Assignees</p>
+              <p className="text-gray-500 mb-1 font-bold uppercase text-[8px]">Assignees</p>
               <div className="flex flex-wrap gap-1">
                 {task.assigned_to.map(u => (
-                  <span key={u.id} className="bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 font-medium">{u.username}</span>
+                  <span key={u.id} className="bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 font-bold border border-blue-100">{u.username}</span>
                 ))}
               </div>
             </div>
@@ -306,7 +313,6 @@ export default function KanbanBoard() {
   const [columns, setColumns] = useState([]);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
 
@@ -372,9 +378,6 @@ export default function KanbanBoard() {
             </button>
             <Link to={`/projects/${pk}/scrum`} className="px-3 py-1.5 text-sm bg-violet-50 text-violet-600 rounded-xl hover:bg-violet-100 transition-colors">Scrum</Link>
             <Link to={`/projects/${pk}/scrum3`} className="px-3 py-1.5 text-sm bg-pink-50 text-pink-600 rounded-xl border border-pink-100 hover:bg-pink-100 transition-colors font-bold">Scrum v3 ✨</Link>
-            <Guard isProjectManager project={project}>
-              <button onClick={() => { setEditingTask(null); setShowTaskModal(true); }} className="px-3 py-1.5 text-sm bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:from-purple-600 hover:to-violet-600 transition-all shadow-sm">+ Task</button>
-            </Guard>
           </div>
         </div>
 
@@ -393,8 +396,8 @@ export default function KanbanBoard() {
         </div>
 
         <TaskEdit 
-          isOpen={showTaskModal || !!editingTask} 
-          onClose={() => { setShowTaskModal(false); setEditingTask(null); }} 
+          isOpen={!!editingTask} 
+          onClose={() => { setEditingTask(null); }} 
           pk={pk} 
           taskId={editingTask?.id}
           onSuccess={fetchData} 

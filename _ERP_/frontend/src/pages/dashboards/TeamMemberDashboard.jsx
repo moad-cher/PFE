@@ -16,8 +16,6 @@ const KANBAN_STATUS_COLORS = {
   done: '#2ecc71',
 };
 
-// ChartCard helper removed — use DashboardChartCard directly where needed
-
 export default function TeamMemberDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
@@ -46,9 +44,7 @@ export default function TeamMemberDashboard() {
   };
 
   const myTasks = data?.my_tasks || [];
-  const projects = data?.projects || [];
 
-  // Filter today's tasks
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -72,7 +68,6 @@ export default function TeamMemberDashboard() {
     return new Date(scheduleRef).getHours() >= 12;
   });
 
-  // Upcoming deadlines (next 7 days)
   const nextWeek = new Date(today);
   nextWeek.setDate(today.getDate() + 7);
 
@@ -85,7 +80,6 @@ export default function TeamMemberDashboard() {
   const doneTasks = myTasks.filter((t) => t.status === 'done').length;
   const activeTasks = myTasks.filter((t) => t.status !== 'done').length;
 
-  // Status distribution for chart
   const statusData = useMemo(() => {
     if (!performance?.status_distribution) return [];
     return Object.entries(performance.status_distribution).map(([name, value]) => ({
@@ -95,7 +89,6 @@ export default function TeamMemberDashboard() {
     }));
   }, [performance?.status_distribution]);
 
-  // Project distribution for chart — new shape: [{project, total, todo, in_progress, review, done}, ...]
   const projectData = useMemo(() => {
     if (!performance?.project_distribution) return [];
     return performance.project_distribution.map(d => ({
@@ -108,7 +101,6 @@ export default function TeamMemberDashboard() {
     }));
   }, [performance?.project_distribution]);
 
-  // Points history for line chart
   const pointsHistoryData = useMemo(() => {
     if (!performance?.points_history) return [];
     return performance.points_history.map(d => ({
@@ -188,41 +180,11 @@ export default function TeamMemberDashboard() {
         />
       </div>
 
-      {/* Performance Summary */}
-      {performance && (
-        <div className="bg-white rounded-2xl p-6 border border-purple-100/50 shadow-lilac mb-8">
-          <h2 className="text-xl font-semibold mb-4">📊 Your Performance (Last 30 Days)</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-gray-500 text-sm">Completed</p>
-              <p className="text-3xl font-bold">{performance.summary.completed_tasks}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">On-Time Rate</p>
-              <p className="text-3xl font-bold">
-                {performance.summary.completed_tasks > 0
-                  ? Math.round((performance.summary.on_time_completions / performance.summary.completed_tasks) * 100)
-                  : 0}%
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Active Projects</p>
-              <p className="text-3xl font-bold">{Object.keys(performance.project_distribution || {}).length}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Total Points</p>
-              <p className="text-3xl font-bold">{performance.summary.total_reward_points}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Today's Tasks */}
       {todayTasks.length > 0 && (
         <div className="bg-white rounded-2xl p-6 border border-purple-100/50 shadow-lilac mb-8">
           <h2 className="text-xl font-semibold mb-4">📅 Today's Schedule</h2>
           <div className="grid md:grid-cols-2 gap-4">
-            {/* Morning Tasks */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,24 +192,14 @@ export default function TeamMemberDashboard() {
                 </svg>
                 Morning ({morningTasks.length})
               </h3>
-              {morningTasks.length === 0 ? (
-                <p className="text-gray-500 text-sm">No morning tasks</p>
-              ) : (
-                <div className="space-y-2">
-                  {morningTasks.map(task => (
-                    <Link
-                      key={task.id}
-                      to={`/projects/${task.project_id}/tasks/${task.id}`}
-                      className="block bg-white rounded-lg p-2 border border-gray-100 hover:bg-purple-50 transition-colors"
-                    >
-                      <p className="text-sm font-medium truncate">{task.title}</p>
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <div className="space-y-2">
+                {morningTasks.map(task => (
+                  <div key={task.id} className="bg-white rounded-lg p-2 border border-gray-100">
+                    <p className="text-sm font-medium truncate">{task.title}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            {/* Afternoon Tasks */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,21 +207,13 @@ export default function TeamMemberDashboard() {
                 </svg>
                 Afternoon ({afternoonTasks.length})
               </h3>
-              {afternoonTasks.length === 0 ? (
-                <p className="text-gray-500 text-sm">No afternoon tasks</p>
-              ) : (
-                <div className="space-y-2">
-                  {afternoonTasks.map(task => (
-                    <Link
-                      key={task.id}
-                      to={`/projects/${task.project_id}/tasks/${task.id}`}
-                      className="block bg-white rounded-lg p-2 border border-gray-100 hover:bg-purple-50 transition-colors"
-                    >
-                      <p className="text-sm font-medium truncate">{task.title}</p>
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <div className="space-y-2">
+                {afternoonTasks.map(task => (
+                  <div key={task.id} className="bg-white rounded-lg p-2 border border-gray-100">
+                    <p className="text-sm font-medium truncate">{task.title}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -321,48 +265,33 @@ export default function TeamMemberDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">My Tasks</h2>
             <span className="text-sm text-gray-500">{myTasks.length} total</span>
           </div>
-          {myTasks.length === 0 ? (
-            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
-              <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              No tasks assigned to you
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {myTasks.slice(0, 10).map((task) => (
-                <Link
-                  key={task.id}
-                  to={`/projects/${task.project_id}/tasks/${task.id}`}
-                  className="block bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4 card-hover group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-medium text-gray-800 group-hover:text-purple-600 text-sm line-clamp-2 flex-1 transition-colors">
-                      {task.title}
-                    </h4>
-                    <PriorityBadge priority={task.priority} className="flex-shrink-0" />
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <StatusBadge status={task.status} />
-                    {task.project_name && (
-                      <span className="text-xs text-purple-300">{task.project_name}</span>
-                    )}
-                  </div>
-                  {task.end_time && (
-                    <p className={`text-xs mt-2 ${task.is_overdue ? 'text-rose-400' : 'text-gray-400'}`}>
-                      {task.is_overdue ? 'Overdue: ' : 'Due: '}
-                      {new Date(task.end_time).toLocaleString()}
-                    </p>
+          <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            {myTasks.slice(0, 10).map((task) => (
+              <div
+                key={task.id}
+                className="bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-medium text-gray-800 text-sm line-clamp-2 flex-1">
+                    {task.title}
+                  </h4>
+                  <PriorityBadge priority={task.priority} className="flex-shrink-0" />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <StatusBadge status={task.status} />
+                  {task.project_name && (
+                    <span className="text-xs text-purple-300">{task.project_name}</span>
                   )}
-                  {task.points > 0 && (
-                    <span className="mt-2 inline-block text-xs bg-violet-100 text-violet-600 rounded-full px-2.5 py-0.5">
-                      {task.points} pts
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
+                </div>
+                {task.end_time && (
+                  <p className={`text-xs mt-2 ${task.is_overdue ? 'text-rose-400' : 'text-gray-400'}`}>
+                    {task.is_overdue ? 'Overdue: ' : 'Due: '}
+                    {new Date(task.end_time).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Upcoming Deadlines */}
@@ -371,47 +300,32 @@ export default function TeamMemberDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Upcoming Due Times</h2>
             <span className="text-sm text-gray-500">{upcomingTasks.length} this week</span>
           </div>
-          {upcomingTasks.length === 0 ? (
-            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
-              <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              No upcoming due times
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {upcomingTasks.map((task) => (
-                <Link
-                  key={task.id}
-                  to={`/projects/${task.project_id}/tasks/${task.id}`}
-                  className="block bg-white rounded-lg shadow-lilac border border-purple-100/30 p-4 card-hover group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-medium text-gray-800 group-hover:text-purple-600 text-sm line-clamp-2 flex-1 transition-colors">
-                      {task.title}
-                    </h4>
-                    <PriorityBadge priority={task.priority} className="flex-shrink-0" />
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <StatusBadge status={task.status} />
-                    {task.project_name && (
-                      <span className="text-xs text-purple-300">{task.project_name}</span>
-                    )}
-                  </div>
-                  <p className="text-xs mt-2 text-gray-400">
-                    Due: {new Date(task.end_time).toLocaleString()}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="space-y-3">
+            {upcomingTasks.map((task) => (
+              <div
+                key={task.id}
+                className="bg-white rounded-lg shadow-lilac border border-purple-100/30 p-4"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-medium text-gray-800 text-sm line-clamp-2 flex-1">
+                    {task.title}
+                  </h4>
+                  <PriorityBadge priority={task.priority} className="flex-shrink-0" />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <StatusBadge status={task.status} />
+                  {task.project_name && (
+                    <span className="text-xs text-purple-300">{task.project_name}</span>
+                  )}
+                </div>
+                <p className="text-xs mt-2 text-gray-400">
+                  Due: {new Date(task.end_time).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-

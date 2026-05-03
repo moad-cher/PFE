@@ -304,6 +304,12 @@ export default function ScrumBoard3() {
                                     <p className="text-[10px] text-gray-400 font-black uppercase mt-0.5">{story.points} Points</p>
                                   </div>
                                   <div className="flex items-center gap-2">
+                                    <button 
+                                      onClick={() => openTaskModal(story.id)}
+                                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded-md transition-colors"
+                                    >
+                                      + Task
+                                    </button>
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                                       story.priority === 'high' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
                                     }`}>
@@ -441,8 +447,8 @@ export default function ScrumBoard3() {
       />
       
       <TaskEdit 
-        isOpen={showTaskModal} 
-        onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }} 
+        isOpen={!!editingTaskId} 
+        onClose={() => { setEditingTaskId(null); }} 
         pk={pk} 
         taskId={editingTaskId}
         initialStoryId={taskModalStoryId} 

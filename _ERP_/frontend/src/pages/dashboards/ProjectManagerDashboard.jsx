@@ -8,6 +8,7 @@ import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import DashboardChartCard from './cards/DashboardChartCard';
 import StatCard from './cards/StatCard';
 import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
+import TaskEdit from '../projects/TaskEdit';
 
 const KANBAN_STATUS_COLORS = {
   todo: '#e74c3c',
@@ -15,8 +16,6 @@ const KANBAN_STATUS_COLORS = {
   review: '#3498db',
   done: '#2ecc71',
 };
-
-// ChartCard helper removed — use DashboardChartCard directly where needed
 
 export default function ProjectManagerDashboard() {
   const { user } = useAuth();
@@ -27,6 +26,7 @@ export default function ProjectManagerDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingTask, setEditingTask] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -42,7 +42,6 @@ export default function ProjectManagerDashboard() {
       ]);
       setStats(statsRes.data);
       
-      // Filter projects to only show those the user is involved in
       const userProjects = projectsRes.data.filter(project => {
         const isManager = project.manager?.id === user?.id;
         const isMember = project.members?.some(member => member.id === user?.id);
@@ -53,7 +52,6 @@ export default function ProjectManagerDashboard() {
       setDashboardData(dashboardRes.data);
       setOverview(overviewRes.data);
 
-      // Filter tasks due this week
       const today = new Date();
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
@@ -72,18 +70,6 @@ export default function ProjectManagerDashboard() {
     }
   };
 
-  // Team workload chart data
-  const workloadData = useMemo(() => {
-    if (!overview?.projects) return [];
-    // Aggregate workload across all projects
-    const workloadMap = {};
-    overview.projects.forEach(proj => {
-      // Would need additional data for full workload
-    });
-    return [];
-  }, [overview]);
-
-  // Project completion chart data
   const projectCompletionData = useMemo(() => {
     if (!overview?.projects) return [];
     return overview.projects.map(p => ({
@@ -100,7 +86,6 @@ export default function ProjectManagerDashboard() {
     }));
   }, [overview?.projects]);
 
-  // Task status distribution
   const taskStatusData = useMemo(() => {
     if (!stats) return [];
     const done = Number(stats.completed_tasks) || 0;
@@ -110,16 +95,6 @@ export default function ProjectManagerDashboard() {
       { name: 'In Progress', value: active, fill: KANBAN_STATUS_COLORS.in_progress },
     ];
   }, [stats]);
-
-  // Priority distribution
-  const priorityData = useMemo(() => {
-    const priorities = {};
-    dashboardData?.my_tasks?.forEach(task => {
-      const p = task.priority || 'medium';
-      priorities[p] = (priorities[p] || 0) + 1;
-    });
-    return Object.entries(priorities).map(([name, value]) => ({ name, value }));
-  }, [dashboardData?.my_tasks]);
 
   if (loading) {
     return (
@@ -305,10 +280,10 @@ export default function ProjectManagerDashboard() {
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {tasksDueThisWeek.map((task) => (
-                <Link
+                <div
                   key={task.id}
-                  to={`/projects/${task.project_id}/tasks/${task.id}`}
-                  className="block bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4 card-hover group"
+                  onClick={() => setEditingTask(task)}
+                  className="block bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4 card-hover group cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h4 className="font-medium text-gray-800 group-hover:text-purple-600 text-sm line-clamp-2 flex-1 transition-colors">
@@ -327,17 +302,20 @@ export default function ProjectManagerDashboard() {
                       Due: {new Date(task.end_time).toLocaleString()}
                     </p>
                   )}
-                </Link>
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <TaskEdit 
+        isOpen={!!editingTask} 
+        onClose={() => setEditingTask(null)} 
+        pk={editingTask?.project_id} 
+        taskId={editingTask?.id} 
+        onSuccess={loadData}
+      />
     </div>
   );
 }
-
-
-
-
-

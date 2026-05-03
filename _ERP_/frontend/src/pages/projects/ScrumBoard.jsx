@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, formatDate } from '../../api';
+import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, formatDate, deleteTask } from '../../api';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -159,7 +159,17 @@ export default function ScrumBoard() {
     }
   });
 
-  const renderTaskTable = (taskList) => (
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Delete this task?')) return;
+    try {
+      await deleteTask(pk, taskId);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete task');
+    }
+  };
+
+  const renderTaskTable = (taskList, isReadOnly = false) => (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
         <thead className="text-[10px] text-gray-400 uppercase bg-gray-50/30">
@@ -168,11 +178,12 @@ export default function ScrumBoard() {
             <th className="px-4 py-1 font-bold">Status</th>
             <th className="px-4 py-1 font-bold text-center">Pts</th>
             <th className="px-4 py-1 font-bold">Assignees</th>
+            {canManage && !isReadOnly && <th className="px-4 py-1 font-bold text-right">Actions</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100/50">
           {taskList.length === 0 ? (
-            <tr><td colSpan={4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td></tr>
+            <tr><td colSpan={canManage && !isReadOnly ? 5 : 4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td></tr>
           ) : (
             taskList.map(t => (
               <tr key={t.id} className={`hover:bg-gray-50/50 transition-colors group ${t.is_blocked ? 'bg-amber-50/30' : ''}`}>
@@ -206,6 +217,30 @@ export default function ScrumBoard() {
                     ))}
                   </div>
                 </td>
+                {canManage && !isReadOnly && (
+                  <td className="px-4 py-2 text-right">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => openTaskModal(t.story_id, t.id)}
+                        className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Edit Task"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteTask(t.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Task"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))
           )}
@@ -247,7 +282,7 @@ export default function ScrumBoard() {
                   </div>
                 </div>
               </div>
-              {!isReadOnly && (
+              {!isReadOnly && canManage && (
                 <button
                   onClick={() => openTaskModal(story.id)}
                   className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded-md transition-colors"
@@ -257,7 +292,7 @@ export default function ScrumBoard() {
               )}
             </div>
             <div className="p-1">
-              {renderTaskTable(storyTasks)}
+              {renderTaskTable(storyTasks, isReadOnly)}
             </div>
           </div>
         )}
@@ -284,12 +319,11 @@ export default function ScrumBoard() {
             <h1 className="text-2xl font-bold text-gray-900">Sprint Timeline</h1>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => openStoryModal()} className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-all shadow-sm">
-               New Story
-            </button>
-            <button onClick={() => openTaskModal()} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100">
-              + New Task
-            </button>
+            {canManage && (
+              <button onClick={() => openStoryModal()} className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-all shadow-sm">
+                 New Story
+              </button>
+            )}
           </div>
         </div>
 
@@ -423,9 +457,11 @@ export default function ScrumBoard() {
               <div className="px-6 py-4 border-b border-dashed border-gray-300 flex items-center justify-between bg-gray-100/50">
                 <div className="flex items-center gap-4">
                   <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
-                  <button onClick={() => openStoryModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                    + Story
-                  </button>
+                  {canManage && (
+                    <button onClick={() => openStoryModal()} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                      + Story
+                    </button>
+                  )}
                 </div>
                 <span className="text-xs font-bold text-gray-400 uppercase">{backlogStories.length} stories</span>
               </div>

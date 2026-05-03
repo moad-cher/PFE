@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   createTask,
   getProject,
@@ -9,14 +9,9 @@ import {
   getTask,
   updateTask,
   suggestAssignee,
-  getTaskComments,
-  createTaskComment,
-  deleteTask,
 } from '../../api';
 import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/shared/ui/Spinner';
-import { usePermissions } from '../../auth/Guard';
-import { useAuth } from '../../context/AuthContext';
 
 const buildDefaultForm = (storyId) => ({
   title: '',
@@ -107,7 +102,7 @@ function AISuggestPanel({ pk, taskId, task, onSelectCandidate }) {
       ) : (
         <div className="space-y-2">
           {result.members?.slice(0, 3).map((m, i) => (
-            <div key={m.user_id} className="bg-white border border-purple-100 rounded-xl p-3 shadow-sm">
+            <div key={`${m.user_id}-${i}`} className="bg-white border border-purple-100 rounded-xl p-3 shadow-sm">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-bold text-xs text-gray-800">#{i + 1} {m.username}</span>
                 <span className="text-[10px] bg-purple-100 text-purple-700 rounded-full px-2 py-0.5 font-bold">
@@ -133,9 +128,6 @@ function AISuggestPanel({ pk, taskId, task, onSelectCandidate }) {
 
 export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTaskId, initialStoryId, onSuccess }) {
   const { pk: routePk } = useParams();
-  const { checkPM } = usePermissions();
-  
-  // Modal-only component uses props. taskId must be passed explicitly.
   const taskId = propTaskId;
   const isEdit = Boolean(taskId);
   const projectId = propPk || routePk;
@@ -146,15 +138,9 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
   const [members, setMembers] = useState([]);
   const [taskData, setTaskData] = useState(null);
   const [form, setForm] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [postingComment, setPostingComment] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-
-  const isPM = useMemo(() => project ? checkPM(project) : false, [project, checkPM]);
 
   useEffect(() => {
     if (!projectId || !isOpen) return;
@@ -171,11 +157,10 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
 
     if (isEdit) {
       promises.push(getTask(projectId, taskId));
-      promises.push(getTaskComments(projectId, taskId));
     }
 
     Promise.all(promises)
-      .then(([projectRes, statusesRes, membersRes, storiesRes, taskRes, commentsRes]) => {
+      .then(([projectRes, statusesRes, membersRes, storiesRes, taskRes]) => {
         setProject(projectRes.data);
         setStatuses(statusesRes.data);
         setStories(storiesRes.data);
@@ -198,7 +183,6 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
             is_blocked: d.is_blocked || false,
             blocker_reason: d.blocker_reason || '',
           });
-          if (commentsRes) setComments(commentsRes.data);
         } else {
           setForm(buildDefaultForm(initialStoryId));
         }
@@ -237,34 +221,6 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
     }));
   };
 
-  const handlePostComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    setPostingComment(true);
-    try {
-      const res = await createTaskComment(projectId, taskId, newComment);
-      setComments(prev => [...prev, res.data]);
-      setNewComment('');
-    } catch (err) {
-      alert('Failed to post comment');
-    } finally {
-      setPostingComment(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
-    setDeleting(true);
-    try {
-      await deleteTask(projectId, taskId);
-      if (onSuccess) onSuccess();
-      onClose();
-    } catch (err) {
-      alert('Failed to delete task');
-      setDeleting(false);
-    }
-  };
-
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -298,250 +254,197 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
   const assigneeCount = useMemo(() => form?.assigned_to_ids?.length || 0, [form]);
   const showForm = !loading && form;
 
+  const sprintDates = useMemo(() => {
+    if (!form?.story_id || !stories.length || !project?.sprints?.length) return null;
+    const story = stories.find(s => String(s.id) === String(form.story_id));
+    if (!story || !story.sprint_id) return null;
+    const sprint = project.sprints.find(s => s.id === story.sprint_id);
+    if (!sprint) return null;
+    return {
+      start: sprint.start_date.split('T')[0] + 'T00:00',
+      end: sprint.end_date.split('T')[0] + 'T23:59'
+    };
+  }, [form?.story_id, stories, project]);
+
+  const startMax = form?.end_time && sprintDates?.end 
+    ? (form.end_time < sprintDates.end ? form.end_time : sprintDates.end) 
+    : (form?.end_time || sprintDates?.end);
+
+  const endMin = form?.start_time && sprintDates?.start 
+    ? (form.start_time > sprintDates.start ? form.start_time : sprintDates.start) 
+    : (form?.start_time || sprintDates?.start);
+
   if (!isOpen) return null;
 
   const formContent = showForm ? (
-    <div className="grid lg:grid-cols-3 gap-8">
-      <form onSubmit={submit} className="lg:col-span-2 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+    <form onSubmit={submit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <input
+          value={form.title}
+          onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+          required
+          className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea
+          value={form.description}
+          onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+          rows={3}
+          className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
+        <div className="border rounded-xl p-3 max-h-40 overflow-y-auto bg-gray-50/30">
+          {members.length === 0 ? (
+            <p className="text-sm text-gray-500">No project members available</p>
+          ) : (
+            <div className="space-y-1">
+              {members.map((member) => (
+                <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-sm cursor-pointer transition-all text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.assigned_to_ids?.includes(member.id) || false}
+                    onChange={() => toggleAssignee(member.id)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span>{member.first_name || member.username} {member.last_name || ''}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        {assigneeCount > 0 && <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase ml-1">{assigneeCount} selected</p>}
+      </div>
+
+      {isEdit && (
+        <AISuggestPanel 
+          pk={projectId} 
+          taskId={taskId} 
+          task={taskData} 
+          onSelectCandidate={handleSelectCandidate} 
+        />
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">User Story *</label>
+          <select
+            value={form.story_id}
+            onChange={(e) => setForm((prev) => ({ ...prev, story_id: e.target.value }))}
             required
+            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          >
+            <option value="" disabled>Select a Story</option>
+            {stories.map((story) => (
+              <option key={story.id} value={story.id}>{story.title}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select
+            value={form.status}
+            onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          >
+            {statuses.map((status) => (
+              <option key={status.slug} value={status.slug}>{status.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <select
+            value={form.priority}
+            onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value }))}
+            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          >
+            {['low', 'medium', 'high', 'urgent'].map((p) => (
+              <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+          <input
+            type="datetime-local"
+            value={form.start_time}
+            min={sprintDates?.start}
+            max={startMax}
+            onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+          <input
+            type="datetime-local"
+            value={form.end_time}
+            min={endMin}
+            max={sprintDates?.end}
+            onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
+            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+          <input
+            type="number"
+            min="0"
+            value={form.points}
+            onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
+            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-gray-100 pt-4">
+        <label className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-xl cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.is_blocked}
+            onChange={(e) => setForm((prev) => ({ ...prev, is_blocked: e.target.checked }))}
+            className="w-5 h-5 text-amber-600 rounded-lg focus:ring-amber-500 border-amber-300"
+          />
+          <div>
+            <span className="text-sm font-bold text-amber-900 block">Flag as Blocked</span>
+            <span className="text-[10px] text-amber-700 italic leading-tight">{form.is_blocked ? 'Provide a reason below' : 'Surface issues to manager'}</span>
+          </div>
+        </label>
+        
+        {form.is_blocked && (
           <textarea
-            value={form.description}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            rows={4}
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            value={form.blocker_reason}
+            onChange={(e) => setForm((prev) => ({ ...prev, blocker_reason: e.target.value }))}
+            placeholder="Why is this task blocked?"
+            rows={2}
+            className="mt-2 w-full border border-amber-200 bg-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-amber-900"
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
-          <div className="border rounded-xl p-3 max-h-48 overflow-y-auto bg-gray-50/30">
-            {members.length === 0 ? (
-              <p className="text-sm text-gray-500">No project members available</p>
-            ) : (
-              <div className="space-y-1">
-                {members.map((member) => (
-                  <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-sm cursor-pointer transition-all">
-                    <input
-                      type="checkbox"
-                      checked={form.assigned_to_ids?.includes(member.id) || false}
-                      onChange={() => toggleAssignee(member.id)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium border border-blue-200">
-                        {member.username?.[0]?.toUpperCase() || '?'}
-                      </div>
-                      <span className="text-sm text-gray-800">
-                        {member.first_name || member.username} {member.last_name || ''}
-                      </span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-          {assigneeCount > 0 && <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase ml-1">{assigneeCount} member(s) selected</p>}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">User Story *</label>
-            <select
-              value={form.story_id}
-              onChange={(e) => setForm((prev) => ({ ...prev, story_id: e.target.value }))}
-              required
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-            >
-              <option value="" disabled>Select a Story</option>
-              {stories.map((story) => (
-                <option key={story.id} value={story.id}>
-                  {story.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-            >
-              {statuses.map((status) => (
-                <option key={status.slug} value={status.slug}>
-                  {status.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-            <select
-              value={form.priority}
-              onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-            >
-              {['low', 'medium', 'high', 'urgent'].map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-            <input
-              type="datetime-local"
-              value={form.start_time}
-              onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-            <input
-              type="datetime-local"
-              value={form.end_time}
-              onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-            <input
-              type="number"
-              min="0"
-              value={form.points}
-              onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 pt-4 mt-2">
-          <label className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors">
-            <input
-              type="checkbox"
-              checked={form.is_blocked}
-              onChange={(e) => setForm((prev) => ({ ...prev, is_blocked: e.target.checked }))}
-              className="w-5 h-5 text-amber-600 rounded-lg focus:ring-amber-500 border-amber-300"
-            />
-            <div>
-              <span className="text-sm font-bold text-amber-900 block">Flag as Blocked</span>
-              <span className="text-xs text-amber-700">Surface this task as blocked on the board and notify manager</span>
-            </div>
-          </label>
-          
-          {form.is_blocked && (
-            <div className="mt-3">
-              <label className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-1.5 ml-1">Blocker Reason</label>
-              <textarea
-                value={form.blocker_reason}
-                onChange={(e) => setForm((prev) => ({ ...prev, blocker_reason: e.target.value }))}
-                placeholder="Why is this task blocked?"
-                rows={2}
-                className="w-full border border-amber-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-amber-900"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between pt-6 border-t border-gray-100">
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md shadow-blue-100 transition-all"
-            >
-              {saving ? (isEdit ? 'Saving…' : 'Creating…') : isEdit ? 'Save Changes' : 'Create Task'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all"
-            >
-              Cancel
-            </button>
-          </div>
-          
-          {isEdit && isPM && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl text-sm font-bold transition-all"
-            >
-              {deleting ? 'Deleting...' : 'Delete Task'}
-            </button>
-          )}
-        </div>
-      </form>
-
-      <div className="space-y-6">
-        {isEdit && (
-          <AISuggestPanel 
-            pk={projectId} 
-            taskId={taskId} 
-            task={taskData} 
-            onSelectCandidate={handleSelectCandidate} 
-          />
-        )}
-
-        {isEdit && (
-          <div className="bg-gray-50/50 border border-gray-200 rounded-2xl p-5">
-            <h3 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              Activity & Comments
-            </h3>
-            
-            <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto pr-1">
-              {comments.length === 0 ? (
-                <p className="text-xs text-gray-400 italic text-center py-4">No activity yet</p>
-              ) : (
-                comments.map(c => (
-                  <div key={c.id} className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-bold text-gray-900">{c.author?.username}</span>
-                      <span className="text-[9px] text-gray-400">{new Date(c.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-snug">{c.content}</p>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <form onSubmit={handlePostComment} className="flex gap-2">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
-                className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-              />
-              <button
-                type="submit"
-                disabled={postingComment || !newComment.trim()}
-                className="px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-bold hover:bg-black disabled:opacity-50 transition-all"
-              >
-                Post
-              </button>
-            </form>
-          </div>
         )}
       </div>
-    </div>
+
+      <div className="flex gap-3 pt-6 border-t border-gray-100">
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md shadow-blue-100 transition-all"
+        >
+          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Task'}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   ) : (
     <div className="flex justify-center py-12">
       <Spinner size="lg" />
@@ -550,30 +453,30 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 backdrop-blur-[2px] px-4 py-8 overflow-y-auto"
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 backdrop-blur-sm px-4 py-8 overflow-y-auto"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="bg-white rounded-[32px] shadow-2xl w-full max-w-5xl my-auto mt-10 relative border border-gray-100"
+        className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl my-auto mt-10 relative border border-gray-100"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center justify-between p-8 border-b border-gray-50 rounded-t-[32px]">
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center justify-between p-6 border-b border-gray-100 rounded-t-[32px]">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{isEdit ? 'Task Workspace' : 'Initialize New Task'}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Task' : 'Create New Task'}</h1>
             {project && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{project.name}</p>}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors p-2 bg-gray-50 rounded-full hover:bg-gray-100">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors p-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="p-10">
+        <div className="p-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 mb-6 text-sm font-medium">
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm font-medium">
               {error}
             </div>
           )}
