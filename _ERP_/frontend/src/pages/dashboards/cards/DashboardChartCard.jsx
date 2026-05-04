@@ -12,6 +12,8 @@ export default function DashboardChartCard({
   data,
   dataKey,
   nameKey,
+  leftAction,
+  rightAction,
   ...chartProps
 }) {
   const rowSpanClass = { 2: 'lg:row-span-2', 3: 'lg:row-span-3', 4: 'lg:row-span-4' }[rowSpan] || '';
@@ -27,7 +29,11 @@ export default function DashboardChartCard({
 
   return (
     <div className={cardClass}>
-      <h3 className="font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="flex items-center justify-between mb-4 gap-4">
+        <div className="flex-shrink-0 min-w-[40px] flex justify-start">{leftAction}</div>
+        <h3 className="font-semibold text-gray-900 text-center flex-1 truncate">{title}</h3>
+        <div className="flex-shrink-0 min-w-[40px] flex justify-end">{rightAction}</div>
+      </div>
       {contentHasData ? (
         <div className="flex-1" style={{ minHeight }}>
           {isInternalChart ? (

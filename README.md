@@ -129,7 +129,7 @@ mindmap
       Unassigned pool
     Tasks
       %% State machine
-      Assignee & self-assign
+      %% Assignee
       Done definition
     Ceremonies
       %% Sprint planning
@@ -137,12 +137,12 @@ mindmap
       Retrospective
     Reporting
       %% team workload
-      Burndown chart
-      Velocity history
+      %% Burndown chart
+      %% Velocity history
       Capacity view
     AI Features
       Sprint planning assist
       Standup summarizer
       Velocity predictor
-      Assignee suggester
+      %% Assignee suggester
 ```

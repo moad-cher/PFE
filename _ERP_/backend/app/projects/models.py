@@ -94,6 +94,7 @@ class Sprint(Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[SprintStatus] = mapped_column(Enum(SprintStatus), default=SprintStatus.draft)
+    committed_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped["Project"] = relationship("Project", back_populates="sprints")
     stories: Mapped[list["Story"]] = relationship("Story", back_populates="sprint")

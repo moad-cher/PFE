@@ -602,6 +602,13 @@ async def update_sprint(
         setattr(sprint, field, value)
     
     if data.status == SprintStatus.completed:
+        # Calculate and "freeze" committed points before moving unfinished stories
+        stories_res = await db.execute(
+            select(Story).where(Story.sprint_id == sprint_id)
+        )
+        all_sprint_stories = stories_res.scalars().all()
+        sprint.committed_points = sum(story.points for story in all_sprint_stories)
+
         # Find next sprint (earliest non-completed sprint starting after this one)
         next_sprint_res = await db.execute(
             select(Sprint)

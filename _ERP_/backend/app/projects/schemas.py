@@ -27,6 +27,7 @@ class SprintRead(BaseModel):
     start_date: date
     end_date: date
     status: SprintStatus
+    committed_points: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
@@ -38,6 +39,7 @@ class SprintUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     status: Optional[SprintStatus] = None
+    committed_points: Optional[int] = None
 
 
 # ── Story ─────────────────────────────────────────────────────────────────────

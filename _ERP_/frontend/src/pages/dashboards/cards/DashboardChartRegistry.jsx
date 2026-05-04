@@ -6,7 +6,8 @@ import {
   LineChart, Line, 
   CartesianGrid, 
   AreaChart, Area,
-  FunnelChart, Funnel, LabelList
+  FunnelChart, Funnel, LabelList,
+  ComposedChart, ReferenceLine
 } from 'recharts';
 
 export const CHART_COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899', '#06B6D4', '#F97316'];
@@ -19,14 +20,22 @@ export const CHART_TYPES = {
   DONUT: 'donut',
   FUNNEL: 'funnel',
   MULTI_LINE: 'multi_line',
+  BURNDOWN: 'burndown',
 };
 
 const DefaultTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const filteredPayload = payload.filter(
+      (entry) => !['shadedActual', 'goodArea', 'badArea'].includes(entry.dataKey) && 
+                 !['Sprint Window', 'Ahead', 'Behind'].includes(entry.name)
+    );
+    
+    if (filteredPayload.length === 0) return null;
+
     return (
       <div className="bg-white p-3 border border-purple-100 shadow-lilac rounded-lg text-sm">
-        <p className="font-semibold text-gray-900 mb-1">{label || payload[0].name}</p>
-        {payload.map((entry, index) => (
+        <p className="font-semibold text-gray-900 mb-1">{label || filteredPayload[0].name}</p>
+        {filteredPayload.map((entry, index) => (
           <p key={index} style={{ color: entry.color || entry.fill }}>
             {entry.name}: <span className="font-bold">{entry.value}</span>
           </p>
@@ -104,14 +113,14 @@ export default function DashboardChart({
             {showTooltip && <Tooltip cursor={{ fill: '#f9fafb' }} content={<DefaultTooltip />} />}
             {showLegend && <Legend />}
             
-            {stacked && stackKeys.length > 0 ? (
+            {stackKeys.length > 0 ? (
               stackKeys.map((key, i) => (
                 <Bar 
                   key={key} 
                   dataKey={key} 
-                  stackId="a" 
+                  stackId={stacked ? 'a' : undefined}
                   fill={stackColors[i] || CHART_COLORS[i % CHART_COLORS.length]} 
-                  radius={i === stackKeys.length - 1 ? (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : [0, 0, 0, 0]}
+                  radius={stacked && i === stackKeys.length - 1 ? (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : [0, 0, 0, 0]}
                 />
               ))
             ) : (
@@ -195,6 +204,108 @@ export default function DashboardChart({
             </Funnel>
           </FunnelChart>
         );
+
+      case CHART_TYPES.BURNDOWN: {
+        const todayItem = data.find(d => d.isToday);
+        const CustomizedXAxisTick = ({ x, y, payload }) => {
+          const isTodayTick = data.find(d => d[nameKey] === payload.value)?.isToday;
+          return (
+            <text 
+              x={x} y={y} dy={16} 
+              textAnchor="middle" 
+              fill={isTodayTick ? '#2563EB' : '#6b7280'} 
+              fontSize={isTodayTick ? 12 : 11} 
+              fontWeight={isTodayTick ? 'bold' : 'normal'}
+            >
+              {payload.value}
+            </text>
+          );
+        };
+
+        return (
+          <ComposedChart data={data}>
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />}
+            <XAxis dataKey={nameKey} tick={<CustomizedXAxisTick />} />
+            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+            {showTooltip && <Tooltip content={<DefaultTooltip />} />}
+            {showLegend && (
+              <Legend 
+                payload={[
+                  { value: 'Actual', type: 'line', id: 'actual', color: '#EF4444' },
+                  { value: 'Ideal', type: 'line', id: 'ideal', color: '#94A3B8' }
+                ]} 
+              />
+            )}
+            
+            {/* Shading for future area */}
+            <Area
+              type="monotone"
+              dataKey="shadedActual"
+              stroke="none"
+              fill="#e2e8f0"
+              name="Sprint Window"
+              legendType="none"
+              tooltipType="none"
+            />
+
+            {/* Good Area (Green) - when actual < ideal */}
+            <Area
+              type="monotone"
+              dataKey="goodArea"
+              stroke="none"
+              fill="#10B981"
+              fillOpacity={0.15}
+              name="Ahead"
+              legendType="none"
+              tooltipType="none"
+            />
+
+            {/* Bad Area (Red) - when actual > ideal */}
+            <Area
+              type="monotone"
+              dataKey="badArea"
+              stroke="none"
+              fill="#EF4444"
+              fillOpacity={0.15}
+              name="Behind"
+              legendType="none"
+              tooltipType="none"
+            />
+
+            {/* Today Line */}
+            {todayItem && (
+              <ReferenceLine
+                x={todayItem[nameKey]}
+                stroke="#94A3B8"
+                strokeDasharray="3 3"
+                label={{ position: 'top', value: 'Today', fill: '#6b7280', fontSize: 10 }}
+              />
+            )}
+
+            {/* Ideal Line */}
+            <Line
+              type="monotone"
+              dataKey="ideal"
+              name="Ideal"
+              stroke="#94A3B8"
+              strokeWidth={1}
+              strokeDasharray="5 5"
+              dot={false}
+            />
+
+            {/* Actual Line */}
+            <Line
+              type="monotone"
+              dataKey="actual"
+              name="Actual"
+              stroke="#EF4444"
+              strokeWidth={3}
+              dot={{ r: 4, fill: '#EF4444', strokeWidth: 2, stroke: '#fff' }}
+              activeDot={{ r: 6 }}
+            />
+          </ComposedChart>
+        );
+      }
 
       default:
         return <div>Unsupported chart type: {type}</div>;

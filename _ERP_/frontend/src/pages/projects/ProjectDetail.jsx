@@ -140,17 +140,28 @@ export default function ProjectDetail() {
 
   const sprintVelocityData = useMemo(() => {
     const sprints = project?.sprints || [];
-    const tasks = project?.tasks || [];
-    if (sprints.length === 0 || tasks.length === 0) return [];
+    const stories = project?.stories || [];
+    if (sprints.length === 0 || stories.length === 0) return [];
 
     const sortedSprints = [...sprints].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
     return sortedSprints
       .map((sprint) => {
-        const sprintTasks = tasks.filter((t) => t.sprint_id === sprint.id);
-        const committed = sprintTasks.reduce((sum, t) => sum + Number(t.points || 0), 0);
-        const done = sprintTasks
-          .filter((t) => t.status === 'done')
-          .reduce((sum, t) => sum + Number(t.points || 0), 0);
+        const sprintStories = stories.filter((s) => s.sprint_id === sprint.id);
+        
+        // Use frozen committed_points if available, fallback to current stories sum
+        const committed = sprint.committed_points !== null && sprint.committed_points !== undefined
+          ? sprint.committed_points
+          : sprintStories.reduce((sum, s) => sum + Number(s.points || 0), 0);
+        
+        // Done points are the sum of points of stories currently in the sprint that are fully completed
+        // (A story is completed if all its tasks are 'done' and it has at least one task)
+        const done = sprintStories
+          .filter((s) => {
+            const storyTasks = (project?.tasks || []).filter(t => t.story_id === s.id);
+            return storyTasks.length > 0 && storyTasks.every(t => t.status === 'done');
+          })
+          .reduce((sum, s) => sum + Number(s.points || 0), 0);
+          
         return { name: sprint.name, committed, done };
       })
       .filter((d) => d.committed > 0 || d.done > 0);
@@ -181,30 +192,59 @@ export default function ProjectDetail() {
     }));
   }, [project, activeSprint]);
 
-  const sprintBurndownData = useMemo(() => {
-    if (!activeSprint) return [];
-    const tasks = project?.tasks || [];
-    const sprintTasks = tasks.filter((t) => t.sprint_id === activeSprint.id);
-    if (sprintTasks.length === 0) return [];
+  const [burndownSprintId, setBurndownSprintId] = useState(null);
 
-    const usePoints = sprintTasks.some(t => Number(t.points || 0) > 0);
-    const getVal = (t) => usePoints ? Number(t.points || 0) : 1;
+  const sortedSprints = useMemo(() => {
+    return [...(project?.sprints || [])].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+  }, [project]);
+
+  useEffect(() => {
+    if (activeSprint && !burndownSprintId) {
+      setBurndownSprintId(activeSprint.id);
+    } else if (sortedSprints.length > 0 && !burndownSprintId) {
+      setBurndownSprintId(sortedSprints[sortedSprints.length - 1].id);
+    }
+  }, [activeSprint, sortedSprints, burndownSprintId]);
+
+  const burndownSprint = useMemo(() => {
+    return sortedSprints.find(s => s.id === burndownSprintId) || activeSprint;
+  }, [sortedSprints, burndownSprintId, activeSprint]);
+
+  const sprintBurndownData = useMemo(() => {
+    if (!burndownSprint) return [];
+    const stories = project?.stories || [];
+    const sprintStories = stories.filter((s) => s.sprint_id === burndownSprint.id);
     
-    const totalValue = sprintTasks.reduce((sum, t) => sum + getVal(t), 0);
+    // Starting value: frozen committed_points or sum of points of stories currently in sprint
+    const totalValue = burndownSprint.committed_points !== null && burndownSprint.committed_points !== undefined
+      ? burndownSprint.committed_points
+      : sprintStories.reduce((sum, s) => sum + Number(s.points || 0), 0);
+
     if (totalValue <= 0) return [];
 
-    const start = new Date(activeSprint.start_date);
-    const end = new Date(activeSprint.end_date);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+    const start = new Date(burndownSprint.start_date);
+    const end = new Date(burndownSprint.end_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const totalDays = Math.max(1, Math.ceil((end - start) / 86400000) + 1);
+    const isSprintComplete = end < today;
 
-    const getDoneDate = (task) => {
-      if (task.completed_at) return new Date(task.completed_at);
-      if (task.updated_at && task.status === 'done') return new Date(task.updated_at);
-      if (task.created_at) return new Date(task.created_at);
-      return null;
-    };
+    // Pre-calculate story completion dates
+    const storiesWithCompletion = sprintStories.map(s => {
+      const storyTasks = (project?.tasks || []).filter(t => t.story_id === s.id);
+      const isDone = storyTasks.length > 0 && storyTasks.every(t => t.status === 'done');
+      let doneDate = null;
+      if (isDone) {
+        const completionDates = storyTasks
+          .map(t => t.completed_at ? new Date(t.completed_at) : (t.updated_at ? new Date(t.updated_at) : null))
+          .filter(d => d !== null);
+        if (completionDates.length > 0) {
+          doneDate = new Date(Math.max(...completionDates));
+        }
+      }
+      return { ...s, isDone, doneDate };
+    });
 
     const data = [];
     for (let i = 0; i < totalDays; i += 1) {
@@ -213,30 +253,39 @@ export default function ProjectDetail() {
       const dayEnd = new Date(day);
       dayEnd.setHours(23, 59, 59, 999);
 
-      const completed = sprintTasks.reduce((sum, task) => {
-        if (task.status !== 'done') return sum;
-        const doneDate = getDoneDate(task);
-        if (!doneDate) return sum;
-        return doneDate <= dayEnd ? sum + getVal(task) : sum;
+      const completedSoFar = storiesWithCompletion.reduce((sum, s) => {
+        if (s.isDone && s.doneDate && s.doneDate <= dayEnd) {
+          return sum + Number(s.points || 0);
+        }
+        return sum;
       }, 0);
 
-      const remaining = Math.max(totalValue - completed, 0);
+      const remaining = Math.max(totalValue - completedSoFar, 0);
       const ratio = totalDays > 1 ? i / (totalDays - 1) : 1;
       const ideal = Math.max(totalValue - totalValue * ratio, 0);
 
+      const dayOnly = new Date(day);
+      dayOnly.setHours(0, 0, 0, 0);
+      const isPastOrToday = dayOnly <= today;
+      const isToday = dayOnly.getTime() === today.getTime();
+
+      // Range for shading: [Math.min(actual, ideal), Math.max(actual, ideal)]
+      // But we need to distinguish between Good (actual < ideal) and Bad (actual > ideal)
+      const isAhead = remaining < ideal;
+      
       data.push({
         name: day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-        actual: remaining,
+        actual: isPastOrToday ? remaining : null, // Line stops at today
         ideal: Math.round(ideal * 100) / 100,
+        shadedActual: !isSprintComplete && (!isPastOrToday || isToday) ? totalValue : null, // Shade future days (window) in gray
+        goodArea: isPastOrToday && isAhead ? [remaining, ideal] : [ideal, ideal],
+        badArea: isPastOrToday && !isAhead ? [ideal, remaining] : [ideal, ideal],
+        isToday: isToday,
       });
     }
 
-    if (data.length === 1) {
-      data.push({ ...data[0], name: 'End', ideal: 0 });
-    }
-
     return data;
-  }, [project, activeSprint]);
+  }, [project, burndownSprint]);
 
   const burndownEmptyText = useMemo(() => {
     if (!activeSprint) return "No active sprint";
@@ -426,7 +475,7 @@ export default function ProjectDetail() {
               data={sprintVelocityData}
               nameKey="name"
               height={250}
-              stacked={true}
+              stacked={false}
               stackKeys={['committed', 'done']}
               stackColors={['#93C5FD', '#22C55E']}
               emptyText="No sprint points yet"
@@ -442,12 +491,9 @@ export default function ProjectDetail() {
               showLegend={true}
               emptyText="No tasks in the active sprint"
             />
-          </div>
-
-          <div className="mb-8">
             <DashboardChartCard
-              title={activeSprint ? `Sprint Burndown - ${activeSprint.name}` : 'Sprint Burndown'}
-              type={CHART_TYPES.MULTI_LINE}
+              title={burndownSprint ? `Sprint Burndown: ${burndownSprint.name}` : 'Sprint Burndown'}
+              type={CHART_TYPES.BURNDOWN}
               data={sprintBurndownData}
               dataKey="actual"
               nameKey="name"
@@ -457,6 +503,35 @@ export default function ProjectDetail() {
               lineColors={['#EF4444', '#94A3B8']}
               showLegend={true}
               emptyText={burndownEmptyText}
+              colSpan={2}
+              leftAction={
+                <button
+                  onClick={() => {
+                    const idx = sortedSprints.findIndex(s => s.id === burndownSprintId);
+                    if (idx > 0) setBurndownSprintId(sortedSprints[idx - 1].id);
+                  }}
+                  disabled={sortedSprints.findIndex(s => s.id === burndownSprintId) <= 0}
+                  className="p-1 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              }
+              rightAction={
+                <button
+                  onClick={() => {
+                    const idx = sortedSprints.findIndex(s => s.id === burndownSprintId);
+                    if (idx !== -1 && idx < sortedSprints.length - 1) setBurndownSprintId(sortedSprints[idx + 1].id);
+                  }}
+                  disabled={sortedSprints.findIndex(s => s.id === burndownSprintId) >= sortedSprints.length - 1}
+                  className="p-1 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              }
             />
           </div>
         </>
