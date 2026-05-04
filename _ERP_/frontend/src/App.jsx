@@ -23,11 +23,7 @@ import Leaderboard from './pages/projects/Leaderboard';
 import ProjectChat from './pages/projects/ProjectChat';
 
 import JobList from './pages/hiring/JobList';
-import JobDetail from './pages/hiring/JobDetail';
-import Apply from './pages/hiring/Apply';
-import ApplySuccess from './pages/hiring/ApplySuccess';
 import ApplicationDetail from './pages/hiring/ApplicationDetail';
-import InterviewSchedule from './pages/hiring/InterviewSchedule';
 
 export default function App() {
   return (
@@ -44,10 +40,7 @@ export default function App() {
           <Route element={<PublicLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Navigate to="/login" replace />} />
-            <Route path="/hiring/jobs" element={<JobList />} />
-            <Route path="/hiring/jobs/:id" element={<JobDetail />} />
-            <Route path="/hiring/jobs/:id/apply" element={<Apply />} />
-            <Route path="/hiring/apply-success" element={<ApplySuccess />} />
+            <Route path="/hiring/jobs/:id?" element={<JobList />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
           </Route>
 
@@ -89,14 +82,6 @@ export default function App() {
               element={
                 <ProtectedRoute roles={['admin', 'hr_manager']}>
                   <ApplicationDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/hiring/applications/:id/interview"
-              element={
-                <ProtectedRoute roles={['admin', 'hr_manager']}>
-                  <InterviewSchedule />
                 </ProtectedRoute>
               }
             />

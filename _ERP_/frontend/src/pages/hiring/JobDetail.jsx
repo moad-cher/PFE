@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getJob, getJobApplications, updateApplicationStatus, deleteJob } from '../../api';
 import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import Guard, { usePermissions } from '../../auth/Guard';
 import EditJobModal from '../../components/features/hiring/EditJobModal';
+import ApplyModal from './ApplyModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {
@@ -30,137 +31,191 @@ function ScoreBar({ score }) {
   );
 }
 
-export default function JobDetail() {
-  const { id } = useParams();
+export default function JobDetail({ jobId, initialData, onDeleted }) {
   const { user } = useAuth();
   const { canManageHiring } = usePermissions();
   const { subscribe } = useRealTime();
-  const [job, setJob] = useState(null);
+  const [job, setJob] = useState(initialData || null);
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
+  const [error, setError] = useState(null);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   const loadData = () => {
-    const p = [getJob(id)];
-    if (canManageHiring) p.push(getJobApplications(id));
-    return Promise.all(p).then(([j, a]) => {
-      setJob(j.data);
-      if (a) setApplications(a.data);
-      return { job: j.data, applications: a?.data };
-    });
+    if (!jobId) return;
+    
+    // Clear previous state to avoid showing stale data from another job
+    setError(null);
+    if (!initialData) {
+      setJob(null);
+      setApplications([]);
+      setLoading(true);
+    } else {
+      setJob(initialData);
+    }
+
+    const p = [getJob(jobId)];
+    if (canManageHiring) p.push(getJobApplications(jobId));
+
+    Promise.all(p)
+      .then(([j, a]) => {
+        setJob(j.data);
+        if (a) setApplications(a.data);
+      })
+      .catch(err => {
+        console.error(`Error loading job ${jobId}:`, err);
+        setError(err.response?.status === 404 ? 'Job not found' : 'Failed to load job details');
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    loadData().finally(() => setLoading(false));
-  }, [id, canManageHiring]);
+    loadData();
+  }, [jobId, canManageHiring]);
 
   // WebSocket for live AI updates
   useEffect(() => {
-    if (!canManageHiring) return;
+    if (!canManageHiring || !jobId) return;
     return subscribe((data) => {
-      if (data.type === 'ai_complete' && data.job_id === parseInt(id)) {
-        // Refresh the whole list or fetch the specific application
-        getJobApplications(id).then(r => setApplications(r.data));
+      if (data.type === 'ai_complete' && data.job_id === parseInt(jobId)) {
+        getJobApplications(jobId).then(r => setApplications(r.data)).catch(() => {});
       }
     });
-  }, [id, canManageHiring, subscribe]);
+  }, [jobId, canManageHiring, subscribe]);
 
   const navigate = useNavigate();
 
   const changeStatus = async (appId, status) => {
-    await updateApplicationStatus(appId, status);
-    setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+    try {
+      await updateApplicationStatus(appId, status);
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+    } catch (err) {
+      console.error('Failed to update application status', err);
+    }
   };
 
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const handleDelete = async () => {
     try {
-      await deleteJob(id);
+      await deleteJob(jobId);
+      if (onDeleted) onDeleted(); // Refresh the list in the parent
       navigate('/hiring/jobs');
     } catch (err) {
       console.error('Failed to delete job', err);
+      alert(err.response?.data?.detail || 'Failed to delete job. It might have been already removed.');
       setDeleteConfirm(false);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
-  if (!job) return null;
+  if (!jobId) return (
+    <div className="flex flex-col items-center justify-center h-full text-gray-400 py-20 bg-white rounded-2xl shadow-sm border border-dashed">
+      <div className="text-4xl mb-4">📄</div>
+      <p>Select a job to view details</p>
+    </div>
+  );
 
-  const skills = (job.required_skills || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (error) return (
+    <div className="p-8 text-center bg-white rounded-2xl shadow-sm border border-red-100">
+      <div className="text-3xl mb-2">⚠️</div>
+      <p className="text-red-600 font-medium">{error}</p>
+      <Link to="/hiring/jobs" className="mt-4 inline-block text-blue-600 hover:underline text-sm font-medium">Back to List</Link>
+    </div>
+  );
+
+  const displayJob = job || initialData;
+
+  if (loading && !displayJob) return <div className="flex items-center justify-center min-h-[40vh] bg-white rounded-2xl shadow-sm"><Spinner size="lg" /></div>;
+  if (!displayJob) return null;
+
+  const skills = (displayJob.required_skills || '').split(',').map(s => s.trim()).filter(Boolean);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Breadcrumb with optional login link */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link to="/hiring/jobs" className="hover:text-blue-600">← Job Postings</Link>
-          <span>/</span><span className="text-gray-700 font-medium truncate max-w-xs">{job.title}</span>
-        </div>
-        {!user && (
-          <Link to="/login" className="text-sm text-blue-600 hover:underline">
-            Sign in
-          </Link>
-        )}
-      </div>
-
+    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
       {/* Job card */}
       <div className="bg-white rounded-2xl shadow p-6 mb-6">
         <div className="flex items-start justify-between gap-4 mb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-2xl font-bold text-gray-900">{displayJob.title}</h1>
+              <Link to="/hiring/jobs" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Close details">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </Link>
+            </div>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-gray-500 text-sm">{job.contract_type}{job.location ? ` · ${job.location}` : ''}</p>
+              <p className="text-gray-500 text-sm">{displayJob.contract_type}{displayJob.location ? ` · ${displayJob.location}` : ''}</p>
               <span className={`text-xs rounded-full px-2 py-0.5 ${
-                job.status === 'published' ? 'bg-green-100 text-green-700' :
-                job.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
-                job.status === 'paused' ? 'bg-orange-100 text-orange-700' :
+                displayJob.status === 'published' ? 'bg-green-100 text-green-700' :
+                displayJob.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                displayJob.status === 'paused' ? 'bg-orange-100 text-orange-700' :
                 'bg-red-100 text-red-700'
               }`}>
-                {job.status}
+                {displayJob.status}
               </span>
             </div>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+        </div>
+        
+        <div className="flex items-center gap-3 mb-4">
             <Guard canManageHiring>
-                <button type="button" onClick={() => setEditOpen(true)} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Edit</button>
-                {deleteConfirm ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-red-600">Sure?</span>
-                    <button
-                      onClick={handleDelete}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+                <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-100">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditOpen(true)} 
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="Edit Job"
                     >
-                      Delete
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
                     </button>
-                    <button
-                      onClick={() => setDeleteConfirm(false)}
-                      className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setDeleteConfirm(true)}
-                    className="px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors"
-                  >
-                    Delete
-                  </button>
-                )}
+                    
+                    {deleteConfirm ? (
+                      <div className="flex items-center gap-1 animate-in slide-in-from-left-2">
+                        <button 
+                          onClick={handleDelete} 
+                          className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded-md hover:bg-red-700 transition-colors"
+                        >
+                          Confirm
+                        </button>
+                        <button 
+                          onClick={() => setDeleteConfirm(false)} 
+                          className="p-1 text-gray-400 hover:text-gray-600 rounded-md"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => setDeleteConfirm(true)} 
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        title="Delete Job"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                </div>
             </Guard>
-            {job.status === 'published' ? (
-              <Link to={`/hiring/jobs/${id}/apply`} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
+            
+            {displayJob.status === 'published' ? (
+              <button onClick={() => setApplyOpen(true)} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 shadow-sm transition-all hover:shadow-md">
                 Apply Now
-              </Link>
+              </button>
             ) : (
-              <div className="px-4 py-2 bg-gray-300 text-gray-500 rounded-xl text-sm font-medium cursor-not-allowed" title={`Job is ${job.status}`}>
+              <div className="px-4 py-2 bg-gray-100 text-gray-400 rounded-xl text-sm font-medium cursor-not-allowed border" title={`Job is ${displayJob.status}`}>
                 Not Open
               </div>
             )}
-          </div>
         </div>
-        {job.description && <p className="text-gray-700 text-sm whitespace-pre-line mb-4">{job.description}</p>}
+
+        {displayJob.description && <p className="text-gray-700 text-sm whitespace-pre-line mb-4">{displayJob.description}</p>}
         {skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t">
             {skills.map(s => (
@@ -170,52 +225,59 @@ export default function JobDetail() {
         )}
       </div>
 
-      {/* Applications table */}
+      {/* Applications table - HR view */}
       <Guard canManageHiring>
-        <div>
+        <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Applications <span className="text-gray-400 font-normal">({applications.length})</span>
+            Applications <span className="text-gray-400 font-normal">({loading ? '...' : applications.length})</span>
           </h2>
           <div className="bg-white rounded-2xl shadow overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  {['Candidate', 'AI Score', 'Status', 'Date', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {applications.length === 0 && (
-                  <tr><td colSpan={5} className="text-center text-gray-400 py-8">No applications yet</td></tr>
-                )}
-                {applications.map(app => (
-                  <tr key={app.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <Link to={`/hiring/applications/${app.id}`} className="font-medium text-gray-900 hover:text-blue-600">
-                        {app.first_name} {app.last_name}
-                      </Link>
-                      <p className="text-xs text-gray-400">{app.email}</p>
-                    </td>
-                    <td className="px-4 py-3"><ScoreBar score={app.ai_score} /></td>
-                    <td className="px-4 py-3">
-                      <select value={app.status} onChange={e => changeStatus(app.id, e.target.value)}
-                        className={`text-xs rounded-full px-2 py-0.5 border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${STATUS_STYLE[app.status]}`}>
-                        {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{new Date(app.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">
-                      <Link to={`/hiring/applications/${app.id}`} className="text-xs text-blue-600 hover:underline">View →</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {loading ? (
+               <div className="flex justify-center py-12"><Spinner /></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      {['Candidate', 'AI Score', 'Status', 'Date', ''].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {applications.length === 0 && (
+                      <tr><td colSpan={5} className="text-center text-gray-400 py-8">No applications yet</td></tr>
+                    )}
+                    {applications.map(app => (
+                      <tr key={app.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <Link to={`/hiring/applications/${app.id}`} className="font-medium text-gray-900 hover:text-blue-600">
+                            {app.first_name} {app.last_name}
+                          </Link>
+                          <p className="text-xs text-gray-400">{app.email}</p>
+                        </td>
+                        <td className="px-4 py-3"><ScoreBar score={app.ai_score} /></td>
+                        <td className="px-4 py-3">
+                          <select value={app.status} onChange={e => changeStatus(app.id, e.target.value)}
+                            className={`text-xs rounded-full px-2 py-0.5 border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${STATUS_STYLE[app.status]}`}>
+                            {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400">{new Date(app.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3">
+                          <Link to={`/hiring/applications/${app.id}`} className="text-xs text-blue-600 hover:underline">View →</Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </Guard>
-      <EditJobModal open={editOpen} onClose={() => setEditOpen(false)} jobId={id} onSaved={(updated) => setJob(updated)} />
+      <EditJobModal open={editOpen} onClose={() => setEditOpen(false)} jobId={jobId} onSaved={(updated) => setJob(updated)} />
+      <ApplyModal open={applyOpen} onClose={() => setApplyOpen(false)} jobId={jobId} jobTitle={displayJob.title} />
     </div>
   );
 }

@@ -109,6 +109,38 @@ export default function TeamMemberDashboard() {
     }));
   }, [performance?.points_history]);
 
+  const groupedTasks = useMemo(() => {
+    if (!data?.projects || !data?.my_tasks) return {};
+    
+    const groups = {};
+    data.my_tasks.forEach(task => {
+      const projectId = task.project_id;
+      const storyId = task.story_id;
+      
+      if (!groups[projectId]) {
+        const project = data.projects.find(p => p.id === projectId);
+        groups[projectId] = {
+          id: projectId,
+          name: project?.name || 'Unassigned Project',
+          stories: {}
+        };
+      }
+      
+      if (!groups[projectId].stories[storyId]) {
+        const project = data.projects.find(p => p.id === projectId);
+        const story = project?.stories?.find(s => s.id === storyId);
+        groups[projectId].stories[storyId] = {
+          id: storyId,
+          title: story?.title || 'Unassigned Story',
+          tasks: []
+        };
+      }
+      
+      groups[projectId].stories[storyId].tasks.push(task);
+    });
+    return groups;
+  }, [data]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -265,32 +297,91 @@ export default function TeamMemberDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">My Tasks</h2>
             <span className="text-sm text-gray-500">{myTasks.length} total</span>
           </div>
-          <div className="space-y-3 max-h-[600px] overflow-y-auto">
-            {myTasks.slice(0, 10).map((task) => (
-              <div
-                key={task.id}
-                className="bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-medium text-gray-800 text-sm line-clamp-2 flex-1">
-                    {task.title}
-                  </h4>
-                  <PriorityBadge priority={task.priority} className="flex-shrink-0" />
+          <div className="space-y-8 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+            {Object.values(groupedTasks).map((project) => (
+              <div key={project.id} className="space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    {project.name}
+                  </h3>
+                  <Link 
+                    to={`/projects/${project.id}/scrum`}
+                    className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase font-bold hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                  >
+                    View Scrumboard
+                  </Link>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <StatusBadge status={task.status} />
-                  {task.project_name && (
-                    <span className="text-xs text-purple-300">{task.project_name}</span>
-                  )}
+                
+                <div className="pl-2 space-y-6">
+                  {Object.values(project.stories).map((story) => (
+                    <div key={story.id} className="space-y-3">
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
+                        {story.title}
+                      </h4>
+                      <div className="grid gap-3">
+                        {story.tasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className={`bg-white rounded-xl shadow-mauve border p-4 hover:shadow-lilac transition-all group ${task.is_blocked ? 'border-amber-200 bg-amber-50/20' : 'border-pink-100/30'}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <Link 
+                                  to={`/projects/${project.id}/tasks/${task.id}`}
+                                  className="font-bold text-gray-800 text-sm line-clamp-2 hover:text-indigo-600 transition-colors block mb-1"
+                                >
+                                  {task.title}
+                                </Link>
+                                <div className="flex items-center gap-2">
+                                  <StatusBadge status={task.status} />
+                                  {task.is_blocked && (
+                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase border border-amber-200">Blocked</span>
+                                  )}
+                                </div>
+                              </div>
+                              <PriorityBadge priority={task.priority} className="flex-shrink-0" />
+                            </div>
+                            
+                            {task.end_time && (
+                              <div className={`flex items-center gap-1.5 mt-3 text-[10px] ${task.is_overdue ? 'text-rose-500 font-bold' : 'text-gray-400'}`}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>
+                                  {task.is_overdue ? 'Overdue: ' : 'Due: '}
+                                  {new Date(task.end_time).toLocaleString(undefined, { 
+                                    month: 'short', 
+                                    day: 'numeric', 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {task.end_time && (
-                  <p className={`text-xs mt-2 ${task.is_overdue ? 'text-rose-400' : 'text-gray-400'}`}>
-                    {task.is_overdue ? 'Overdue: ' : 'Due: '}
-                    {new Date(task.end_time).toLocaleString()}
-                  </p>
-                )}
               </div>
             ))}
+            
+            {myTasks.length === 0 && (
+              <div className="text-center py-16 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <p className="text-gray-400 font-medium">No tasks assigned to you yet.</p>
+                <p className="text-xs text-gray-300 mt-1">Check back later or contact your manager.</p>
+              </div>
+            )}
           </div>
         </div>
 

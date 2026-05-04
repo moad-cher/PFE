@@ -4,6 +4,7 @@ import { getApplication, updateApplicationStatus, analyzeApplication, formatDate
 import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import PdfViewer from '../../components/shared/ui/PdfViewer';
+import InterviewScheduleModal from './InterviewScheduleModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {
@@ -121,6 +122,7 @@ export default function ApplicationDetail() {
   const { id } = useParams();
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
 
   const load = async () => {
     const r = await getApplication(id);
@@ -221,13 +223,23 @@ export default function ApplicationDetail() {
         <div className="space-y-4">
           <AIPanel app={app} onReanalyze={load} />
           {!['accepted', 'rejected'].includes(app.status) && (
-            <Link to={`/hiring/applications/${id}/interview`}
-              className="block w-full text-center py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+            <button
+              onClick={() => setShowInterviewModal(true)}
+              className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 shadow-sm transition-all active:scale-[0.98]"
+            >
               Schedule Interview
-            </Link>
+            </button>
           )}
         </div>
       </div>
+
+      <InterviewScheduleModal 
+        isOpen={showInterviewModal} 
+        onClose={() => setShowInterviewModal(false)}
+        applicationId={id}
+        candidateName={`${app.first_name} ${app.last_name}`}
+        onSuccess={load}
+      />
     </div>
   );
 }
