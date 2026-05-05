@@ -131,9 +131,16 @@ export default function ScrumBoard() {
   };
   
   const allMembers = project
-    ? [project.manager, ...(project.members || [])]
+    ? (() => {
+      const seen = new Set();
+      return [project.manager, ...(project.members || [])]
         .filter(Boolean)
-        .filter((v, i, a) => a.findIndex(x => x.id === v.id) === i)
+        .filter(member => {
+          if (seen.has(member.id)) return false;
+          seen.add(member.id);
+          return true;
+        });
+    })()
     : [];
 
   const tasksByStory = {}; 

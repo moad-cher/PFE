@@ -153,6 +153,14 @@ export default function ScrumBoard3() {
     return (project?.tasks || []).filter(t => t.story_id && sprintStoryIds.includes(t.story_id));
   }, [project, stories, view, activeSprintId]);
 
+  const doneCount = useMemo(
+    () => sprintTasks.filter(t => t.status === 'done').length,
+    [sprintTasks]
+  );
+  const completionPercent = sprintTasks.length
+    ? Math.round((doneCount / sprintTasks.length) * 100)
+    : 0;
+
   const backlogStories = useMemo(() => stories.filter(s => !s.sprint_id), [stories]);
 
   if (loading) return <div className="flex justify-center py-24"><Spinner /></div>;
@@ -336,11 +344,11 @@ export default function ScrumBoard3() {
                       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-green-500 transition-all duration-500" 
-                          style={{ width: `${Math.round((sprintTasks.filter(t => t.status === 'done').length / (sprintTasks.length || 1)) * 100)}%` }}
+                          style={{ width: `${completionPercent}%` }}
                         ></div>
                       </div>
                       <span className="text-xs font-bold text-gray-600 italic">
-                        {Math.round((sprintTasks.filter(t => t.status === 'done').length / (sprintTasks.length || 1)) * 100)}% Complete
+                        {completionPercent}% Complete
                       </span>
                     </div>
                   )}

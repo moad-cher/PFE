@@ -37,6 +37,7 @@ export default function ProjectDetail() {
   const [showTaskModal, setShowTaskModal] = useState(false);
 
   const fetchProject = () => {
+    setLoading(true);
     getProject(pk)
       .then((projRes) => {
         const data = projRes.data;
@@ -56,20 +57,15 @@ export default function ProjectDetail() {
         // Fetch kanban data separately
         getKanban(pk)
           .then((kanbanRes) => {
-            if (kanbanRes.data && Array.isArray(kanbanRes.data.columns)) {
-              const chartData = kanbanRes.data.columns.map(col => ({
+            const data = kanbanRes.data;
+            const columns = Array.isArray(data?.columns) ? data.columns : data;
+            if (Array.isArray(columns)) {
+              const buildKanbanChartData = (items) => items.map((col) => ({
                 name: col.status.name,
                 value: col.tasks.length,
-                fill: col.status.color
+                fill: col.status.color,
               }));
-              setKanbanData(chartData);
-            } else if (Array.isArray(kanbanRes.data)) {
-              const chartData = kanbanRes.data.map(col => ({
-                name: col.status.name,
-                value: col.tasks.length,
-                fill: col.status.color
-              }));
-              setKanbanData(chartData);
+              setKanbanData(buildKanbanChartData(columns));
             }
           })
           .catch((err) => {
@@ -79,17 +75,15 @@ export default function ProjectDetail() {
       .catch((err) => {
         console.error('Failed to load project:', err);
         setError('Failed to load project');
+      })
+      .finally(() => {
+        setLoading(false); // Ensure loading is always reset
       });
   };
 
   useEffect(() => {
-    setLoading(true);
     fetchProject();
   }, [pk]);
-
-  useEffect(() => {
-    if (project) setLoading(false);
-  }, [project]);
 
   const handleDelete = async () => {
     try {

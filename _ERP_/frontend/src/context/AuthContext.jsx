@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
 
   // Update browser tab title with user role
   useEffect(() => {
-    const roleTitle = user?.role ? user.role.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'ERP';
+    const roleTitle = user?.role ? user.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'ERP';
     document.title = user ? `ERP System - ${roleTitle}` : 'ERP System';
   }, [user]);
 
