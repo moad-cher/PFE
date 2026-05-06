@@ -75,6 +75,48 @@ export default function ScrumBoard3() {
     setShowTaskModal(true);
   };
 
+  const [minStartDate, setMinStartDate] = useState('');
+
+  const openSprintModal = () => {
+    const today = new Date().toISOString().split('T')[0];
+    let defaultStart = today;
+    let defaultEnd = '';
+
+    if (sprints.length > 0) {
+      const lastSprint = sprints[sprints.length - 1];
+      const lastEnd = new Date(lastSprint.end_date);
+      lastEnd.setDate(lastEnd.getDate() + 1);
+      defaultStart = lastEnd.toISOString().split('T')[0];
+    }
+
+    const duration = project?.config?.sprint_duration_days || 14;
+    const d = new Date(defaultStart);
+    d.setDate(d.getDate() + duration);
+    defaultEnd = d.toISOString().split('T')[0];
+
+    setMinStartDate(defaultStart);
+    setSprintForm({
+      name: `Sprint ${sprints.length + 1}`,
+      start_date: defaultStart,
+      end_date: defaultEnd,
+      goal: ''
+    });
+    setShowSprintModal(true);
+  };
+
+  const handleCreateSprint = async (e) => {
+    e.preventDefault();
+    try {
+      await createSprint(pk, sprintForm);
+      setShowSprintModal(false);
+      fetchData();
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to create sprint');
+      alert(message);
+    }
+  };
+
   const canManage = isProjectManager(user, project);
 
   // Tree Logic
@@ -98,15 +140,33 @@ export default function ScrumBoard3() {
     setView('backlog');
     setActiveSprintId(null);
   };
+const [updatingSprintId, setUpdatingSprintId] = useState(null);
 
-  const handleCompleteSprint = async (sprintId) => {
-    try {
-      await updateSprint(pk, sprintId, { status: 'completed' });
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to complete sprint');
-    }
-  };
+const handleUpdateSprintStatus = async (sprintId, newStatus) => {
+  setUpdatingSprintId(sprintId);
+  try {
+    await updateSprint(pk, sprintId, { status: newStatus });
+    fetchData();
+  } catch (err) {
+    const detail = err.response?.data?.detail;
+    const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to update sprint');
+    alert(message);
+  } finally {
+    setUpdatingSprintId(null);
+  }
+};
+
+const handleCompleteSprint = async (sprintId) => {
+  try {
+    await updateSprint(pk, sprintId, { status: 'completed' });
+    fetchData();
+  } catch (err) {
+    const detail = err.response?.data?.detail;
+    const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to complete sprint');
+    alert(message);
+    fetchData();
+  }
+};
 
   // Drag & Drop Logic
   const onDragEnd = async (result) => {
@@ -175,7 +235,7 @@ export default function ScrumBoard3() {
             <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
               <span className="text-sm font-bold text-gray-700 truncate">{project?.name}</span>
               {canManage && (
-                <button onClick={() => setShowSprintModal(true)} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                <button onClick={openSprintModal} className="text-gray-400 hover:text-indigo-600 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 </button>
               )}
@@ -253,7 +313,7 @@ export default function ScrumBoard3() {
                     <button onClick={() => setShowStoryModal(true)} className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 shadow-sm transition-all">
                       + New Story
                     </button>
-                    <button onClick={() => setShowSprintModal(true)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all">
+                    <button onClick={openSprintModal} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all">
                       Plan Sprint
                     </button>
                   </>
@@ -269,10 +329,11 @@ export default function ScrumBoard3() {
                     )}
                     {activeSprint?.status === 'draft' && (
                       <button 
-                        onClick={() => updateSprint(pk, activeSprint.id, { status: 'active' }).then(fetchData)}
-                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all"
+                        onClick={() => handleUpdateSprintStatus(activeSprint.id, 'active')}
+                        disabled={updatingSprintId === activeSprint.id}
+                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all disabled:opacity-50"
                       >
-                        Start Sprint
+                        {updatingSprintId === activeSprint.id ? 'Starting...' : 'Start Sprint'}
                       </button>
                     )}
                   </>
@@ -467,13 +528,7 @@ export default function ScrumBoard3() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
             <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">New Sprint Planning</h3>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              createSprint(pk, sprintForm).then(() => {
-                setShowSprintModal(false);
-                fetchData();
-              });
-            }} className="space-y-5">
+            <form onSubmit={handleCreateSprint} className="space-y-5">
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Identifier</label>
                 <input required type="text" value={sprintForm.name} onChange={e => setSprintForm({...sprintForm, name: e.target.value})}
@@ -482,22 +537,27 @@ export default function ScrumBoard3() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Start</label>
-                  <input required type="date" value={sprintForm.start_date}
+                  <input required type="date" value={sprintForm.start_date} min={minStartDate}
                     onChange={e => {
                       const start = e.target.value;
-                      let end = sprintForm.end_date;
-                      if (start && project?.config?.sprint_duration_days) {
-                        const d = new Date(start);
-                        d.setDate(d.getDate() + project.config.sprint_duration_days);
-                        end = d.toISOString().split('T')[0];
-                      }
+                      const duration = project?.config?.sprint_duration_days || 14;
+                      const d = new Date(start);
+                      d.setDate(d.getDate() + duration);
+                      const end = d.toISOString().split('T')[0];
                       setSprintForm({...sprintForm, start_date: start, end_date: end});
                     }}
                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">End</label>
-                  <div className="w-full bg-gray-100 rounded-2xl px-5 py-3 text-sm text-gray-500 font-bold">{sprintForm.end_date || 'Calculated'}</div>
+                  <input 
+                    required 
+                    type="date" 
+                    value={sprintForm.end_date} 
+                    min={sprintForm.start_date || minStartDate}
+                    onChange={e => setSprintForm({...sprintForm, end_date: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" 
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4">

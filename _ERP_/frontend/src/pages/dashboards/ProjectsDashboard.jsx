@@ -198,7 +198,7 @@ export default function ProjectsDashboard() {
         {/* Projects */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">{isAdmin ? 'System Projects' : 'My Projects'}</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{isAdmin ? 'All Projects' : 'My Projects'}</h2>
             {!isAdmin && (
               <Link
                 to="/projects/new"
@@ -243,8 +243,19 @@ export default function ProjectsDashboard() {
                   const storyTasks = tasks.filter((t) => t.story_id === story.id);
                   return storyTasks.length > 0 && storyTasks.every((t) => t.status === 'done');
                 }).length;
-                const sprintCompletionRate = sprintStories.length > 0
-                  ? Math.round((sprintCompletedStories / sprintStories.length) * 100)
+                const sprintCommittedPoints = activeSprint
+                  && activeSprint.committed_points !== null
+                  && activeSprint.committed_points !== undefined
+                  ? Number(activeSprint.committed_points) || 0
+                  : sprintStories.reduce((sum, story) => sum + Number(story.points || 0), 0);
+                const sprintDonePoints = sprintStories
+                  .filter((story) => {
+                    const storyTasks = tasks.filter((t) => t.story_id === story.id);
+                    return storyTasks.length > 0 && storyTasks.every((t) => t.status === 'done');
+                  })
+                  .reduce((sum, story) => sum + Number(story.points || 0), 0);
+                const sprintCompletionRate = sprintCommittedPoints > 0
+                  ? Math.round((sprintDonePoints / sprintCommittedPoints) * 100)
                   : 0;
                 const isManager = project.manager?.id === user?.id;
                 const manager = project.manager || {};

@@ -54,20 +54,19 @@ export default function ScrumBoard() {
   };
 
   const openSprintModal = () => {
-    let defaultStart = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    let defaultStart = today;
     if (sprints.length > 0) {
       const lastSprint = sprints[sprints.length - 1];
       const d = new Date(lastSprint.end_date);
       d.setDate(d.getDate() + 1);
       defaultStart = d.toISOString().split('T')[0];
     }
-    
-    let defaultEnd = '';
-    if (project?.config?.sprint_duration_days) {
-      const d = new Date(defaultStart);
-      d.setDate(d.getDate() + project.config.sprint_duration_days);
-      defaultEnd = d.toISOString().split('T')[0];
-    }
+
+    const duration = project?.config?.sprint_duration_days || 14;
+    const d = new Date(defaultStart);
+    d.setDate(d.getDate() + duration);
+    const defaultEnd = d.toISOString().split('T')[0];
 
     setMinStartDate(defaultStart);
     setSprintForm({
@@ -77,8 +76,7 @@ export default function ScrumBoard() {
       goal: ''
     });
     setShowSprintModal(true);
-  };
-
+    };
   const handleCreateSprint = async (e) => {
     e.preventDefault();
     try {
@@ -86,16 +84,25 @@ export default function ScrumBoard() {
       setSprints([...sprints, res.data].sort((a, b) => new Date(a.start_date) - new Date(b.start_date)));
       setShowSprintModal(false);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to create sprint');
+      const detail = err.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to create sprint');
+      alert(message);
     }
   };
 
+  const [updatingSprintId, setUpdatingSprintId] = useState(null);
+
   const handleUpdateSprintStatus = async (sprintId, newStatus) => {
+    setUpdatingSprintId(sprintId);
     try {
       const res = await updateSprint(pk, sprintId, { status: newStatus });
       setSprints(sprints.map(s => s.id === sprintId ? res.data : s));
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update sprint');
+      const detail = err.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to update sprint');
+      alert(message);
+    } finally {
+      setUpdatingSprintId(null);
     }
   };
 
@@ -104,7 +111,9 @@ export default function ScrumBoard() {
       await updateSprint(pk, sprintId, { status: 'completed' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to complete sprint');
+      const detail = err.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to complete sprint');
+      alert(message);
       fetchData();
     }
   };
@@ -182,7 +191,7 @@ export default function ScrumBoard() {
         <thead className="text-[10px] text-gray-400 uppercase bg-gray-50/30">
           <tr>
             <th className="px-4 py-1 font-bold">Task</th>
-            <th className="px-4 py-1 font-bold">Status</th>
+            {!isReadOnly && <th className="px-4 py-1 font-bold">Status</th>}
             <th className="px-4 py-1 font-bold text-center">Pts</th>
             <th className="px-4 py-1 font-bold">Assignees</th>
             {canManage && !isReadOnly && <th className="px-4 py-1 font-bold text-right">Actions</th>}
@@ -190,7 +199,9 @@ export default function ScrumBoard() {
         </thead>
         <tbody className="divide-y divide-gray-100/50">
           {taskList.length === 0 ? (
-            <tr><td colSpan={canManage && !isReadOnly ? 5 : 4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td></tr>
+            <tr>
+              <td colSpan={canManage && !isReadOnly ? 5 : isReadOnly ? 3 : 4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td>
+            </tr>
           ) : (
             taskList.map(t => (
               <tr key={t.id} className={`hover:bg-gray-50/50 transition-colors group ${t.is_blocked ? 'bg-amber-50/30' : ''}`}>
@@ -207,13 +218,15 @@ export default function ScrumBoard() {
                     </button>
                   </div>
                 </td>
-                <td className="px-4 py-2">
-                  {t.is_blocked ? (
-                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-amber-200">Blocked</span>
-                  ) : (
-                    <StatusBadge status={t.status} />
-                  )}
-                </td>
+                {!isReadOnly && (
+                  <td className="px-4 py-2">
+                    {t.is_blocked ? (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-amber-200">Blocked</span>
+                    ) : (
+                      <StatusBadge status={t.status} />
+                    )}
+                  </td>
+                )}
                 <td className="px-4 py-2 text-center text-gray-500 text-xs">{t.points}</td>
                 <td className="px-4 py-2">
                   <div className="flex -space-x-1.5">
@@ -389,7 +402,6 @@ export default function ScrumBoard() {
                           <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-lg font-bold text-gray-900">{sprint.name}</h3>
                             {isActive && <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
-                            {isCompleted && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Completed</span>}
                           </div>
                           <p className="text-xs text-gray-500 font-medium">
                             {formatDate(sprint.start_date)} — {formatDate(sprint.end_date)}
@@ -398,7 +410,13 @@ export default function ScrumBoard() {
 
                         <div className="flex items-center gap-2">
                           {canManage && sprint.status === 'draft' && (
-                            <button onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">Start</button>
+                            <button 
+                              onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} 
+                              disabled={updatingSprintId === sprint.id}
+                              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                            >
+                              {updatingSprintId === sprint.id ? 'Starting...' : 'Start'}
+                            </button>
                           )}
                           {canManage && sprint.status === 'active' && (
                             <button onClick={() => handleCompleteSprint(sprint.id)} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
@@ -505,21 +523,24 @@ export default function ScrumBoard() {
                     <input required type="date" value={sprintForm.start_date} min={minStartDate}
                       onChange={e => {
                         const start = e.target.value;
-                        let end = sprintForm.end_date;
-                        if (start && project?.config?.sprint_duration_days) {
-                          const d = new Date(start);
-                          d.setDate(d.getDate() + project.config.sprint_duration_days);
-                          end = d.toISOString().split('T')[0];
-                        }
+                        const duration = project?.config?.sprint_duration_days || 14;
+                        const d = new Date(start);
+                        d.setDate(d.getDate() + duration);
+                        const end = d.toISOString().split('T')[0];
                         setSprintForm({...sprintForm, start_date: start, end_date: end});
                       }}
                       className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                    <div className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm text-gray-700">
-                      {sprintForm.end_date ? formatDate(sprintForm.end_date) : '—'}
-                    </div>
+                    <input 
+                      required 
+                      type="date" 
+                      value={sprintForm.end_date} 
+                      min={sprintForm.start_date || minStartDate}
+                      onChange={e => setSprintForm({...sprintForm, end_date: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" 
+                    />
                   </div>
                 </div>
                 <div>

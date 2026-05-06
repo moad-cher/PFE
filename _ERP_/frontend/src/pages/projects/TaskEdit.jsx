@@ -147,6 +147,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
 
     setLoading(true);
     setError('');
+    setSaving(false);
 
     const promises = [
       getProject(projectId),
@@ -238,15 +239,15 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
         await updateTask(projectId, taskId, payload);
         if (onSuccess) onSuccess();
         onClose();
-        return;
+      } else {
+        const res = await createTask(projectId, payload);
+        if (onSuccess) onSuccess(res.data);
+        onClose();
+        setForm(buildDefaultForm(initialStoryId));
       }
-
-      const res = await createTask(projectId, payload);
-      if (onSuccess) onSuccess(res.data);
-      onClose();
-      setForm(buildDefaultForm(initialStoryId));
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || 'Failed to save task');
+    } finally {
       setSaving(false);
     }
   };
