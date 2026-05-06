@@ -7,7 +7,7 @@ export default function AppLayout() {
       {/* filter */}
       <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
       <Navbar />
-      <div className="relative z-10 pt-16">
+      <div className="relative z-10">
         <Outlet />
       </div>
     </div>

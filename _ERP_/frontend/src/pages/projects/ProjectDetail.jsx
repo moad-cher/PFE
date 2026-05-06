@@ -10,6 +10,8 @@ import DashboardChartCard from '../../components/shared/cards/DashboardChartCard
 import { CHART_COLORS, CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
 import GanttChart from '../../components/features/projects/GanttChart';
 import TaskEdit from './TaskEdit';
+import ProjectEditModal from '../../components/features/projects/ProjectEditModal';
+import ProjectSettingsModal from '../../components/features/projects/ProjectSettingsModal';
 
 function QuickCard({ to, icon, label, color }) {
   return (
@@ -35,6 +37,8 @@ export default function ProjectDetail() {
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const fetchProject = () => {
     setLoading(true);
@@ -321,8 +325,9 @@ export default function ProjectDetail() {
         <div className="flex items-center gap-2 flex-shrink-0">
           {canManageProjects(user) && (
             <>
-              <Link
-                to={`/projects/${pk}/settings`}
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(true)}
                 className="px-3 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 flex items-center gap-1.5 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -330,16 +335,17 @@ export default function ProjectDetail() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Settings
-              </Link>
-              <Link
-                to={`/projects/${pk}/edit`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
                 className="px-3 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 flex items-center gap-1.5 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Edit
-              </Link>
+              </button>
               {deleteConfirm ? (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-red-600">Sure?</span>
@@ -376,6 +382,18 @@ export default function ProjectDetail() {
         taskId={editingTaskId}
         initialStoryId={taskModalSprintId}
         onSuccess={fetchProject} 
+      />
+      <ProjectEditModal
+        isOpen={showEditModal}
+        pk={pk}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={fetchProject}
+      />
+      <ProjectSettingsModal
+        isOpen={showSettingsModal}
+        pk={pk}
+        onClose={() => setShowSettingsModal(false)}
+        onSuccess={fetchProject}
       />
       {/* Quick action cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">

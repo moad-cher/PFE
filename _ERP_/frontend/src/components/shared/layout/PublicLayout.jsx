@@ -10,7 +10,7 @@ export default function PublicLayout() {
       {/* filter */}
       <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
       {user && <Navbar />}
-      <div className={`relative z-10 ${user ? 'pt-16' : ''}`}>
+      <div className="relative z-10">
         <Outlet />
       </div>
     </div>

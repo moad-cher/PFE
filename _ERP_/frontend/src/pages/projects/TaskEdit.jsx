@@ -7,6 +7,7 @@ import {
   getProjectStatuses,
   getStories,
   getTask,
+  listDepartments,
   updateTask,
   suggestAssignee,
 } from '../../api';
@@ -136,6 +137,9 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
   const [stories, setStories] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [members, setMembers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [searchQ, setSearchQ] = useState('');
   const [taskData, setTaskData] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -154,6 +158,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
       getProjectStatuses(projectId),
       getProjectMembers(projectId),
       getStories(projectId),
+      listDepartments(),
     ];
 
     if (isEdit) {
@@ -161,12 +166,13 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
     }
 
     Promise.all(promises)
-      .then(([projectRes, statusesRes, membersRes, storiesRes, taskRes]) => {
+      .then(([projectRes, statusesRes, membersRes, storiesRes, departmentsRes, taskRes]) => {
         setProject(projectRes.data);
         setStatuses(statusesRes.data);
         setStories(storiesRes.data);
         const users = membersRes.data.map((stat) => stat.user);
         setMembers(users);
+        setDepartments(departmentsRes?.data || []);
 
         if (isEdit && taskRes) {
           setTaskData(taskRes.data);
@@ -193,6 +199,14 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
       })
       .finally(() => setLoading(false));
   }, [projectId, taskId, isEdit, isOpen, initialStoryId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSearchQ('');
+    setDepartmentFilter('');
+    setSearchResults([]);
+  }, [isOpen]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -253,6 +267,17 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
   };
 
   const assigneeCount = useMemo(() => form?.assigned_to_ids?.length || 0, [form]);
+  const assigneeOptions = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    return members.filter((member) => {
+      const name = `${member.first_name || ''} ${member.last_name || ''}`.trim().toLowerCase();
+      const username = (member.username || '').toLowerCase();
+      const matchesQuery = !q || name.includes(q) || username.includes(q);
+      const deptId = member.department?.id || member.department_id || '';
+      const matchesDept = !departmentFilter || String(deptId) === String(departmentFilter);
+      return matchesQuery && matchesDept;
+    });
+  }, [searchQ, departmentFilter, members]);
   const showForm = !loading && form;
 
   const sprintDates = useMemo(() => {
@@ -300,12 +325,30 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
+        <div className="flex flex-col sm:flex-row gap-3 mb-3">
+          <input
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder="Search by username or name…"
+            className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          >
+            <option value="">All Departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        </div>
         <div className="border rounded-xl p-3 max-h-40 overflow-y-auto bg-gray-50/30">
-          {members.length === 0 ? (
+          {assigneeOptions.length === 0 ? (
             <p className="text-sm text-gray-500">No project members available</p>
           ) : (
             <div className="space-y-1">
-              {members.map((member) => (
+              {assigneeOptions.map((member) => (
                 <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-sm cursor-pointer transition-all text-sm">
                   <input
                     type="checkbox"

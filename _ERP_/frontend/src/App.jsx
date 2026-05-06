@@ -12,8 +12,6 @@ import Unauthorized from './pages/auth/Unauthorized';
 
 import ProjectNew from './pages/projects/ProjectNew';
 import ProjectDetail from './pages/projects/ProjectDetail';
-import ProjectEdit from './pages/projects/ProjectEdit';
-import ProjectSettings from './pages/projects/ProjectSettings';
 import KanbanBoard from './pages/projects/KanbanBoard';
 import ScrumBoard from './pages/projects/ScrumBoard';
 import ScrumBoard3 from './pages/projects/ScrumBoard3';
@@ -66,8 +64,6 @@ export default function App() {
               }
             />
             <Route path="/projects/:pk" element={<ProjectDetail />} />
-            <Route path="/projects/:pk/edit" element={<ProjectEdit />} />
-            <Route path="/projects/:pk/settings" element={<ProjectSettings />} />
             <Route path="/projects/:pk/kanban" element={<KanbanBoard />} />
             <Route path="/projects/:pk/scrum" element={<ScrumBoard />} />
             <Route path="/projects/:pk/scrum3" element={<ScrumBoard3 />} />

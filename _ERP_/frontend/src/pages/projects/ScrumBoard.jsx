@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, formatDate, deleteTask } from '../../api';
+import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, deleteStory, formatDate, deleteTask } from '../../api';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -115,6 +115,29 @@ export default function ScrumBoard() {
       const message = typeof detail === 'string' ? detail : (typeof detail === 'object' ? JSON.stringify(detail) : 'Failed to complete sprint');
       alert(message);
       fetchData();
+    }
+  };
+
+  const handleUpdateStoryLocally = (storyId, field, value) => {
+    setStories(prev => prev.map(s => s.id === storyId ? { ...s, [field]: value } : s));
+  };
+
+  const handleSaveStoryField = async (storyId, field, value) => {
+    try {
+      await updateStory(pk, storyId, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update story field', err);
+      fetchData(); // Rollback on error
+    }
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm('Delete this story and all its tasks?')) return;
+    try {
+      await deleteStory(pk, storyId);
+      fetchData();
+    } catch (err) {
+      alert('Failed to delete story');
     }
   };
 
@@ -290,13 +313,32 @@ export default function ScrumBoard() {
             className={`mb-4 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all ${snapshot.isDragging ? 'shadow-xl ring-2 ring-indigo-500 z-50' : ''} ${isDragDisabled ? 'opacity-80' : ''}`}
             style={provided.draggableProps.style}
           >
-            <div className="px-4 py-3 bg-gray-50/50 flex items-center justify-between border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-800">{story.title}</h4>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{story.points} Story Pts</span>
+            <div className="px-4 py-3 bg-gray-50/50 flex items-center justify-between border-b border-gray-100 group/story">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                <div className="flex-1 min-w-0">
+                  <input 
+                    className={`text-sm font-bold bg-transparent border-none rounded px-1 py-0.5 w-full outline-none transition-all ${canManage && !isReadOnly ? 'hover:bg-white/80 focus:bg-white focus:ring-1 focus:ring-indigo-300' : 'cursor-default text-gray-800'}`}
+                    value={story.title}
+                    readOnly={!canManage || isReadOnly}
+                    onChange={e => handleUpdateStoryLocally(story.id, 'title', e.target.value)}
+                    onBlur={e => handleSaveStoryField(story.id, 'title', e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+                    placeholder="Story Title"
+                  />
+                  <div className="flex items-center gap-2 mt-0.5 ml-1">
+                    <div className="flex items-center gap-0.5">
+                      <input 
+                        type="number"
+                        className={`text-[10px] font-bold bg-transparent border-none rounded px-1 py-0.5 w-10 outline-none transition-all ${canManage && !isReadOnly ? 'hover:bg-white/80 focus:bg-white focus:ring-1 focus:ring-indigo-300' : 'cursor-default text-gray-400'}`}
+                        value={story.points}
+                        readOnly={!canManage || isReadOnly}
+                        onChange={e => handleUpdateStoryLocally(story.id, 'points', parseInt(e.target.value) || 0)}
+                        onBlur={e => handleSaveStoryField(story.id, 'points', parseInt(e.target.value) || 0)}
+                        onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+                      />
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Story Pts</span>
+                    </div>
                     <span className="text-[10px] text-gray-300">•</span>
                     <div className="flex items-center gap-1.5">
                        <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
@@ -307,14 +349,31 @@ export default function ScrumBoard() {
                   </div>
                 </div>
               </div>
-              {!isReadOnly && canManage && (
-                <button
-                  onClick={() => openTaskModal(story.id)}
-                  className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded-md transition-colors"
-                >
-                  + Task
-                </button>
-              )}
+              
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {!isReadOnly && canManage && (
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover/story:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => handleDeleteStory(story.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="Delete Story"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                  </div>
+                )}
+                {!isReadOnly && canManage && (
+                  <button
+                    onClick={() => openTaskModal(story.id)}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2.5 py-1.5 rounded-lg transition-all hover:bg-indigo-100"
+                  >
+                    + Task
+                  </button>
+                )}
+              </div>
             </div>
             <div className="p-1">
               {renderTaskTable(storyTasks, isReadOnly)}
@@ -483,7 +542,7 @@ export default function ScrumBoard() {
           </div>
 
           <div className="relative">
-            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden lg:sticky lg:top-6 flex flex-col max-h-[640px] lg:max-h-[calc(100vh-220px)]">
+            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden lg:sticky lg:top-20 flex flex-col max-h-[640px] lg:max-h-[calc(100vh-220px)]">
               <div className="px-6 py-4 border-b border-dashed border-gray-300 flex items-center justify-between bg-gray-100/50">
                 <div className="flex items-center gap-4">
                   <h3 className="text-lg font-bold text-gray-600 italic">Project Backlog</h3>
