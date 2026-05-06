@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, formatDate, deleteTask } from '../../api';
@@ -139,41 +139,46 @@ export default function ScrumBoard() {
     }
   };
   
-  const allMembers = project
-    ? (() => {
-      const seen = new Set();
-      return [project.manager, ...(project.members || [])]
-        .filter(Boolean)
-        .filter(member => {
-          if (seen.has(member.id)) return false;
-          seen.add(member.id);
-          return true;
-        });
-    })()
-    : [];
+  const allMembers = useMemo(() => {
+    if (!project) return [];
+    const seen = new Set();
+    return [project.manager, ...(project.members || [])]
+      .filter(Boolean)
+      .filter(member => {
+        if (seen.has(member.id)) return false;
+        seen.add(member.id);
+        return true;
+      });
+  }, [project]);
 
-  const tasksByStory = {}; 
-  project?.tasks?.forEach(t => {
-    if (filterStatus && t.status !== filterStatus) return;
-    if (filterAssignee && !t.assigned_to?.some(a => a.id === parseInt(filterAssignee))) return;
+  const tasksByStory = useMemo(() => {
+    const mapping = {};
+    project?.tasks?.forEach(t => {
+      if (filterStatus && t.status !== filterStatus) return;
+      if (filterAssignee && !t.assigned_to?.some(a => a.id === parseInt(filterAssignee))) return;
 
-    if (t.story_id) {
-      if (!tasksByStory[t.story_id]) tasksByStory[t.story_id] = [];
-      tasksByStory[t.story_id].push(t);
-    }
-  });
+      if (t.story_id) {
+        if (!mapping[t.story_id]) mapping[t.story_id] = [];
+        mapping[t.story_id].push(t);
+      }
+    });
+    return mapping;
+  }, [project?.tasks, filterStatus, filterAssignee]);
 
-  const storiesBySprint = {};
-  sprints.forEach(s => storiesBySprint[s.id] = []);
-  const backlogStories = [];
-  stories.forEach(s => {
-    if (s.sprint_id) {
-      if (!storiesBySprint[s.sprint_id]) storiesBySprint[s.sprint_id] = [];
-      storiesBySprint[s.sprint_id].push(s);
-    } else {
-      backlogStories.push(s);
-    }
-  });
+  const { storiesBySprint, backlogStories } = useMemo(() => {
+    const sprMapping = {};
+    sprints.forEach(s => sprMapping[s.id] = []);
+    const backlog = [];
+    stories.forEach(s => {
+      if (s.sprint_id) {
+        if (!sprMapping[s.sprint_id]) sprMapping[s.sprint_id] = [];
+        sprMapping[s.sprint_id].push(s);
+      } else {
+        backlog.push(s);
+      }
+    });
+    return { storiesBySprint: sprMapping, backlogStories: backlog };
+  }, [sprints, stories]);
 
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm('Delete this task?')) return;

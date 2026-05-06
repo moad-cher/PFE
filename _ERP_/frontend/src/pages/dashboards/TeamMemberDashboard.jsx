@@ -25,24 +25,24 @@ export default function TeamMemberDashboard() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [dashboardRes, performanceRes] = await Promise.all([
+          getDashboard(),
+          getTeamMemberPerformance(),
+        ]);
+        setData(dashboardRes.data);
+        setPerformance(performanceRes.data);
+      } catch (err) {
+        setError('Failed to load dashboard');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadData();
   }, []);
-
-  const loadData = async () => {
-    try {
-      const [dashboardRes, performanceRes] = await Promise.all([
-        getDashboard(),
-        getTeamMemberPerformance(),
-      ]);
-      setData(dashboardRes.data);
-      setPerformance(performanceRes.data);
-    } catch (err) {
-      setError('Failed to load dashboard');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const myTasks = data?.my_tasks || [];
 
@@ -51,35 +51,43 @@ export default function TeamMemberDashboard() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const todayTasks = myTasks.filter(task => {
-    const scheduleRef = task.start_time || task.end_time;
-    if (!scheduleRef || task.status === 'done') return false;
-    const scheduledAt = new Date(scheduleRef);
-    return scheduledAt >= today && scheduledAt < tomorrow;
-  });
-
-  const morningTasks = todayTasks.filter((t) => {
-    const scheduleRef = t.start_time || t.end_time;
-    if (!scheduleRef) return false;
-    return new Date(scheduleRef).getHours() < 12;
-  });
-  const afternoonTasks = todayTasks.filter((t) => {
-    const scheduleRef = t.start_time || t.end_time;
-    if (!scheduleRef) return false;
-    return new Date(scheduleRef).getHours() >= 12;
-  });
-
   const nextWeek = new Date(today);
   nextWeek.setDate(today.getDate() + 7);
 
-  const upcomingTasks = myTasks.filter(task => {
-    if (!task.end_time || task.status === 'done') return false;
-    const endTime = new Date(task.end_time);
-    return endTime > today && endTime <= nextWeek;
-  }).sort((a, b) => new Date(a.end_time) - new Date(b.end_time));
+  const taskBuckets = myTasks.reduce(
+    (acc, task) => {
+      const isDone = task.status === 'done';
+      if (isDone) acc.done += 1;
+      else acc.active += 1;
 
-  const doneTasks = myTasks.filter((t) => t.status === 'done').length;
-  const activeTasks = myTasks.filter((t) => t.status !== 'done').length;
+      const scheduleRef = task.start_time || task.end_time;
+      if (scheduleRef && !isDone) {
+        const scheduledAt = new Date(scheduleRef);
+        if (scheduledAt >= today && scheduledAt < tomorrow) {
+          acc.today.push(task);
+          if (scheduledAt.getHours() < 12) acc.morning.push(task);
+          else acc.afternoon.push(task);
+        }
+      }
+
+      if (task.end_time && !isDone) {
+        const endTime = new Date(task.end_time);
+        if (endTime > today && endTime <= nextWeek) acc.upcoming.push(task);
+      }
+
+      return acc;
+    },
+    { today: [], morning: [], afternoon: [], upcoming: [], done: 0, active: 0 }
+  );
+
+  const todayTasks = taskBuckets.today;
+  const morningTasks = taskBuckets.morning;
+  const afternoonTasks = taskBuckets.afternoon;
+  const upcomingTasks = taskBuckets.upcoming.sort(
+    (a, b) => new Date(a.end_time) - new Date(b.end_time)
+  );
+  const doneTasks = taskBuckets.done;
+  const activeTasks = taskBuckets.active;
 
   const statusData = useMemo(() => {
     if (!performance?.status_distribution) return [];
@@ -112,23 +120,25 @@ export default function TeamMemberDashboard() {
 
   const groupedTasks = useMemo(() => {
     if (!data?.projects || !data?.my_tasks) return {};
-    
-    const groups = {};
-    data.my_tasks.forEach(task => {
+
+    const projectsById = Object.fromEntries(
+      data.projects.map((project) => [project.id, project])
+    );
+
+    return data.my_tasks.reduce((groups, task) => {
       const projectId = task.project_id;
       const storyId = task.story_id;
-      
+      const project = projectsById[projectId];
+
       if (!groups[projectId]) {
-        const project = data.projects.find(p => p.id === projectId);
         groups[projectId] = {
           id: projectId,
           name: project?.name || 'Unassigned Project',
           stories: {}
         };
       }
-      
+
       if (!groups[projectId].stories[storyId]) {
-        const project = data.projects.find(p => p.id === projectId);
         const story = project?.stories?.find(s => s.id === storyId);
         groups[projectId].stories[storyId] = {
           id: storyId,
@@ -136,10 +146,10 @@ export default function TeamMemberDashboard() {
           tasks: []
         };
       }
-      
+
       groups[projectId].stories[storyId].tasks.push(task);
-    });
-    return groups;
+      return groups;
+    }, {});
   }, [data]);
 
   if (loading) {

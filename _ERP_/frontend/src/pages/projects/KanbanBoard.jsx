@@ -336,13 +336,27 @@ export default function KanbanBoard() {
     const destColSlug = destination.droppableId;
     
     setColumns(prev => {
+      const sourceColIndex = prev.findIndex(c => c.status.slug === sourceColSlug);
+      const destColIndex = prev.findIndex(c => c.status.slug === destColSlug);
+      
+      if (sourceColIndex === -1 || destColIndex === -1) return prev;
+      
       const newColumns = [...prev];
-      const sourceCol = newColumns.find(c => c.status.slug === sourceColSlug);
-      const destCol = newColumns.find(c => c.status.slug === destColSlug);
-      if (!sourceCol || !destCol) return prev;
+      const sourceCol = { ...newColumns[sourceColIndex], tasks: [...newColumns[sourceColIndex].tasks] };
+      const destCol = sourceColSlug === destColSlug 
+        ? sourceCol 
+        : { ...newColumns[destColIndex], tasks: [...newColumns[destColIndex].tasks] };
+      
       const [movedTask] = sourceCol.tasks.splice(source.index, 1);
-      movedTask.status = destColSlug;
-      destCol.tasks.splice(destination.index, 0, movedTask);
+      const updatedTask = { ...movedTask, status: destColSlug };
+      
+      destCol.tasks.splice(destination.index, 0, updatedTask);
+      
+      newColumns[sourceColIndex] = sourceCol;
+      if (sourceColSlug !== destColSlug) {
+        newColumns[destColIndex] = destCol;
+      }
+      
       return newColumns;
     });
     

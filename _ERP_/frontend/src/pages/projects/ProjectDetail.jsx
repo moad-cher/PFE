@@ -38,46 +38,42 @@ export default function ProjectDetail() {
 
   const fetchProject = () => {
     setLoading(true);
-    getProject(pk)
-      .then((projRes) => {
-        const data = projRes.data;
-        // Enrich tasks with sprint_id from their stories
-        if (data.tasks && data.stories) {
-          const storySprintMap = data.stories.reduce((acc, s) => {
+    Promise.all([getProject(pk), getKanban(pk)])
+      .then(([projRes, kanbanRes]) => {
+        const rawData = projRes.data;
+        let enrichedData = { ...rawData };
+
+        // Enrich tasks with sprint_id from their stories immutably
+        if (rawData.tasks && rawData.stories) {
+          const storySprintMap = rawData.stories.reduce((acc, s) => {
             acc[s.id] = s.sprint_id;
             return acc;
           }, {});
-          data.tasks = data.tasks.map(t => ({
+          enrichedData.tasks = rawData.tasks.map(t => ({
             ...t,
             sprint_id: storySprintMap[t.story_id]
           }));
         }
-        setProject(data);
+        setProject(enrichedData);
         
-        // Fetch kanban data separately
-        getKanban(pk)
-          .then((kanbanRes) => {
-            const data = kanbanRes.data;
-            const columns = Array.isArray(data?.columns) ? data.columns : data;
-            if (Array.isArray(columns)) {
-              const buildKanbanChartData = (items) => items.map((col) => ({
-                name: col.status.name,
-                value: col.tasks.length,
-                fill: col.status.color,
-              }));
-              setKanbanData(buildKanbanChartData(columns));
-            }
-          })
-          .catch((err) => {
-            console.warn('Failed to load kanban data for chart:', err);
-          });
+        // Process kanban data for chart
+        const kData = kanbanRes.data;
+        const columns = Array.isArray(kData?.columns) ? kData.columns : kData;
+        if (Array.isArray(columns)) {
+          const buildKanbanChartData = (items) => items.map((col) => ({
+            name: col.status.name,
+            value: col.tasks.length,
+            fill: col.status.color,
+          }));
+          setKanbanData(buildKanbanChartData(columns));
+        }
       })
       .catch((err) => {
-        console.error('Failed to load project:', err);
-        setError('Failed to load project');
+        console.error('Failed to load project data:', err);
+        setError('Failed to load project data');
       })
       .finally(() => {
-        setLoading(false); // Ensure loading is always reset
+        setLoading(false);
       });
   };
 

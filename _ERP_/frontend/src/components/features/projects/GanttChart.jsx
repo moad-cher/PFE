@@ -10,19 +10,17 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id, onEditTask
   // Add 1 day buffer to end date to ensure the bar fits
   const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)) + 1;
 
-  const getX = (dateStr) => {
-    const d = new Date(dateStr);
-    const normalizedD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const normalizedMin = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
-    return Math.floor((normalizedD - normalizedMin) / (1000 * 60 * 60 * 24)) * DAY_WIDTH;
-  };
-
-  const today = new Date();
-  const todayX = getX(today);
-  const showToday = today >= minDate && today <= maxDate;
-
-  // Row packing algorithm
+  // Row packing algorithm with layout pre-calculation
   const rows = useMemo(() => {
+    const minDateObj = new Date(startDate);
+    const normalizedMin = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), minDateObj.getDate());
+
+    const getXPos = (dateStr) => {
+      const d = new Date(dateStr);
+      const normalizedD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      return Math.floor((normalizedD - normalizedMin) / (1000 * 60 * 60 * 24)) * DAY_WIDTH;
+    };
+
     const sortedTasks = [...tasks].sort((a, b) => {
       const startA = new Date(a.start_time || a.created_at);
       const startB = new Date(b.start_time || b.created_at);
@@ -31,29 +29,49 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id, onEditTask
 
     const packedRows = [];
     sortedTasks.forEach(task => {
-      const start = new Date(task.start_time || task.created_at);
-      const end = new Date(task.end_time || (start.getTime() + 86400000));
+      const start = task.start_time || task.created_at;
+      const end = task.end_time || (new Date(new Date(start).getTime() + 86400000).toISOString());
       
+      const startX = getXPos(start);
+      const endX = getXPos(end);
+      const width = Math.max(DAY_WIDTH * 0.8, endX - startX);
+
+      const taskWithLayout = { ...task, startX, width };
+
       let rowIndex = packedRows.findIndex(row => {
         const lastTask = row[row.length - 1];
         const lastEnd = new Date(lastTask.end_time || (new Date(lastTask.start_time || lastTask.created_at).getTime() + 86400000));
-        return start >= lastEnd;
+        return new Date(start) >= lastEnd;
       });
 
       if (rowIndex === -1) {
-        packedRows.push([task]);
+        packedRows.push([taskWithLayout]);
       } else {
-        packedRows[rowIndex].push(task);
+        packedRows[rowIndex].push(taskWithLayout);
       }
     });
     return packedRows;
-  }, [tasks]);
+  }, [tasks, startDate]);
 
   const statusColorMap = useMemo(() => {
     const map = {};
     statuses.forEach(s => map[s.slug] = s.color);
     return map;
   }, [statuses]);
+
+  const todayX = useMemo(() => {
+    const minDateObj = new Date(startDate);
+    const normalizedMin = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), minDateObj.getDate());
+    const today = new Date();
+    const normalizedToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return Math.floor((normalizedToday - normalizedMin) / (1000 * 60 * 60 * 24)) * DAY_WIDTH;
+  }, [startDate]);
+
+  const showToday = useMemo(() => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    return today >= new Date(startDate) && today <= new Date(endDate);
+  }, [startDate, endDate]);
 
   return (
     <div className="relative overflow-x-auto scrollbar-hide select-none" style={{ width: `${totalDays * DAY_WIDTH}px` }}>
@@ -63,7 +81,7 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id, onEditTask
           const d = new Date(minDate);
           d.setDate(d.getDate() + i);
           const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-          const isToday = d.toDateString() === today.toDateString();
+          const isToday = d.toDateString() === new Date().toDateString();
           return (
             <div key={i} style={{ width: `${DAY_WIDTH}px` }} className={`h-6 flex items-center justify-center text-[9px] font-bold border-r border-gray-100/50 flex-shrink-0 ${isToday ? 'text-red-500 bg-red-50/30' : isWeekend ? 'bg-gray-100/40 text-gray-300' : 'text-gray-400'}`}>
               {d.getDate()}
@@ -83,15 +101,10 @@ function MiniGantt({ tasks, startDate, endDate, statuses, project_id, onEditTask
         {rows.map((row, rIdx) => (
           <React.Fragment key={rIdx}>
             {row.map(task => {
-              const start = task.start_time || task.created_at;
-              const end = task.end_time || (new Date(new Date(start).getTime() + 86400000).toISOString());
-              const startX = getX(start);
-              const endX = getX(end);
-              const width = Math.max(DAY_WIDTH * 0.8, endX - startX);
               const color = statusColorMap[task.status] || '#94a3b8';
 
               return (
-                <div key={task.id} className="absolute flex items-center group transition-all" style={{ left: `${startX}px`, top: `${rIdx * (TASK_HEIGHT + 6)}px`, width: `${width}px` }}>
+                <div key={task.id} className="absolute flex items-center group transition-all" style={{ left: `${task.startX}px`, top: `${rIdx * (TASK_HEIGHT + 6)}px`, width: `${task.width}px` }}>
                   <button
                     onClick={() => onEditTask && onEditTask(task.sprint_id, task.id)}
                     className="h-6 w-full rounded-md shadow-sm border border-black/5 hover:brightness-110 flex items-center px-1.5 overflow-hidden transition-all text-left"

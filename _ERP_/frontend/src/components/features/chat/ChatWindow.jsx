@@ -139,10 +139,16 @@ export default function ChatWindow({ roomType, pk }) {
     setInput('');
   };
 
+  const lastTypingSent = useRef(0);
+
   const handleTyping = (e) => {
     setInput(e.target.value);
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'typing' }));
+    const now = Date.now();
+    if (now - lastTypingSent.current > 2000) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'typing' }));
+        lastTypingSent.current = now;
+      }
     }
   };
 

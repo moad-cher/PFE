@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AdministrationDashboard from './AdministrationDashboard';
@@ -13,22 +14,21 @@ export default function Dashboard() {
   if (!user) return null;
 
   // Role-based dashboard mapping
-  const getAvailableDashboards = () => {
-    const dashboards = [];
+  const dashboards = useMemo(() => {
+    const list = [];
     if (user.role === 'admin' || user.role === 'hr_manager') {
-      dashboards.push({ id: 'administration', component: AdministrationDashboard });
-      dashboards.push({ id: 'hiring', component: HiringDashboard });
+      list.push({ id: 'administration', component: AdministrationDashboard });
+      list.push({ id: 'hiring', component: HiringDashboard });
     }
     if (user.role === 'admin' || user.role === 'project_manager') {
-      dashboards.push({ id: 'projects', component: ProjectsDashboard });
+      list.push({ id: 'projects', component: ProjectsDashboard });
     }
-    if (user.role === 'team_member' || dashboards.length === 0) {
-      dashboards.push({ id: 'tasks', component: TeamMemberDashboard });
+    if (user.role === 'team_member' || list.length === 0) {
+      list.push({ id: 'tasks', component: TeamMemberDashboard });
     }
-    return dashboards;
-  };
+    return list;
+  }, [user.role]);
 
-  const dashboards = getAvailableDashboards();
   const currentTabId = activeTab || dashboards[0].id;
   const activeDashboard = dashboards.find(d => d.id === currentTabId) || dashboards[0];
   const ActiveComponent = activeDashboard.component;

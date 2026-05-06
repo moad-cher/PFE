@@ -37,15 +37,21 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
     }
   }, [open, departments, users]);
 
+  const { usersByDept, unassignedUsers } = useMemo(() => {
+    const mapping = {};
+    const unassigned = [];
+    allUsers.forEach(u => {
+      if (u.department?.id) {
+        if (!mapping[u.department.id]) mapping[u.department.id] = [];
+        mapping[u.department.id].push(u);
+      } else {
+        unassigned.push(u);
+      }
+    });
+    return { usersByDept: mapping, unassignedUsers: unassigned };
+  }, [allUsers]);
+
   if (!open) return null;
-
-  const getDepartmentUsers = (deptId) => {
-    return allUsers.filter(u => u.department?.id === deptId);
-  };
-
-  const getUnassignedUsers = () => {
-    return allUsers.filter(u => !u.department);
-  };
 
   const handleUserClick = (e, userId, containerUsers) => {
     e.preventDefault();
@@ -278,10 +284,10 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                     className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-4 min-h-[200px]"
                   >
                     <h4 className="font-semibold text-gray-700 mb-3 flex items-center justify-between">
-                      <span>Unassigned ({getUnassignedUsers().length})</span>
+                      <span>Unassigned ({unassignedUsers.length})</span>
                     </h4>
                     <div className="space-y-2">
-                      {getUnassignedUsers().map((user, index) => {
+                      {unassignedUsers.map((user, index) => {
                         const isSelected = selectedUserIds.includes(user.id);
                         return (
                           <Draggable key={`user-${user.id}`} draggableId={`user-${user.id}`} index={index}>
@@ -290,7 +296,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                onClick={(e) => handleUserClick(e, user.id, getUnassignedUsers())}
+                                onClick={(e) => handleUserClick(e, user.id, unassignedUsers)}
                                 className={`bg-white rounded-lg px-3 py-2 shadow-sm border cursor-grab active:cursor-grabbing hover:border-purple-300 transition-colors ${
                                   isSelected ? 'border-purple-500 bg-purple-50 ring-1 ring-purple-500' : 'border-gray-200'
                                 } ${
@@ -320,7 +326,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                           </Draggable>
                         );
                       })}
-                      {getUnassignedUsers().length === 0 && (
+                      {unassignedUsers.length === 0 && (
                         <p className="text-sm text-gray-400 text-center py-4">No unassigned users</p>
                       )}
                     </div>
@@ -331,7 +337,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
 
               {/* Department Columns */}
               {localDepartments.map((dept, index) => {
-                const deptUsers = getDepartmentUsers(dept.id);
+                const deptUsers = usersByDept[dept.id] || [];
                 return (
                   <Droppable key={dept.id} droppableId={`dept-${dept.id}`}>
                     {(provided) => (
@@ -428,7 +434,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4 flex justify-between items-center">
           <p className="text-sm text-gray-500">
-            {localDepartments.length} department(s) • {allUsers.filter(u => u.department).length} user(s) assigned
+            {localDepartments.length} department(s) • {allUsers.length - unassignedUsers.length} user(s) assigned
           </p>
           <button
             type="button"
@@ -569,10 +575,10 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
               <p className="text-gray-700 mb-2">
                 Are you sure you want to delete <strong>{deleteConfirm.name}</strong>?
               </p>
-              {getDepartmentUsers(deleteConfirm.id).length > 0 && (
+              {usersByDept[deleteConfirm.id]?.length > 0 && (
                 <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-sm text-amber-800">
-                    <strong>Warning:</strong> This department has {getDepartmentUsers(deleteConfirm.id).length} user(s).
+                    <strong>Warning:</strong> This department has {usersByDept[deleteConfirm.id].length} user(s).
                     They will be moved to "Unassigned" when you delete this department.
                   </p>
                 </div>

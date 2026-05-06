@@ -34,8 +34,7 @@ export default function CreateJobModal({ open, onClose }) {
             </svg>
           </button>
         </div>
-
-          <JobForm initial={initialForm} onSubmit={handleSubmit} onSuccess={handleSuccess} onCancel={onClose} submitLabel="Create Job" />
+        <JobForm initial={initialForm} onSubmit={handleSubmit} onSuccess={handleSuccess} onCancel={onClose} submitLabel="Create Job" />
       </div>
     </div>
   );
