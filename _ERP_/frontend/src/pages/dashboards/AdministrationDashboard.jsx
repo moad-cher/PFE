@@ -1,22 +1,29 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminListUsers, adminGetStats, adminChangeRole, adminAssignDepartment, adminDeactivateUser, adminActivateUser, listDepartments, createUser, getAdminActivityTrend, listProjects } from '../../api';
+import {
+  adminListUsers,
+  adminGetStats,
+  adminChangeRole,
+  adminAssignDepartment,
+  adminDeactivateUser,
+  adminActivateUser,
+  listDepartments,
+  createUser
+} from '../../api';
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
 import Spinner from '../../components/shared/ui/Spinner';
-import DashboardChartCard from './cards/DashboardChartCard';
-import StatCard from './cards/StatCard';
-import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
+import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
+import StatCard from '../../components/shared/cards/StatCard';
+import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
+import Guard, { usePermissions } from '../../auth/Guard';
 
-// ChartCard helper removed — use DashboardChartCard directly where needed
-
-export default function AdminDashboard() {
+export default function AdministrationDashboard() {
   const navigate = useNavigate();
+  const { isAdmin, isHR } = usePermissions();
   const [users, setUsers] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState(null);
   const [departments, setDepartments] = useState([]);
-  const [activityTrend, setActivityTrend] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,20 +41,16 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      const [usersRes, statsRes, deptsRes, trendRes, projectsRes] = await Promise.all([
+      const [usersRes, statsRes, deptsRes] = await Promise.all([
         adminListUsers(),
         adminGetStats(),
         listDepartments(),
-        getAdminActivityTrend(30),
-        listProjects(),
       ]);
       setUsers(usersRes.data);
       setStats(statsRes.data);
       setDepartments(deptsRes.data);
-      setActivityTrend(trendRes.data);
-      setProjects(projectsRes.data);
     } catch (err) {
-      setError('Failed to load admin dashboard');
+      setError('Failed to load administration dashboard');
       console.error(err);
     } finally {
       setLoading(false);
@@ -55,6 +58,7 @@ export default function AdminDashboard() {
   };
 
   const handleChangeRole = async (userId, newRole) => {
+    if (!isAdmin) return;
     if (!window.confirm(`Change user role to ${newRole}?`)) return;
     try {
       await adminChangeRole(userId, newRole);
@@ -74,6 +78,7 @@ export default function AdminDashboard() {
   };
 
   const handleToggleActive = async (userId, isActive) => {
+    if (!isAdmin) return;
     if (isActive) {
       if (!window.confirm('Deactivate user? They will no longer be able to log in.')) return;
     }
@@ -89,22 +94,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleActivate = async (userId, username) => {
-    if (!window.confirm(`Activate user "${username}"? They will be able to log in.`)) return;
-    try {
-      await adminActivateUser(userId);
-      await loadData();
-    } catch (err) {
-      alert('Failed to activate user: ' + (err.response?.data?.detail || 'Unknown error'));
-    }
-  };
+  const roleOptions = useMemo(() => {
+    const options = [
+      { value: 'team_member', label: 'Team Member' },
+      { value: 'project_manager', label: 'Project Manager' },
+      { value: 'hr_manager', label: 'HR Manager' },
+      { value: 'admin', label: 'Admin' },
+    ];
+    return isAdmin ? options : options.filter(opt => opt.value !== 'admin');
+  }, [isAdmin]);
 
-  const roleOptions = [
-    { value: 'team_member', label: 'Team Member' },
-    { value: 'project_manager', label: 'Project Manager' },
-    { value: 'hr_manager', label: 'HR Manager' },
-    { value: 'admin', label: 'Admin' },
-  ];
+  const manageableUsers = useMemo(() => {
+    if (isAdmin) return users;
+    return users.filter(u => u.role !== 'admin');
+  }, [users, isAdmin]);
 
   const handleCreateUser = async (userData) => {
     await createUser(userData);
@@ -114,7 +117,7 @@ export default function AdminDashboard() {
   const filteredAndSortedUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    const filtered = users.filter((user) => {
+    const filtered = manageableUsers.filter((user) => {
       const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
       const username = (user.username || '').toLowerCase();
       const email = (user.email || '').toLowerCase();
@@ -160,7 +163,7 @@ export default function AdminDashboard() {
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [users, searchTerm, roleFilter, statusFilter, departmentFilter, sortBy, sortOrder]);
+  }, [manageableUsers, searchTerm, roleFilter, statusFilter, departmentFilter, sortBy, sortOrder]);
 
   const roleChartData = useMemo(() => {
     if (!stats?.users_per_role) return [];
@@ -171,22 +174,6 @@ export default function AdminDashboard() {
   }, [stats?.users_per_role]);
 
   const departmentChartData = useMemo(() => {
-    if (stats?.users_per_department) {
-      if (Array.isArray(stats.users_per_department)) {
-        return stats.users_per_department.map((row, index) => ({
-          name: row?.name || row?.department || row?.department_name || `Department ${index + 1}`,
-          value: Number(row?.value ?? row?.count ?? row?.users ?? row?.total ?? 0) || 0,
-        }));
-      }
-
-      if (typeof stats.users_per_department === 'object') {
-        return Object.entries(stats.users_per_department).map(([name, value]) => ({
-          name,
-          value: Number(value) || 0,
-        }));
-      }
-    }
-
     const deptCounts = {};
     users.forEach(user => {
       const deptName = user.department?.name || 'No Department';
@@ -195,36 +182,7 @@ export default function AdminDashboard() {
     return Object.entries(deptCounts)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [stats?.users_per_department, users]);
-
-  const activityTrendData = useMemo(() => {
-    if (!activityTrend) return [];
-    // Merge users, tasks, and applications by day
-    const allDays = new Set();
-    activityTrend.users?.forEach(d => allDays.add(d.day));
-    activityTrend.tasks?.forEach(d => allDays.add(d.day));
-    activityTrend.applications?.forEach(d => allDays.add(d.day));
-
-    return Array.from(allDays).sort((a, b) => a - b).map(day => {
-      const userEntry = activityTrend.users?.find(d => d.day === day);
-      const taskEntry = activityTrend.tasks?.find(d => d.day === day);
-      const appEntry = activityTrend.applications?.find(d => d.day === day);
-      return {
-        day,
-        users: userEntry?.users || 0,
-        tasks: taskEntry?.tasks || 0,
-        applications: appEntry?.applications || 0,
-      };
-    });
-  }, [activityTrend]);
-
-  const taskStatsData = useMemo(() => {
-    if (!stats) return [];
-    return [
-      { name: 'Completed', value: stats.completed_tasks || 0 },
-      { name: 'Active', value: stats.active_tasks || 0 },
-    ];
-  }, [stats]);
+  }, [users]);
 
   if (loading) {
     return (
@@ -247,13 +205,13 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">System overview and user management</p>
+          <h1 className="text-2xl font-bold text-gray-900">{isAdmin ? 'Admin' : 'System'} Dashboard</h1>
+          <p className="text-gray-600 mt-1">{isAdmin ? 'System overview and user management' : 'Organization overview and statistics'}</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
           label="Total Users"
           value={stats?.total_users || 0}
@@ -296,16 +254,6 @@ export default function AdminDashboard() {
           }
         />
         <StatCard
-          label="Projects"
-          value={stats?.total_projects || 0}
-          color="bg-indigo-100"
-          icon={
-            <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-          }
-        />
-        <StatCard
           label="New (7d)"
           value={stats?.new_users_this_week || 0}
           color="bg-pink-100"
@@ -316,18 +264,6 @@ export default function AdminDashboard() {
           }
         />
       </div>
-
-      {/* Activity Trend Chart 
-      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
-        <h3 className="font-semibold text-gray-900 mb-4">Activity Trends (Last 30 Days)</h3>
-        <AreaChartCard
-          title=""
-          data={activityTrendData}
-          dataKeys={['users', 'tasks', 'applications']}
-          colors={['#8B5CF6', '#10B981', '#F59E0B']}
-        />
-      </div>
-      */}
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-4 lg:auto-rows-[320px] gap-6 mb-8">
@@ -349,14 +285,6 @@ export default function AdminDashboard() {
           dataKey="value"
           nameKey="name"
           horizontal={true}
-        />
-        <DashboardChartCard
-          title="Task Status"
-          type={CHART_TYPES.PIE}
-          data={taskStatsData}
-          dataKey="value"
-          nameKey="name"
-          horizontal={false}
         />
       </div>
 
@@ -404,34 +332,22 @@ export default function AdminDashboard() {
                 <p className="text-xs text-gray-500">Add a new team member</p>
               </div>
             </button>
-            <button
-              onClick={() => setDepartmentModalOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
-            >
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Manage Departments</p>
-                <p className="text-xs text-gray-500">View and edit departments</p>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/admin/')}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
-            >
-              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {/* <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /> */}
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900"></p>
-                <p className="text-xs text-gray-500"></p>
-              </div>
-            </button>
+            <Guard roles={['admin', 'hr_manager']}>
+              <button
+                onClick={() => setDepartmentModalOpen(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Manage Departments</p>
+                  <p className="text-xs text-gray-500">View and edit departments</p>
+                </div>
+              </button>
+            </Guard>
           </div>
         </div>
 
@@ -452,94 +368,18 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">Total Tasks</span>
-              <span className="text-gray-900 text-sm font-medium">{stats?.total_tasks || 0}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">Completion Rate</span>
+              <span className="text-gray-600 text-sm">User Activity Rate</span>
               <span className="text-purple-600 text-sm font-medium">
-                {stats?.total_tasks ? Math.round((stats.completed_tasks / stats.total_tasks) * 100) : 0}%
+                {stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}%
               </span>
             </div>
-            <div className="pt-3 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-sm">User Activity Rate</span>
-                <span className="text-purple-600 text-sm font-medium">
-                  {stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: `${stats?.total_users ? (stats.active_count / stats.total_users) * 100 : 0}%` }}
-                />
-              </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-purple-500 h-2 rounded-full"
+                style={{ width: `${stats?.total_users ? (stats.active_count / stats.total_users) * 100 : 0}%` }}
+              />
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Projects Overview */}
-      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden mb-8">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Projects Overview</h2>
-          <p className="text-sm text-gray-600 mt-1">Status and progress of all active projects</p>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map(project => {
-              const totalTasks = project.tasks?.length || 0;
-              const completedTasks = project.tasks?.filter(t => t.status === 'done').length || 0;
-              const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-              
-              return (
-                <div 
-                  key={project.id} 
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                  className="group cursor-pointer p-4 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all shadow-sm hover:shadow"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="font-bold text-gray-900 group-hover:text-purple-700 transition-colors">{project.name}</h4>
-                      <p className="text-xs text-gray-500 mt-0.5">Manager: {project.manager?.first_name} {project.manager?.last_name}</p>
-                    </div>
-                    <span className="text-xs font-semibold px-2 py-1 bg-purple-100 text-purple-700 rounded-lg">
-                      {progress}%
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Progress</span>
-                      <span>{completedTasks}/{totalTasks} tasks</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-purple-500 h-full transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 flex -space-x-2 overflow-hidden">
-                    {project.members?.slice(0, 5).map(m => (
-                      <div key={m.id} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-blue-500 flex items-center justify-center text-[10px] text-white font-bold" title={m.username}>
-                        {m.username[0]?.toUpperCase()}
-                      </div>
-                    ))}
-                    {project.members?.length > 5 && (
-                      <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-[10px] text-gray-600 font-bold">
-                        +{project.members.length - 5}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {projects.length === 0 && (
-            <div className="text-center py-10 text-gray-500">No projects found.</div>
-          )}
         </div>
       </div>
 
@@ -653,16 +493,20 @@ export default function AdminDashboard() {
                     {user.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={user.role}
-                      onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                      className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
-                      disabled={!user.is_active}
-                    >
-                      {roleOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    {isAdmin ? (
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                        className={`text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 ${user.is_active ? "border-gray-300" : "bg-gray-50 border-gray-200 text-gray-400"}`}
+                        disabled={!user.is_active}
+                      >
+                        {roleOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-sm text-gray-600 capitalize">{user.role.replace('_', ' ')}</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
@@ -680,7 +524,8 @@ export default function AdminDashboard() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleToggleActive(user.id, user.is_active)}
-                      className={`px-2 py-1 text-xs font-medium rounded-full opacity-100 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300 ${user.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900' : 'bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900'}`}>
+                      disabled={!isAdmin}
+                      className={`px-2 py-1 text-xs font-medium rounded-full opacity-100 ${isAdmin ? 'cursor-pointer' : 'cursor-default'} transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300 ${user.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900' : 'bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900'}`}>
                       {user.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
@@ -702,13 +547,9 @@ export default function AdminDashboard() {
         open={departmentModalOpen}
         onClose={() => setDepartmentModalOpen(false)}
         departments={departments}
-        users={users}
+        users={manageableUsers}
         onRefresh={loadData}
       />
     </div>
   );
 }
-
-
-
-

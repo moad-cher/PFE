@@ -123,7 +123,7 @@ What it does:
   - /analytics/project/{id}/overview
   - /analytics/project-manager/overview
   - /analytics/team-member/performance
-- Frontend Dashboard routes by role to AdminDashboard, HRDashboard, ProjectManagerDashboard, TeamMemberDashboard.
+- Frontend Dashboard routes by role (and privilege) to AdministrationDashboard, HiringDashboard, ProjectsDashboard, TeamMemberDashboard via a tabbed interface for Admin/HR.
 - **Centralized Charting**: `DashboardChartRegistry.jsx` provides a DRY API for `BAR`, `PIE`, `LINE`, `AREA`, `DONUT`, and `FUNNEL` charts with global consistency for tooltips and themes.
 - **Unified Stats**: `StatCard.jsx` handles numeric summaries with icons, status colors, and trend indicators across all dashboards.
 

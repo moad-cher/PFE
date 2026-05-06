@@ -5,9 +5,9 @@ import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
-import DashboardChartCard from './cards/DashboardChartCard';
-import StatCard from './cards/StatCard';
-import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
+import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
+import StatCard from '../../components/shared/cards/StatCard';
+import DashboardChart, { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
 
 const KANBAN_STATUS_COLORS = {
   todo: '#e74c3c',

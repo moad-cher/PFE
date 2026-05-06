@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getHRStats, listApplications, listJobs, createUser, getHRPipeline, adminListUsers, listDepartments } from '../../api';
-import CreateUserModal from '../../components/features/admin/CreateUserModal';
+import { getHRStats, listApplications, listJobs, getHRPipeline } from '../../api';
 import CreateJobModal from '../../components/features/hiring/CreateJobModal';
-import DepartmentModal from '../../components/features/admin/DepartmentModal';
 import Spinner from '../../components/shared/ui/Spinner';
-import DashboardChartCard from './cards/DashboardChartCard';
-import StatCard from './cards/StatCard';
-import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
+import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
+import StatCard from '../../components/shared/cards/StatCard';
+import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
+import Guard, { usePermissions } from '../../auth/Guard';
 
 const HR_PIPELINE_COLORS = {
   pending: '#e74c3c',
@@ -17,20 +16,15 @@ const HR_PIPELINE_COLORS = {
   rejected: '#6b7280',
 };
 
-// ChartCard helper removed — use DashboardChartCard directly where needed
-
-export default function HRDashboard() {
+export default function HiringDashboard() {
+  const { isAdmin, isHR } = usePermissions();
   const [stats, setStats] = useState(null);
   const [pipeline, setPipeline] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [recentApplications, setRecentApplications] = useState([]);
   const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [createUserOpen, setCreateUserOpen] = useState(false);
   const [createJobOpen, setCreateJobOpen] = useState(false);
-  const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -38,22 +32,18 @@ export default function HRDashboard() {
 
   const loadData = async () => {
     try {
-      const [statsRes, appsRes, jobsRes, pipelineRes, usersRes, deptsRes] = await Promise.all([
+      const [statsRes, appsRes, jobsRes, pipelineRes] = await Promise.all([
         getHRStats(),
         listApplications(),
         listJobs(),
         getHRPipeline(),
-        adminListUsers(),
-        listDepartments(),
       ]);
       setStats(statsRes.data);
       setRecentApplications(appsRes.data.slice(0, 10));
       setRecentJobs(jobsRes.data.slice(0, 5));
       setPipeline(pipelineRes.data);
-      setUsers(usersRes.data);
-      setDepartments(deptsRes.data);
     } catch (err) {
-      setError('Failed to load HR dashboard');
+      setError('Failed to load hiring dashboard');
       console.error(err);
     } finally {
       setLoading(false);
@@ -69,17 +59,6 @@ export default function HRDashboard() {
       rejected: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const roleOptions = [
-    { value: 'team_member', label: 'Team Member' },
-    { value: 'project_manager', label: 'Project Manager' },
-    { value: 'hr_manager', label: 'HR Manager' },
-    { value: 'admin', label: 'Admin' },
-  ];
-
-  const handleCreateUser = async (userData) => {
-    await createUser(userData);
   };
 
   // AI Score distribution chart data
@@ -133,7 +112,7 @@ export default function HRDashboard() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">HR Manager Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Hiring Dashboard</h1>
         <p className="text-gray-600 mt-1">Manage recruiting pipeline and candidate applications</p>
       </div>
 
@@ -209,37 +188,19 @@ export default function HRDashboard() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <button
-          type="button"
-          onClick={() => setCreateUserOpen(true)}
-          className="bg-white rounded-xl p-6 card-hover group text-left"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-lg mb-1">Create User</h3>
-              <p className="text-purple-500 text-sm">Add a new employee account</p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-          </div>
-        </button>
-
+      <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
         <button
           type="button"
           onClick={() => setCreateJobOpen(true)}
-          className="bg-white rounded-xl p-6 card-hover group text-left"
+          className="bg-white rounded-xl p-6 card-hover group text-left border border-purple-100/50"
         >
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-lg mb-1">Create Job Posting</h3>
               <p className="text-purple-500 text-sm">Post a new job opportunity</p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
             </div>
@@ -248,58 +209,25 @@ export default function HRDashboard() {
 
         <Link
           to="/hiring/jobs"
-          className="bg-white rounded-xl p-6 card-hover group"
+          className="bg-white rounded-xl p-6 card-hover group border border-purple-100/50"
         >
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-lg mb-1">Manage Job Postings</h3>
               <p className="text-purple-500 text-sm">View and edit all postings</p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
         </Link>
-
-        <button
-          type="button"
-          onClick={() => setDepartmentModalOpen(true)}
-          className="bg-white rounded-xl p-6 card-hover group text-left"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-lg mb-1">Manage Departments</h3>
-              <p className="text-purple-500 text-sm">View and edit departments</p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-          </div>
-        </button>
       </div>
-
-      <CreateUserModal
-        open={createUserOpen}
-        onClose={() => setCreateUserOpen(false)}
-        onSubmit={handleCreateUser}
-        roleOptions={roleOptions}
-      />
 
       <CreateJobModal
         open={createJobOpen}
         onClose={() => setCreateJobOpen(false)}
-      />
-
-      <DepartmentModal
-        open={departmentModalOpen}
-        onClose={() => setDepartmentModalOpen(false)}
-        departments={departments}
-        users={users}
-        onRefresh={loadData}
       />
 
       {/* Charts Row */}
@@ -329,53 +257,6 @@ export default function HRDashboard() {
           horizontal={true}
         />
       </div>
-
-      {/* Applications by Status */}
-      {stats?.applications_by_status && Object.keys(stats.applications_by_status).length > 0 && (
-        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
-          <h3 className="font-semibold text-gray-900 mb-4">Applications by Status</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {Object.entries(stats.applications_by_status).map(([status, count]) => (
-              <div key={status} className="text-center p-4 rounded-lg bg-gray-50">
-                <p className="text-2xl font-bold text-gray-900">{count}</p>
-                <p className="text-sm text-gray-600 capitalize">{status}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Jobs */}
-      {recentJobs.length > 0 && (
-        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Active Job Postings</h2>
-            <Link to="/hiring/jobs" className="text-sm text-purple-600 hover:text-purple-800 font-medium">
-              View all
-            </Link>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentJobs.map((job) => (
-              <Link
-                key={job.id}
-                to={`/hiring/jobs/${job.id}`}
-                className="block p-4 rounded-xl border border-purple-100 bg-purple-50 hover:bg-purple-100 transition-colors"
-              >
-                <h4 className="font-semibold text-gray-900 truncate">{job.title}</h4>
-                <p className="text-sm text-gray-600 mt-1">{job.department || 'All Departments'}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs bg-white px-2 py-1 rounded-full text-purple-600">
-                    {job.applications_count || 0} applicants
-                  </span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${job.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                    {job.status}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Recent Candidates */}
       <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden">
@@ -446,8 +327,3 @@ export default function HRDashboard() {
     </div>
   );
 }
-
-
-
-
-

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import Guard from '../../../auth/Guard';
 import NotificationDropdown from './NotificationDropdown';
@@ -32,9 +32,12 @@ function UserAvatar({ user, size = 8 }) {
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+  
+  const currentTab = new URLSearchParams(location.search).get('tab');
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -51,57 +54,93 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const NavLink = ({ id, name, icon }) => {
+    const isActive = currentTab === id || (!currentTab && id === 'administration');
+    return (
+      <Link
+        to={`/dashboard?tab=${id}`}
+        className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all relative min-w-max ${
+          isActive ? 'text-purple-600' : 'text-gray-500 hover:text-purple-400'
+        }`}
+      >
+        {icon}
+        {name}
+        {isActive && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-full" />
+        )}
+      </Link>
+    );
+  };
+
+  const getNavLinks = () => {
+    const links = [];
+    if (user?.role === 'admin' || user?.role === 'hr_manager') {
+      links.push({ 
+        id: 'administration', 
+        name: 'Administration',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        )
+      });
+      links.push({ 
+        id: 'hiring', 
+        name: 'Hiring',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        )
+      });
+    }
+    if (user?.role === 'admin' || user?.role === 'project_manager') {
+      links.push({ 
+        id: 'projects', 
+        name: 'Projects',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+        )
+      });
+    }
+    if (user?.role === 'team_member' || links.length === 0) {
+      links.push({ 
+        id: 'tasks', 
+        name: 'My Tasks',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+        )
+      });
+    }
+    return links;
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-lilac border-b border-purple-100/50 h-16">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-        {/* Logo */}
         <div className="flex items-center gap-6">
           <Link
             to="/dashboard"
             style={{ fontFamily: 'lucida handwriting' }}
             className="inline-flex items-center gap-2 text-purple-300 font-bold text-xl tracking-tight hover:text-[#7C529A] transition-colors"
           >
-            <img
-              src="/log.png"
-              alt="ERP logo"
-              className="h-10 hover:scale-110 transition-transform"
-            />
+            <img src="/log.png" alt="ERP logo" className="h-10 hover:scale-110 transition-transform" />
             <span>ERP</span>
           </Link>
 
-          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-1">
-            <Link
-              to="/dashboard"
-              className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-            >
-              Dashboard
-            </Link>
-
-            <Guard canManageHiring>
-              <Link
-                to="/hiring/jobs"
-                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-              >
-                Hiring
-              </Link>
-            </Guard>
-            
-            <Guard roles={['team_member', 'project_manager']}>
-              <Link
-                to="/hiring/jobs"
-                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-              >
-                Jobs
-              </Link>
-            </Guard>
-            
+            {getNavLinks().map(link => <NavLink key={link.id} {...link} />)}
           </div>
         </div>
 
-        {/* Right side */}
         <div className="flex items-center gap-3">
           <NotificationDropdown />
+          {/* ... user menu and mobile menu toggle ... */}
 
           {/* User menu */}
           <div className="relative" ref={userMenuRef}>
@@ -179,20 +218,42 @@ export default function Navbar() {
 
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t px-4 py-2 space-y-1">
-          <Link
-            to="/dashboard"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/hiring/jobs"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-          >
-            <Guard canManageHiring fallback="Jobs">Hiring</Guard>
-          </Link>
+          {(user?.role === 'admin' || user?.role === 'hr_manager') && (
+            <>
+              <Link
+                to="/dashboard?tab=administration"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Administration
+              </Link>
+              <Link
+                to="/dashboard?tab=hiring"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Hiring
+              </Link>
+            </>
+          )}
+          {(user?.role === 'admin' || user?.role === 'project_manager') && (
+            <Link
+              to="/dashboard?tab=projects"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Projects
+            </Link>
+          )}
+          {user?.role === 'team_member' && (
+            <Link
+              to="/dashboard?tab=tasks"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+            >
+              My Tasks
+            </Link>
+          )}
         </div>
       )}
     </nav>

@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getProjectStats, listProjects, getDashboard, getProjectManagerOverview } from '../../api';
+import { API_BASE, getProjectStats, listProjects, getDashboard, getProjectManagerOverview } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
-import DashboardChartCard from './cards/DashboardChartCard';
-import StatCard from './cards/StatCard';
-import DashboardChart, { CHART_TYPES } from './cards/DashboardChartRegistry';
+import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
+import StatCard from '../../components/shared/cards/StatCard';
+import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
 import TaskEdit from '../projects/TaskEdit';
+import { usePermissions } from '../../auth/Guard';
 
 const KANBAN_STATUS_COLORS = {
   todo: '#e74c3c',
@@ -17,8 +18,9 @@ const KANBAN_STATUS_COLORS = {
   done: '#2ecc71',
 };
 
-export default function ProjectManagerDashboard() {
+export default function ProjectsDashboard() {
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const [stats, setStats] = useState(null);
   const [projects, setProjects] = useState([]);
   const [overview, setOverview] = useState(null);
@@ -42,12 +44,15 @@ export default function ProjectManagerDashboard() {
       ]);
       setStats(statsRes.data);
       
-      const userProjects = projectsRes.data.filter(project => {
-        const isManager = project.manager?.id === user?.id;
-        const isMember = project.members?.some(member => member.id === user?.id);
-        return isManager || isMember;
-      });
-      setProjects(userProjects);
+      // If Admin, show all projects. Otherwise, filter by membership.
+      const displayProjects = isAdmin 
+        ? projectsRes.data 
+        : projectsRes.data.filter(project => {
+            const isManager = project.manager?.id === user?.id;
+            const isMember = project.members?.some(member => member.id === user?.id);
+            return isManager || isMember;
+          });
+      setProjects(displayProjects);
       
       setDashboardData(dashboardRes.data);
       setOverview(overviewRes.data);
@@ -63,7 +68,7 @@ export default function ProjectManagerDashboard() {
       });
       setTasksDueThisWeek(dueThisWeek);
     } catch (err) {
-      setError('Failed to load project manager dashboard');
+      setError('Failed to load projects dashboard');
       console.error(err);
     } finally {
       setLoading(false);
@@ -116,8 +121,8 @@ export default function ProjectManagerDashboard() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Project Manager Dashboard</h1>
-        <p className="text-gray-600 mt-1">Manage projects and team workload</p>
+        <h1 className="text-2xl font-bold text-gray-900">Projects Dashboard</h1>
+        <p className="text-gray-600 mt-1">Status and progress of active projects</p>
       </div>
 
       {/* Stats Cards */}
@@ -190,16 +195,18 @@ export default function ProjectManagerDashboard() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* My Projects */}
+        {/* Projects */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Projects</h2>
-            <Link
-              to="/projects/new"
-              className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-            >
-              + New Project
-            </Link>
+            <h2 className="text-lg font-semibold text-gray-900">{isAdmin ? 'System Projects' : 'My Projects'}</h2>
+            {!isAdmin && (
+              <Link
+                to="/projects/new"
+                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+              >
+                + New Project
+              </Link>
+            )}
           </div>
 
           {projects.length === 0 ? (
@@ -207,20 +214,55 @@ export default function ProjectManagerDashboard() {
               <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
-              No projects yet
+              No projects found
             </div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {projects.map((project) => {
-                const projectOverview = overview?.projects?.find(p => p.id === project.id);
-                const completionRate = projectOverview?.completion_rate || 0;
+                const stories = project.stories || [];
+                const tasks = project.tasks || [];
+                const totalStories = stories.length;
+                const completedStories = stories.filter((story) => {
+                  const storyTasks = tasks.filter((t) => t.story_id === story.id);
+                  return storyTasks.length > 0 && storyTasks.every((t) => t.status === 'done');
+                }).length;
+                const completionRate = totalStories > 0
+                  ? Math.round((completedStories / totalStories) * 100)
+                  : 0;
+                const sprints = project.sprints || [];
+                const activeSprint = (() => {
+                  if (sprints.length === 0) return null;
+                  const active = sprints.find((s) => s.status === 'active');
+                  if (active) return active;
+                  return [...sprints].sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+                })();
+                const sprintStories = activeSprint
+                  ? stories.filter((s) => s.sprint_id === activeSprint.id)
+                  : [];
+                const sprintCompletedStories = sprintStories.filter((story) => {
+                  const storyTasks = tasks.filter((t) => t.story_id === story.id);
+                  return storyTasks.length > 0 && storyTasks.every((t) => t.status === 'done');
+                }).length;
+                const sprintCompletionRate = sprintStories.length > 0
+                  ? Math.round((sprintCompletedStories / sprintStories.length) * 100)
+                  : 0;
                 const isManager = project.manager?.id === user?.id;
+                const manager = project.manager || {};
+                const managerName = [manager.first_name, manager.last_name].filter(Boolean).join(' ')
+                  || manager.username
+                  || 'Unassigned';
+                const managerInitials = [manager.first_name, manager.last_name].filter(Boolean)
+                  .map((n) => n[0].toUpperCase())
+                  .join('') || manager.username?.[0]?.toUpperCase() || '?';
+                const managerAvatarUrl = manager.avatar
+                  ? (manager.avatar.startsWith('http') ? manager.avatar : `${API_BASE}${manager.avatar}`)
+                  : null;
 
                 return (
                   <Link
                     key={project.id}
                     to={`/projects/${project.id}`}
-                    className="block bg-white rounded-xl shadow-lilac border border-purple-100/30 p-5 card-hover group"
+                    className="block bg-white rounded-xl border border-gray-100 p-4 group hover:border-purple-200 hover:bg-purple-50/30 transition-all shadow-sm hover:shadow"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -237,6 +279,20 @@ export default function ProjectManagerDashboard() {
                         {project.description && (
                           <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
                         )}
+                        <div className="mt-2 flex items-center gap-2">
+                          {managerAvatarUrl ? (
+                            <img
+                              src={managerAvatarUrl}
+                              alt={manager.username || managerName}
+                              className="h-6 w-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-purple-500/90 flex items-center justify-center text-[10px] text-white font-semibold">
+                              {managerInitials}
+                            </div>
+                          )}
+                          <span className="text-xs text-gray-500">Manager: {managerName}</span>
+                        </div>
                       </div>
                       {completionRate > 0 && (
                         <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2.5 py-0.5 flex-shrink-0">
@@ -245,16 +301,31 @@ export default function ProjectManagerDashboard() {
                       )}
                     </div>
                     {/* Progress bar */}
-                    <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+                    <div className="mt-3 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-2 rounded-full transition-all"
-                        style={{ width: `${completionRate}%`, backgroundColor: KANBAN_STATUS_COLORS.review }}
+                        className="bg-purple-500 h-full transition-all duration-500"
+                        style={{ width: `${completionRate}%` }}
                       />
                     </div>
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-purple-100/50 text-xs text-gray-400">
-                      <span>{project.tasks_count ?? projectOverview?.total_tasks ?? 0} tasks</span>
-                      <span>{project.members_count ?? 0} members</span>
-                      <span>{projectOverview?.completed_tasks ?? 0} completed</span>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {activeSprint && sprintStories.length > 0 ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Current Sprint Health
+                          </span>
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-purple-300 transition-all duration-500"
+                              style={{ width: `${sprintCompletionRate}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-500">
+                            {sprintCompletionRate}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">No active sprint</span>
+                      )}
                     </div>
                   </Link>
                 );
@@ -263,7 +334,7 @@ export default function ProjectManagerDashboard() {
           )}
         </div>
 
-        {/* Tasks Due This Week */}
+        {/* Due This Week */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Due This Week</h2>

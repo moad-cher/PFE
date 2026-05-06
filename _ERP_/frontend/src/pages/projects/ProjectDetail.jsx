@@ -6,8 +6,8 @@ import { canManageProjects } from '../../auth/permissions';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
-import DashboardChartCard from '../dashboards/cards/DashboardChartCard';
-import { CHART_COLORS, CHART_TYPES } from '../dashboards/cards/DashboardChartRegistry';
+import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
+import { CHART_COLORS, CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
 import GanttChart from '../../components/features/projects/GanttChart';
 import TaskEdit from './TaskEdit';
 
