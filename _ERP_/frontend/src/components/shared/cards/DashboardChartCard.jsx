@@ -1,4 +1,5 @@
 import DashboardChart from './DashboardChartRegistry';
+import Card from '../ui/Card';
 
 export default function DashboardChartCard({
   title,
@@ -19,7 +20,7 @@ export default function DashboardChartCard({
   const rowSpanClass = { 2: 'lg:row-span-2', 3: 'lg:row-span-3', 4: 'lg:row-span-4' }[rowSpan] || '';
   const colSpanClass = { 2: 'lg:col-span-2', 3: 'lg:col-span-3', 4: 'lg:col-span-4' }[colSpan] || '';
   const cardClass = [
-    'bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 h-full flex flex-col',
+    'p-6 h-full flex flex-col',
     rowSpanClass,
     colSpanClass,
   ].filter(Boolean).join(' ');
@@ -28,7 +29,7 @@ export default function DashboardChartCard({
   const contentHasData = hasData !== undefined ? hasData : (isInternalChart ? (data?.length > 0) : !!children);
 
   return (
-    <div className={cardClass}>
+    <Card className={cardClass}>
       <div className="flex items-center justify-between mb-4 gap-4">
         <div className="flex-shrink-0 min-w-[40px] flex justify-start">{leftAction}</div>
         <h3 className="font-semibold text-gray-900 text-center flex-1 truncate">{title}</h3>
@@ -53,6 +54,6 @@ export default function DashboardChartCard({
           {emptyText}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

@@ -13,6 +13,7 @@ import {
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
 import Spinner from '../../components/shared/ui/Spinner';
+import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import StatCard from '../../components/shared/cards/StatCard';
 import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
@@ -291,7 +292,7 @@ export default function AdministrationDashboard() {
       {/* Two Column Layout */}
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
         {/* Users per Role (List) */}
-        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+        <Card className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Role Breakdown</h3>
           <div className="space-y-3">
             {Object.entries(stats?.users_per_role || {}).map(([role, count]) => {
@@ -312,10 +313,10 @@ export default function AdministrationDashboard() {
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+        <Card className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <button
@@ -349,10 +350,10 @@ export default function AdministrationDashboard() {
               </button>
             </Guard>
           </div>
-        </div>
+        </Card>
 
         {/* System Status */}
-        <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6">
+        <Card className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">System Status</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -380,11 +381,11 @@ export default function AdministrationDashboard() {
               />
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* User Management Table */}
-      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="p-6 border-b border-gray-200 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
@@ -534,7 +535,7 @@ export default function AdministrationDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       <CreateUserModal
         open={createUserOpen}

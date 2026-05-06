@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
+import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import StatCard from '../../components/shared/cards/StatCard';
 import DashboardChart, { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
@@ -214,7 +215,7 @@ export default function TeamMemberDashboard() {
 
       {/* Today's Tasks */}
       {todayTasks.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-purple-100/50 shadow-lilac mb-8">
+        <Card variant="panelLg" className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">📅 Today's Schedule</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
@@ -248,7 +249,7 @@ export default function TeamMemberDashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Charts Row */}
@@ -326,9 +327,10 @@ export default function TeamMemberDashboard() {
                       </h4>
                       <div className="grid gap-3">
                         {story.tasks.map((task) => (
-                          <div
+                          <Card
                             key={task.id}
-                            className={`bg-white rounded-xl shadow-mauve border p-4 hover:shadow-lilac transition-all group ${task.is_blocked ? 'border-amber-200 bg-amber-50/20' : 'border-pink-100/30'}`}
+                            className={`shadow-mauve border p-4 hover:shadow-lilac group ${task.is_blocked ? 'border-amber-200 bg-amber-50/20' : 'border-pink-100/30'}`}
+                            interactive
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
@@ -361,7 +363,7 @@ export default function TeamMemberDashboard() {
                                 </span>
                               </div>
                             )}
-                          </div>
+                          </Card>
                         ))}
                       </div>
                     </div>
@@ -392,9 +394,9 @@ export default function TeamMemberDashboard() {
           </div>
           <div className="space-y-3">
             {upcomingTasks.map((task) => (
-              <div
+              <Card
                 key={task.id}
-                className="bg-white rounded-lg shadow-lilac border border-purple-100/30 p-4"
+                className="rounded-lg border-purple-100/30 p-4"
               >
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-medium text-gray-800 text-sm line-clamp-2 flex-1">
@@ -411,7 +413,7 @@ export default function TeamMemberDashboard() {
                 <p className="text-xs mt-2 text-gray-400">
                   Due: {new Date(task.end_time).toLocaleString()}
                 </p>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

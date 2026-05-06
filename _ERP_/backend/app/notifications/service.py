@@ -164,3 +164,14 @@ async def notify_ai_complete(hr_id: int, applicant_name: str, app_id: int, job_i
         "applicant_name": applicant_name,
     }
     await ws_manager.send_personal(hr_id, payload)
+
+
+async def broadcast_ai_complete(applicant_name: str, app_id: int, job_id: int):
+    """Broadcast AI completion to all connected HR managers/admins."""
+    payload = {
+        "type": "ai_complete",
+        "app_id": app_id,
+        "job_id": job_id,
+        "applicant_name": applicant_name,
+    }
+    await ws_manager.broadcast("hiring", payload)

@@ -54,24 +54,6 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  const NavLink = ({ id, name, icon }) => {
-    const isActive = currentTab === id || (!currentTab && id === 'administration');
-    return (
-      <Link
-        to={`/dashboard?tab=${id}`}
-        className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all relative min-w-max ${
-          isActive ? 'text-purple-600' : 'text-gray-500 hover:text-purple-400'
-        }`}
-      >
-        {icon}
-        {name}
-        {isActive && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-full" />
-        )}
-      </Link>
-    );
-  };
-
   const getNavLinks = () => {
     const links = [];
     if (user?.role === 'admin' || user?.role === 'hr_manager') {
@@ -120,6 +102,43 @@ export default function Navbar() {
     return links;
   };
 
+  const navLinks = getNavLinks();
+  const linkIds = navLinks.map((link) => link.id);
+
+  const resolveActiveTab = () => {
+    if (location.pathname.startsWith('/hiring') && linkIds.includes('hiring')) {
+      return 'hiring';
+    }
+    if (location.pathname.startsWith('/projects') && linkIds.includes('projects')) {
+      return 'projects';
+    }
+    if (location.pathname.startsWith('/dashboard')) {
+      return currentTab;
+    }
+    return currentTab;
+  };
+
+  const activeTab = resolveActiveTab();
+  const resolvedTab = linkIds.includes(activeTab) ? activeTab : linkIds[0];
+
+  const NavLink = ({ id, name, icon }) => {
+    const isActive = resolvedTab === id;
+    return (
+      <Link
+        to={`/dashboard?tab=${id}`}
+        className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all relative min-w-max ${
+          isActive ? 'text-purple-600' : 'text-gray-500 hover:text-purple-400'
+        }`}
+      >
+        {icon}
+        {name}
+        {isActive && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-full" />
+        )}
+      </Link>
+    );
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-lilac border-b border-purple-100/50 h-16">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
@@ -134,7 +153,9 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
-            {getNavLinks().map(link => <NavLink key={link.id} {...link} />)}
+            {navLinks.map((link) => (
+              <NavLink key={link.id} {...link} />
+            ))}
           </div>
         </div>
 

@@ -1,6 +1,8 @@
+import Card from '../ui/Card';
+
 export default function StatCard({ icon, label, value, color, subtext, trend }) {
   return (
-    <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 p-6 flex flex-col h-full hover:shadow-md transition-all">
+    <Card className="p-6 flex flex-col h-full" interactive>
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
           {icon}
@@ -18,6 +20,6 @@ export default function StatCard({ icon, label, value, color, subtext, trend }) 
           {subtext && <p className="text-xs text-gray-400 mt-1 truncate">{subtext}</p>}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -242,14 +242,14 @@ async def trigger_analysis(
     app_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(require_roles(*_HR_ROLES)),
 ):
     """Manually trigger / re-trigger AI resume analysis."""
     result = await db.execute(select(Application).where(Application.id == app_id))
     app = result.scalar_one_or_none()
     if not app:
         raise HTTPException(404, "Application not found")
-    background_tasks.add_task(analyze_resume, app_id)
+    background_tasks.add_task(analyze_resume, app_id, requester_id=current_user.id)
     return app
 
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getHRStats, listApplications, listJobs, getHRPipeline } from '../../api';
 import CreateJobModal from '../../components/features/hiring/CreateJobModal';
 import Spinner from '../../components/shared/ui/Spinner';
+import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import StatCard from '../../components/shared/cards/StatCard';
 import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
@@ -162,7 +163,7 @@ export default function HiringDashboard() {
 
       {/* Conversion Metrics */}
       {pipeline?.conversion_metrics && (
-        <div className="bg-white rounded-2xl p-6 border border-purple-100/50 shadow-lilac mb-8">
+        <Card variant="panelLg" className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Recruiting Conversion Metrics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
@@ -184,15 +185,17 @@ export default function HiringDashboard() {
               <p className="text-3xl font-bold">{stats?.candidates_per_posting?.toFixed(1) || '0.0'}</p>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
-        <button
+        <Card
+          as="button"
           type="button"
           onClick={() => setCreateJobOpen(true)}
-          className="bg-white rounded-xl p-6 card-hover group text-left border border-purple-100/50"
+          className="p-6 group text-left"
+          interactive
         >
           <div className="flex items-center justify-between">
             <div>
@@ -205,11 +208,13 @@ export default function HiringDashboard() {
               </svg>
             </div>
           </div>
-        </button>
+        </Card>
 
-        <Link
+        <Card
+          as={Link}
           to="/hiring/jobs"
-          className="bg-white rounded-xl p-6 card-hover group border border-purple-100/50"
+          className="p-6 group"
+          interactive
         >
           <div className="flex items-center justify-between">
             <div>
@@ -222,7 +227,7 @@ export default function HiringDashboard() {
               </svg>
             </div>
           </div>
-        </Link>
+        </Card>
       </div>
 
       <CreateJobModal
@@ -259,7 +264,7 @@ export default function HiringDashboard() {
       </div>
 
       {/* Recent Candidates */}
-      <div className="bg-white rounded-xl shadow-lilac border border-purple-100/50 overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recent Candidates</h2>
           <p className="text-sm text-gray-600 mt-1">Latest applications received</p>
@@ -323,7 +328,7 @@ export default function HiringDashboard() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

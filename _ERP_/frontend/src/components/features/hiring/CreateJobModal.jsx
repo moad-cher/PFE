@@ -35,9 +35,7 @@ export default function CreateJobModal({ open, onClose }) {
           </button>
         </div>
 
-        <div className="px-6 py-5">
           <JobForm initial={initialForm} onSubmit={handleSubmit} onSuccess={handleSuccess} onCancel={onClose} submitLabel="Create Job" />
-        </div>
       </div>
     </div>
   );

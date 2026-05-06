@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
 from app.websockets.auth import extract_ws_token, get_ws_user
-from app.users.models import User
+from app.users.models import User, RoleEnum
 from app.notifications.models import Notification
 from app.websockets.manager import ws_manager
 
@@ -38,6 +38,10 @@ async def ws_notifications(ws: WebSocket):
 
     room = f"user_{user.id}"
     await ws_manager.connect(ws, room, user_id=user.id)
+
+    # Join HR room if applicable
+    if user.role in (RoleEnum.admin, RoleEnum.hr_manager):
+        await ws_manager.connect(ws, "hiring")
 
     # Send initial unread count
     async with AsyncSessionLocal() as db:

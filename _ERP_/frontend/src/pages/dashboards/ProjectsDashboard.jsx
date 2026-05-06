@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import PriorityBadge from '../../components/shared/ui/PriorityBadge';
+import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import StatCard from '../../components/shared/cards/StatCard';
 import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
@@ -210,12 +211,12 @@ export default function ProjectsDashboard() {
           </div>
 
           {projects.length === 0 ? (
-            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-gray-400">
               <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
               No projects found
-            </div>
+            </Card>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {projects.map((project) => {
@@ -270,10 +271,12 @@ export default function ProjectsDashboard() {
                   : null;
 
                 return (
-                  <Link
+                  <Card
+                    as={Link}
                     key={project.id}
                     to={`/projects/${project.id}`}
-                    className="block bg-white rounded-xl border border-gray-100 p-4 group hover:border-purple-200 hover:bg-purple-50/30 transition-all shadow-sm hover:shadow"
+                    className="block border-gray-100 p-4 group hover:border-purple-200 hover:bg-purple-50/30 shadow-sm hover:shadow"
+                    interactive
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -338,7 +341,7 @@ export default function ProjectsDashboard() {
                         <span className="text-xs text-gray-400">No active sprint</span>
                       )}
                     </div>
-                  </Link>
+                  </Card>
                 );
               })}
             </div>
@@ -353,19 +356,20 @@ export default function ProjectsDashboard() {
           </div>
 
           {tasksDueThisWeek.length === 0 ? (
-            <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-gray-400">
               <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               No tasks due this week
-            </div>
+            </Card>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {tasksDueThisWeek.map((task) => (
-                <div
+                <Card
                   key={task.id}
                   onClick={() => setEditingTask(task)}
-                  className="block bg-white rounded-lg shadow-mauve border border-pink-100/30 p-4 card-hover group cursor-pointer"
+                  className="rounded-lg shadow-mauve border-pink-100/30 p-4 group cursor-pointer"
+                  interactive
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h4 className="font-medium text-gray-800 group-hover:text-purple-600 text-sm line-clamp-2 flex-1 transition-colors">
@@ -384,7 +388,7 @@ export default function ProjectsDashboard() {
                       Due: {new Date(task.end_time).toLocaleString()}
                     </p>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           )}

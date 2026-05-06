@@ -22,14 +22,13 @@ function AIPanel({ app, onReanalyze }) {
 
   // Listen for real-time completion
   useEffect(() => {
-    if (!loading) return;
     return subscribe((data) => {
       if (data.type === 'ai_complete' && data.app_id === app.id) {
         onReanalyze();
-        setLoading(false);
+        if (loading) setLoading(false);
       }
     });
-  }, [loading, subscribe, app.id, onReanalyze]);
+  }, [subscribe, app.id, onReanalyze, loading]);
 
   const reanalyze = async () => {
     setLoading(true);

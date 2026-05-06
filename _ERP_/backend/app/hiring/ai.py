@@ -53,7 +53,7 @@ def extract_text_from_file(file_path: str) -> str:
 
 # ── Main analysis function ─────────────────────────────────────────────────── #
 
-async def analyze_resume(application_id: int) -> None:
+async def analyze_resume(application_id: int, requester_id: int | None = None) -> None:
     """
     Load the Application from DB, extract resume text, call Ollama,
     and save ai_score + ai_analysis back to the row.
@@ -132,17 +132,16 @@ Candidate:
 
             await db.commit()
 
-            # Notify the HR manager who created the job posting
+            # Broadcast completion to all HR managers/admins
             try:
-                from app.notifications.service import notify_ai_complete
-                await notify_ai_complete(
-                    hr_id=app.job.created_by_id,
+                from app.notifications.service import broadcast_ai_complete
+                await broadcast_ai_complete(
                     applicant_name=app.candidate_name,
                     app_id=app.id,
                     job_id=app.job_id
                 )
             except Exception as e:
-                logger.error(f"Failed to send AI completion notification: {e}")
+                logger.error(f"Failed to broadcast AI completion: {e}")
 
         except Exception as outer_exc:
             logger.error(f"Critical error in analyze_resume for application {application_id}: {outer_exc}")
