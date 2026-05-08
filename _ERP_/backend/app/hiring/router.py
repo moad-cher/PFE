@@ -7,7 +7,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user, get_db, require_roles
+from app.core.deps import get_current_user, get_db
+from app.auth.permissions import can_manage_hiring
 from app.core.media import ensure_media_dir, get_media_url, RESUMES_DIR
 from app.notifications.service import notify_application_received
 from app.hiring.ai import analyze_resume
@@ -25,8 +26,6 @@ from app.hiring.schemas import (
 )
 
 router = APIRouter(prefix="/hiring", tags=["hiring"])
-
-_HR_ROLES = ("hr_manager", "admin")
 
 
 # ── Job Postings ──────────────────────────────────────────────────────────────
@@ -51,8 +50,10 @@ async def list_jobs(
 async def create_job(
     data: JobPostingCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     job = JobPosting(**data.model_dump(), created_by_id=current_user.id)
     db.add(job)
     await db.commit()
@@ -76,8 +77,10 @@ async def update_job(
     job_id: int,
     data: JobPostingUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
     job = result.scalar_one_or_none()
     if not job:
@@ -93,8 +96,10 @@ async def update_job(
 async def delete_job(
     job_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
     job = result.scalar_one_or_none()
     if not job:
@@ -108,8 +113,10 @@ async def delete_job(
 @router.get("/applications", response_model=list[ApplicationRead])
 async def list_all_applications(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     """All applications across all jobs, ordered by AI score desc."""
     result = await db.execute(
         select(Application)
@@ -122,8 +129,10 @@ async def list_all_applications(
 async def list_job_applications(
     job_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(
         select(Application)
         .where(Application.job_id == job_id)
@@ -194,8 +203,10 @@ async def apply(
 async def get_application(
     app_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(
         select(Application)
         .where(Application.id == app_id)
@@ -225,8 +236,10 @@ async def update_application_status(
     app_id: int,
     data: ApplicationStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(select(Application).where(Application.id == app_id))
     app = result.scalar_one_or_none()
     if not app:
@@ -242,8 +255,10 @@ async def trigger_analysis(
     app_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     """Manually trigger / re-trigger AI resume analysis."""
     result = await db.execute(select(Application).where(Application.id == app_id))
     app = result.scalar_one_or_none()
@@ -260,8 +275,10 @@ async def schedule_interview(
     app_id: int,
     data: InterviewCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(select(Application).where(Application.id == app_id))
     app = result.scalar_one_or_none()
     if not app:
@@ -288,8 +305,10 @@ async def schedule_interview(
 async def list_interviews(
     app_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     result = await db.execute(
         select(Interview)
         .where(Interview.application_id == app_id)
@@ -303,8 +322,10 @@ async def list_interviews(
 @router.get("/stats")
 async def hr_stats(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles(*_HR_ROLES)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_hiring(current_user):
+        raise HTTPException(403, "HR access required")
     """HR Manager stats: job postings, applicants, candidates per posting, avg AI score."""
     # Total job postings
     jobs_result = await db.execute(select(func.count(JobPosting.id)))

@@ -7,7 +7,8 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_db, get_current_user, require_roles
+from app.core.deps import get_db, get_current_user
+from app.auth.permissions import is_admin, can_manage_hiring
 from app.core.security import hash_password, verify_password
 from app.core.media import ensure_media_dir, get_media_url, AVATARS_DIR
 from app.users.models import Department, User
@@ -131,8 +132,10 @@ async def change_password(
 @router.get("/admin/all", response_model=list[UserRead])
 async def admin_list_all_users_legacy(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """Admin/HR: list all users including inactive."""
     result = await db.execute(
         select(User)
@@ -147,8 +150,10 @@ async def admin_update_user(
     user_id: int,
     data: UserAdminUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user):
+        raise HTTPException(403, "Admin access required")
     """Admin-only: update role, is_active, department."""
     if user_id == current_user.id:
         raise HTTPException(400, "Admins cannot modify their own role or status via this endpoint")
@@ -183,8 +188,10 @@ async def list_departments(db: AsyncSession = Depends(get_db)):
 async def create_department(
     data: DepartmentCreate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     dept = Department(name=data.name, description=data.description)
     db.add(dept)
     await db.commit()
@@ -197,8 +204,10 @@ async def update_department(
     dept_id: int,
     data: DepartmentCreate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     result = await db.execute(select(Department).where(Department.id == dept_id))
     dept = result.scalar_one_or_none()
     if not dept:
@@ -214,8 +223,10 @@ async def update_department(
 async def delete_department(
     dept_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     result = await db.execute(select(Department).where(Department.id == dept_id))
     dept = result.scalar_one_or_none()
     if not dept:
@@ -229,8 +240,10 @@ async def delete_department(
 @admin_router.get("/users", response_model=list[UserRead])
 async def admin_list_all_users(
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """Admin/HR: list all users including inactive."""
     result = await db.execute(
         select(User)
@@ -243,8 +256,10 @@ async def admin_list_all_users(
 @admin_router.get("/stats")
 async def admin_get_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """Admin/HR: get system statistics."""
     from sqlalchemy import case
 
@@ -327,8 +342,10 @@ async def admin_change_role(
     user_id: int,
     data: UserAdminUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user):
+        raise HTTPException(403, "Admin access required")
     """Admin-only: change user role. HR cannot change roles."""
     if user_id == current_user.id:
         raise HTTPException(400, "Admins cannot modify their own role")
@@ -356,8 +373,10 @@ async def admin_assign_department(
     user_id: int,
     data: dict,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """Admin/HR: assign user to department."""
     result = await db.execute(
         select(User)
@@ -378,8 +397,10 @@ async def admin_assign_department(
 async def admin_hard_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user):
+        raise HTTPException(403, "Admin access required")
     """Admin-only: hard delete user. HR cannot hard delete."""
     if user_id == current_user.id:
         raise HTTPException(400, "Admins cannot delete themselves")
@@ -398,8 +419,10 @@ async def hr_toggle_user_status(
     user_id: int,
     data: dict,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """Admin/HR: activate/deactivate user (soft delete)."""
     if user_id == current_user.id:
         raise HTTPException(400, "Cannot modify own status")

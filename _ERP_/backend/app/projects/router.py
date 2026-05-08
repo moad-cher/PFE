@@ -5,7 +5,14 @@ from sqlalchemy.orm import selectinload
 from datetime import datetime, timezone
 import logging
 
-from app.core.deps import get_db, require_roles
+from app.core.deps import get_db, get_current_user
+from app.auth.permissions import (
+    is_admin,
+    can_manage_hiring,
+    can_manage_projects,
+    can_access_project,
+    can_manage_project,
+)
 from app.users.models import User
 from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, Comment, project_members, task_assignees
 from app.projects.schemas import (
@@ -33,14 +40,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-_PROJECT_MANAGERS = ("admin",
-                    #  "hr_manager", 
-                     "project_manager")
-_PROJECT_PARTICIPANTS = ("admin", 
-                        # "hr_manager",
-                        "project_manager",
-                        "team_member")
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 DEFAULT_STATUSES = [
@@ -51,22 +50,6 @@ DEFAULT_STATUSES = [
 ]
 
 ESSENTIAL_SLUGS = {"todo", "done"}
-
-
-def _can_access(project: Project, user: User) -> bool:
-    return (
-        user.role == "admin"
-        or project.manager_id == user.id
-        or any(m.id == user.id for m in project.members)
-    )
-
-
-def _is_manager(project: Project, user: User) -> bool:
-    return (
-        user.role == "admin"
-        or project.manager_id == user.id
-        or user.role == "project_manager"
-    )
 
 
 async def _load_project(pk: int, db: AsyncSession) -> Project:
@@ -101,7 +84,7 @@ async def _ensure_config(project: Project, db: AsyncSession):
 @router.get("/dashboard")
 async def dashboard(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     q = select(Project).options(
         selectinload(Project.manager),
@@ -112,7 +95,7 @@ async def dashboard(
         selectinload(Project.config),
         selectinload(Project.sprints),
     )
-    if current_user.role not in ("admin", "hr_manager", "project_manager"):
+    if not is_admin(current_user) and not can_manage_hiring(current_user) and not can_manage_projects(current_user):
         q = q.where(
             (Project.manager_id == current_user.id)
             | Project.members.any(User.id == current_user.id)
@@ -136,7 +119,7 @@ async def dashboard(
 @router.get("/", response_model=list[ProjectRead])
 async def list_projects(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     q = select(Project).options(
         selectinload(Project.manager),
@@ -147,7 +130,7 @@ async def list_projects(
         selectinload(Project.config),
         selectinload(Project.sprints),
     )
-    if current_user.role not in ("admin", "hr_manager", "project_manager"):
+    if not is_admin(current_user) and not can_manage_hiring(current_user) and not can_manage_projects(current_user):
         q = q.where(
             (Project.manager_id == current_user.id)
             | Project.members.any(User.id == current_user.id)
@@ -159,10 +142,10 @@ async def list_projects(
 @router.get("/stats")
 async def project_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     try:
-        can_see_all = current_user.role in ("admin", "hr_manager", "project_manager")
+        can_see_all = is_admin(current_user) or can_manage_hiring(current_user) or can_manage_projects(current_user)
         if can_see_all:
             projects_result = await db.execute(
                 select(Project).options(selectinload(Project.tasks), selectinload(Project.manager))
@@ -225,8 +208,10 @@ async def project_stats(
 async def create_project(
     data: ProjectCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
+    if not can_manage_projects(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     existing_project = await db.execute(select(Project).where(Project.name == data.name))
     if existing_project.scalars().first():
         raise HTTPException(400, "A project with this name already exists")
@@ -244,10 +229,10 @@ async def create_project(
 async def get_project(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
     return project
 
@@ -257,10 +242,10 @@ async def update_project(
     pk: int,
     data: ProjectUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
     
     if data.name and data.name != project.name:
@@ -289,13 +274,13 @@ async def update_project(
 async def delete_project(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Project).where(Project.id == pk))
-    project = result.scalar_one_or_none()
+    project = await db.get(Project, pk)
     if not project:
         raise HTTPException(404, "Project not found")
-    if not _is_manager(project, current_user):
+        
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
     
     await db.execute(delete(Project).where(Project.id == pk))
@@ -308,10 +293,10 @@ async def delete_project(
 async def get_config(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
     if not project.config:
         cfg = ProjectConfig(project_id=pk)
@@ -327,10 +312,10 @@ async def update_config(
     pk: int,
     data: ProjectConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
     cfg = project.config
     if not cfg:
@@ -350,10 +335,10 @@ async def update_config(
 async def list_statuses(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
     return sorted(project.statuses, key=lambda s: s.order)
 
@@ -363,11 +348,12 @@ async def create_status(
     pk: int,
     data: TaskStatusCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     status = TaskStatus(**data.model_dump(), project_id=pk)
     db.add(status)
     await db.commit()
@@ -380,11 +366,12 @@ async def delete_status(
     pk: int,
     status_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
 
     target = next((s for s in project.statuses if s.id == status_id), None)
     if not target:
@@ -410,11 +397,12 @@ async def update_status_order(
     pk: int,
     data: StatusOrderUpdateRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
 
     # Validate all statuses exist and collect order info
     status_map = {s.id: s for s in project.statuses}
@@ -454,10 +442,10 @@ async def update_status_order(
 async def kanban_board(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
     # Find the active sprint
@@ -510,10 +498,10 @@ async def scrum_board(
     assignee_id: int | None = Query(None, description="Filter by assignee user id"),
     sprint_id: str | None = Query(None, description="Filter by sprint id. 'null' for backlog."),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
     tasks = project.tasks
@@ -550,10 +538,10 @@ async def scrum_board(
 async def list_sprints(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
     return project.sprints
 
@@ -563,11 +551,12 @@ async def create_sprint(
     pk: int,
     data: SprintCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     sprint = Sprint(**data.model_dump(), project_id=pk)
     
     # Automate project start date: if this is the first sprint, 
@@ -587,11 +576,12 @@ async def update_sprint(
     sprint_id: int,
     data: SprintUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     
     result = await db.execute(select(Sprint).where(Sprint.id == sprint_id, Sprint.project_id == pk))
     sprint = result.scalar_one_or_none()
@@ -640,11 +630,12 @@ async def delete_sprint(
     pk: int,
     sprint_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     
     result = await db.execute(select(Sprint).where(Sprint.id == sprint_id, Sprint.project_id == pk))
     sprint = result.scalar_one_or_none()
@@ -661,10 +652,10 @@ async def delete_sprint(
 async def list_stories(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
     return project.stories
 
@@ -674,11 +665,12 @@ async def create_story(
     pk: int,
     data: StoryCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     
     if data.sprint_id:
         sprint = await db.get(Sprint, data.sprint_id)
@@ -698,11 +690,12 @@ async def update_story(
     story_id: int,
     data: StoryUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     
     result = await db.execute(select(Story).where(Story.id == story_id, Story.project_id == pk))
     story = result.scalar_one_or_none()
@@ -727,11 +720,12 @@ async def delete_story(
     pk: int,
     story_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     
     result = await db.execute(select(Story).where(Story.id == story_id, Story.project_id == pk))
     story = result.scalar_one_or_none()
@@ -750,11 +744,12 @@ async def search_members(
     q: str = Query("", min_length=0),
     department_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _is_manager(project, current_user):
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
 
     member_ids = {m.id for m in project.members} | {project.manager_id}
     
@@ -780,10 +775,10 @@ async def search_members(
 async def member_stats(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
     all_members = list({project.manager, *project.members} - {None})
@@ -833,13 +828,15 @@ async def add_member(
     pk: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await db.get(Project, pk, options=[selectinload(Project.members)])
     if not project:
         raise HTTPException(404, "Project not found")
-    if not _is_manager(project, current_user):
+
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     
     # Check if user exists and is NOT in HR department
     from app.users.models import Department
@@ -860,13 +857,15 @@ async def remove_member(
     pk: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await db.get(Project, pk, options=[selectinload(Project.members)])
     if not project:
         raise HTTPException(404, "Project not found")
-    if not _is_manager(project, current_user):
+
+    if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
     project.members = [m for m in project.members if m.id != user_id]
     await db.commit()
 
@@ -877,10 +876,10 @@ async def remove_member(
 async def leaderboard(
     pk: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
     all_members = list({project.manager, *project.members} - {None})
@@ -904,10 +903,10 @@ async def ai_suggest(
     task_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_PROJECT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _load_project(pk, db)
-    if not _can_access(project, current_user):
+    if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
     task_res = await db.execute(select(Task).where(Task.id == task_id, Task.project_id == pk))

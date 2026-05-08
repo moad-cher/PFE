@@ -29,7 +29,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
 | What                                   |     Why it matters for thesis      |
 | -------------------------------------- | :--------------------------------: |
 | ML models as LLM tools                 |    Core thesis argument (maybe)    |
-| Agentic loop with multi-tool reasoning |    Shows i understand agents     |
+| Agentic loop with multi-tool reasoning |     Shows i understand agents      |
 | Bulk resume appraisal                  | Showcases the ML pipeline at scale |
 
 # features
@@ -43,8 +43,8 @@ every project has tasks, deadlines, and tasks have assigned team members.
 
 - [ ] scrum
     - [x] sprint stories (no epics)
-    - [ ] sprint burndown chart
-    - [ ] kanban for current sprint
+    - [x] sprint burndown chart
+    - [x] kanban for current sprint
     - [x] backlog management with drag and drop to sprints
 ```
 Product
@@ -63,7 +63,6 @@ Product
 - product backlog (user stories)
 - loop:
     - sprint planning: move stories from backlog to sprint, break into tasks, assign
-    <!-- - daily standup: update task status, blockers-->
     - sprint review: demo completed work, gather feedback
     - sprint retrospective: discuss what went well and what can be improved
 
@@ -72,17 +71,7 @@ Product
 
 
 ### medium priority
-- [ ] task status need refinement
-- [ ] points must not be issued until sprint is completed
-
-- [ ] wanna make UI feel interactive more like an editor than buttons and popup forms
-
-- [x] editable dahsboards
-    - [x] colspan and rowspan for charts
-    - [x] dry
-
 - [ ] resume bulk appraisal for a job posting
-- [ ] assignment suggestions should be integrated into the assignment component
 
 ### low priority
 - @mentions in group chat and comments

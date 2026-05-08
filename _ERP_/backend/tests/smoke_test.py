@@ -78,7 +78,12 @@ async def test_http_smoke_flow():
         assert rp.status_code == 201, rp.text
 
         pid = rp.json()["id"]
-        rt = await c.post(f"/projects/{pid}/tasks/", json={"title": "Test Task"}, headers=h)
+        # Create a story first
+        rs = await c.post(f"/projects/{pid}/stories", json={"title": "Test Story"}, headers=h)
+        assert rs.status_code == 201, rs.text
+        sid = rs.json()["id"]
+
+        rt = await c.post(f"/projects/{pid}/tasks/", json={"title": "Test Task", "story_id": sid}, headers=h)
         assert rt.status_code == 201, rt.text
 
         # Cleanup

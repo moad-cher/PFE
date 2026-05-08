@@ -50,7 +50,7 @@ What it does:
 ### Auth and Access Control
 - Backend uses OAuth2PasswordBearer token extraction and JWT access/refresh tokens.
 - get_current_user validates token type="access", resolves user from DB, and enforces active users.
-- require_roles(*roles) dependency is used for declarative access control on restricted endpoints.
+- Centralized permission helpers in `app/auth/permissions.py` are used inside route bodies for granular access control.
 - Frontend `<Guard>` component and `usePermissions` hook provide centralized UI and logic protection.
 - Frontend ProtectedRoute blocks anonymous users and role-mismatched routes.
 - Navbar and route visibility adapt to role via Guard components.

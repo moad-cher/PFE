@@ -6,7 +6,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_db, require_roles
+from app.core.deps import get_db, get_current_user
+from app.auth.permissions import (
+    can_access_project,
+    can_manage_project,
+    can_create_task,
+    can_edit_task_status,
+    can_reassign_task,
+    can_delete_task,
+)
 from app.notifications.service import (
     notify_task_assigned,
     notify_task_completed,
@@ -30,9 +38,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["tasks"])
 
-_TASK_MANAGERS = ("admin", "project_manager")
-_TASK_PARTICIPANTS = ("admin", "project_manager", "team_member")
-
 
 async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> Project:
     result = await db.execute(
@@ -41,13 +46,10 @@ async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> 
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(404, "Project not found")
-    allowed = (
-        user.role == "admin"
-        or project.manager_id == user.id
-        or any(m.id == user.id for m in project.members)
-    )
-    if not allowed:
+    
+    if not can_access_project(user, project):
         raise HTTPException(403, "Access denied")
+    
     return project
 
 
@@ -88,7 +90,7 @@ async def _award_points(task: Task, db: AsyncSession):
 async def list_tasks(
     project_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -105,9 +107,11 @@ async def create_task(
     data: TaskCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _get_project_or_403(project_id, current_user, db)
+    if not can_create_task(current_user, project):
+        raise HTTPException(403, "Only managers can create tasks")
     assignee_ids = data.assigned_to_ids
     task_data = data.model_dump(exclude={"assigned_to_ids"})
     task = Task(**task_data, project_id=project_id)
@@ -129,7 +133,7 @@ async def get_task(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -149,7 +153,7 @@ async def update_task(
     data: TaskUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     project = await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -165,9 +169,7 @@ async def update_task(
     old_status = task.status
 
     if "status" in payload and payload["status"] != old_status:
-        is_manager = current_user.role == "admin" or project.manager_id == current_user.id
-        is_assignee = any(u.id == current_user.id for u in task.assigned_to)
-        if not (is_manager or is_assignee):
+        if not can_edit_task_status(current_user, task, project):
             raise HTTPException(403, "Only assignees or project managers can change task status")
 
     for field, value in payload.items():
@@ -188,6 +190,8 @@ async def update_task(
         background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
 
     if assignee_ids is not None:
+        if not can_manage_project(current_user, project):
+            raise HTTPException(403, "Only project managers can reassign tasks")
         users = (await db.execute(select(User).where(User.id.in_(assignee_ids)))).scalars().all()
         task.assigned_to = list(users)
 
@@ -206,9 +210,12 @@ async def delete_task(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
-    await _get_project_or_403(project_id, current_user, db)
+    project = await _get_project_or_403(project_id, current_user, db)
+    if not can_delete_task(current_user, project):
+        raise HTTPException(403, "Only managers can delete tasks")
+        
     result = await db.execute(select(Task).where(Task.id == task_id, Task.project_id == project_id))
     task = result.scalar_one_or_none()
     if not task:
@@ -226,7 +233,7 @@ async def move_task(
     data: TaskMoveRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     """Move a task to a different Kanban column (status slug)."""
     project = await _get_project_or_403(project_id, current_user, db)
@@ -248,9 +255,7 @@ async def move_task(
     if not task:
         raise HTTPException(404, "Task not found")
 
-    is_manager = current_user.role == "admin" or project.manager_id == current_user.id
-    is_assignee = any(u.id == current_user.id for u in task.assigned_to)
-    if not (is_manager or is_assignee):
+    if not can_edit_task_status(current_user, task, project):
         raise HTTPException(403, "Only assignees or project managers can change task status")
 
     task.status = data.status
@@ -278,11 +283,11 @@ async def reassign_task(
     new_assignee_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_MANAGERS)),
+    current_user: User = Depends(get_current_user),
 ):
     """Replace all assignees with a single new assignee (manager only)."""
     project = await _get_project_or_403(project_id, current_user, db)
-    if project.manager_id != current_user.id and current_user.role != "admin":
+    if not can_reassign_task(current_user, project):
         raise HTTPException(403, "Only the project manager can reassign tasks")
 
     result = await db.execute(
@@ -313,7 +318,7 @@ async def list_comments(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     await _get_project_or_403(project_id, current_user, db)
     result = await db.execute(
@@ -331,7 +336,7 @@ async def add_comment(
     data: CommentCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_TASK_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
     await _get_project_or_403(project_id, current_user, db)
     task_res = await db.execute(

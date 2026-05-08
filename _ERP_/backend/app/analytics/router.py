@@ -4,7 +4,13 @@ from sqlalchemy import select, func, case, extract, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_db, require_roles
+from app.core.deps import get_db, get_current_user
+from app.auth.permissions import (
+    is_admin,
+    can_manage_hiring,
+    can_manage_projects,
+    can_access_project,
+)
 from app.users.models import User
 from app.projects.models import Project, Task, RewardLog, task_assignees, project_members
 from app.hiring.models import Application, JobPosting, ApplicationStatusEnum
@@ -16,8 +22,10 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 async def get_admin_activity_trend(
     days: int = Query(default=30, ge=1, le=90),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user):
+        raise HTTPException(403, "Admin access required")
     """Get activity trends for the last N days (users, tasks, applications)."""
     cutoff = datetime.now() - timedelta(days=days)
 
@@ -70,8 +78,10 @@ async def get_admin_activity_trend(
 @router.get("/hr/pipeline")
 async def get_hr_pipeline(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """HR pipeline analytics: applications per job, conversion rates."""
 
     # Applications per job with status breakdown
@@ -155,7 +165,7 @@ async def get_hr_pipeline(
 async def get_project_overview(
     project_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "hr_manager", "project_manager", "team_member")),
+    current_user: User = Depends(get_current_user),
 ):
     """Project manager/team member dashboard: project health, team workload, progress."""
     result = await db.execute(
@@ -172,8 +182,8 @@ async def get_project_overview(
         raise HTTPException(status_code=404, detail="Project not found")
 
     # Membership check
-    if current_user.role not in ("admin", "hr_manager"):
-        if project.manager_id != current_user.id and not any(m.id == current_user.id for m in project.members):
+    if not is_admin(current_user) and not can_manage_hiring(current_user):
+        if not can_access_project(current_user, project):
             raise HTTPException(status_code=403, detail="Access denied")
 
     tasks = project.tasks or []
@@ -259,10 +269,12 @@ async def get_project_overview(
 @router.get("/project-manager/overview")
 async def get_project_manager_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "project_manager", "hr_manager")),
+    current_user: User = Depends(get_current_user),
 ):
+    if not is_admin(current_user) and not can_manage_projects(current_user) and not can_manage_hiring(current_user):
+        raise HTTPException(403, "Insufficient permissions")
     """Project manager overview: all their projects' health."""
-    if current_user.role == "admin":
+    if is_admin(current_user):
         projects_result = await db.execute(
             select(Project)
             .options(selectinload(Project.tasks), selectinload(Project.manager))
@@ -318,7 +330,7 @@ async def get_project_manager_overview(
 @router.get("/team-member/performance")
 async def get_team_member_performance(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "project_manager", "hr_manager", "team_member")),
+    current_user: User = Depends(get_current_user),
 ):
     """Team member performance analytics."""
     user_id = current_user.id

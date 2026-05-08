@@ -3,7 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user, get_db, require_roles
+from app.core.deps import get_current_user, get_db
+from app.auth.permissions import is_admin, can_manage_hiring
 from app.users.models import User
 from app.messaging.models import ChatMessage
 from app.projects.models import Project, Task
@@ -22,8 +23,9 @@ async def project_chat_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_CHAT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
+    # Chat allowed for all authenticated users
     result = await db.execute(
         select(ChatMessage)
         .where(ChatMessage.project_id == project_id)
@@ -42,8 +44,9 @@ async def send_project_message(
     project_id: int,
     data: ChatMessageCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*_CHAT_PARTICIPANTS)),
+    current_user: User = Depends(get_current_user),
 ):
+    # Chat allowed for all authenticated users
     proj = await db.get(Project, project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
@@ -77,7 +80,7 @@ async def send_project_message(
 async def delete_message(
     message_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "hr_manager", "project_manager", "team_member")),
+    current_user: User = Depends(get_current_user),
 ):
     """Author or admin can delete a chat message."""
     result = await db.execute(select(ChatMessage).where(ChatMessage.id == message_id))
@@ -86,7 +89,7 @@ async def delete_message(
         raise HTTPException(404, "Message not found")
     
     # Ownership or admin/hr logic
-    can_delete = msg.author_id == current_user.id or current_user.role in ("admin", "hr_manager")
+    can_delete = msg.author_id == current_user.id or is_admin(current_user) or can_manage_hiring(current_user)
     if not can_delete:
         raise HTTPException(403, "Insufficient permissions to delete this message")
     
