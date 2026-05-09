@@ -9,7 +9,7 @@ import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import { CHART_COLORS, CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
 import GanttChart from '../../components/features/projects/GanttChart';
-import TaskEdit from './TaskEdit';
+import TaskEdit from '../../components/features/projects/TaskEdit';
 import ProjectEditModal from '../../components/features/projects/ProjectEditModal';
 import ProjectSettingsModal from '../../components/features/projects/ProjectSettingsModal';
 

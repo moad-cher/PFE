@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import Spinner from '../../shared/ui/Spinner';
+import Modal from '../../shared/ui/Modal';
 
 const initialDepartmentForm = {
   name: '',
@@ -50,8 +51,6 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
     });
     return { usersByDept: mapping, unassignedUsers: unassigned };
   }, [allUsers]);
-
-  if (!open) return null;
 
   const handleUserClick = (e, userId, containerUsers) => {
     e.preventDefault();
@@ -210,54 +209,35 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
     setDeleteConfirm(dept);
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 overflow-y-auto py-8"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="w-full max-w-5xl rounded-2xl bg-white shadow-2xl border border-purple-100/50 my-auto"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="manage-departments-title"
+  const mainFooter = (
+    <div className="flex justify-between items-center w-full">
+      <p className="text-sm text-gray-500">
+        {localDepartments.length} department(s) • {allUsers.length - unassignedUsers.length} user(s) assigned
+      </p>
+      <button
+        type="button"
+        onClick={onClose}
+        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <div>
-            <h3 id="manage-departments-title" className="text-xl font-semibold text-gray-900">
-              Manage Departments
-            </h3>
-            <p className="text-sm text-gray-600">Drag and drop users between departments</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsCreating(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Department
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-2"
-              aria-label="Close modal"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        Done
+      </button>
+    </div>
+  );
 
+  return (
+    <>
+      <Modal
+        open={open}
+        onClose={onClose}
+        title="Manage Departments"
+        description="Drag and drop users between departments"
+        footer={mainFooter}
+        size="full"
+        className="max-w-7xl"
+      >
         {/* Messages */}
         {(error || successMessage) && (
-          <div className="px-6 py-3">
+          <div className="mb-4">
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
                 {error}
@@ -271,8 +251,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
           </div>
         )}
 
-        {/* Content */}
-        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="max-h-[60vh] overflow-y-auto">
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Unassigned Users Column */}
@@ -430,21 +409,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
             </div>
           </DragDropContext>
         </div>
-
-        {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            {localDepartments.length} department(s) • {allUsers.length - unassignedUsers.length} user(s) assigned
-          </p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-          >
-            Done
-          </button>
-        </div>
-      </div>
+      </Modal>
 
       {/* Create Department Modal */}
       {isCreating && (
@@ -605,6 +570,6 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

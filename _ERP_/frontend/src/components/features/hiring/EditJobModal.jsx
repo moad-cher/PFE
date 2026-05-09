@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Spinner from '../../shared/ui/Spinner';
 import { getJob, updateJob } from '../../../api';
 import JobForm from './JobForm';
+import Modal from '../../shared/ui/Modal';
 
 export default function EditJobModal({ open, onClose, jobId, onSaved }) {
   const [initial, setInitial] = useState(null);
@@ -33,29 +34,29 @@ export default function EditJobModal({ open, onClose, jobId, onSaved }) {
     return () => { mounted = false; };
   }, [open, jobId]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose} role="presentation">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-purple-100/50" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-job-title">
-        {loading ? (
-          <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>
-        ) : initial ? (
-          <JobForm
-            initial={initial}
-            onSubmit={(form) => updateJob(jobId, form)}
-            onSuccess={(res) => {
-              if (onSaved) onSaved(res.data);
-              onClose();
-            }}
-            onCancel={onClose}
-            submitLabel="Save Changes"
-            title="Edit Job Posting"
-          />
-        ) : (
-          <div className="p-6 text-center text-red-600">Failed to load job data.</div>
-        )}
-      </div>
-    </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Edit Job Posting"
+      size="lg"
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>
+      ) : initial ? (
+        <JobForm
+          initial={initial}
+          onSubmit={(form) => updateJob(jobId, form)}
+          onSuccess={(res) => {
+            if (onSaved) onSaved(res.data);
+            onClose();
+          }}
+          onCancel={onClose}
+          submitLabel="Save Changes"
+        />
+      ) : (
+        <div className="p-6 text-center text-red-600">Failed to load job data.</div>
+      )}
+    </Modal>
   );
 }

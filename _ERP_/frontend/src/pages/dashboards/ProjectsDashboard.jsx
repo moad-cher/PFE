@@ -9,7 +9,7 @@ import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import StatCard from '../../components/shared/cards/StatCard';
 import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
-import TaskEdit from '../projects/TaskEdit';
+import TaskEdit from '../../components/features/projects/TaskEdit';
 import { usePermissions } from '../../auth/Guard';
 
 const KANBAN_STATUS_COLORS = {

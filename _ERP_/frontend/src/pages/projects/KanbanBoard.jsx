@@ -7,7 +7,7 @@ import PriorityBadge from '../../components/shared/ui/PriorityBadge';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import Guard, { usePermissions } from '../../auth/Guard';
-import TaskEdit from './TaskEdit';
+import TaskEdit from '../../components/features/projects/TaskEdit';
 
 function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
   const [showComments, setShowComments] = useState(false);

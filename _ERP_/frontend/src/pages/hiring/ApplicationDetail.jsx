@@ -4,7 +4,7 @@ import { getApplication, updateApplicationStatus, analyzeApplication, formatDate
 import { useRealTime } from '../../context/RealTimeContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import PdfViewer from '../../components/shared/ui/PdfViewer';
-import InterviewScheduleModal from './InterviewScheduleModal';
+import InterviewScheduleModal from '../../components/features/hiring/InterviewScheduleModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {

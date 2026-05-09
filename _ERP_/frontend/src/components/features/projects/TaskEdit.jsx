@@ -10,9 +10,10 @@ import {
   listDepartments,
   updateTask,
   suggestAssignee,
-} from '../../api';
-import { useRealTime } from '../../context/RealTimeContext';
-import Spinner from '../../components/shared/ui/Spinner';
+} from '../../../api';
+import { useRealTime } from '../../../context/RealTimeContext';
+import Spinner from '../../shared/ui/Spinner';
+import Modal from '../../shared/ui/Modal';
 
 const buildDefaultForm = (storyId) => ({
   title: '',
@@ -200,25 +201,6 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
       .finally(() => setLoading(false));
   }, [projectId, taskId, isEdit, isOpen, initialStoryId]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setSearchQ('');
-    setDepartmentFilter('');
-    setSearchResults([]);
-  }, [isOpen]);
-
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
   const toggleAssignee = (userId) => {
     setForm((prev) => {
       const ids = prev.assigned_to_ids || [];
@@ -237,7 +219,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
   };
 
   const submit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setSaving(true);
     setError('');
 
@@ -266,7 +248,6 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
     }
   };
 
-  const assigneeCount = useMemo(() => form?.assigned_to_ids?.length || 0, [form]);
   const assigneeOptions = useMemo(() => {
     const q = searchQ.trim().toLowerCase();
     return members.filter((member) => {
@@ -278,6 +259,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
       return matchesQuery && matchesDept;
     });
   }, [searchQ, departmentFilter, members]);
+
   const showForm = !loading && form;
 
   const sprintDates = useMemo(() => {
@@ -300,233 +282,214 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
     ? (form.start_time > sprintDates.start ? form.start_time : sprintDates.start) 
     : (form?.start_time || sprintDates?.start);
 
-  if (!isOpen) return null;
-
-  const formContent = showForm ? (
-    <form onSubmit={submit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-        <input
-          value={form.title}
-          onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-          required
-          className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-          rows={3}
-          className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
-        <div className="flex flex-col sm:flex-row gap-3 mb-3">
-          <input
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            placeholder="Search by username or name…"
-            className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <select
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-          >
-            <option value="">All Departments</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="border rounded-xl p-3 max-h-40 overflow-y-auto bg-gray-50/30">
-          {assigneeOptions.length === 0 ? (
-            <p className="text-sm text-gray-500">No project members available</p>
-          ) : (
-            <div className="space-y-1">
-              {assigneeOptions.map((member) => (
-                <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-sm cursor-pointer transition-all text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.assigned_to_ids?.includes(member.id) || false}
-                    onChange={() => toggleAssignee(member.id)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <span>{member.first_name || member.username} {member.last_name || ''}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-        {assigneeCount > 0 && <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase ml-1">{assigneeCount} selected</p>}
-      </div>
-
-      {isEdit && (
-        <AISuggestPanel 
-          pk={projectId} 
-          taskId={taskId} 
-          task={taskData} 
-          onSelectCandidate={handleSelectCandidate} 
-        />
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">User Story *</label>
-          <select
-            value={form.story_id}
-            onChange={(e) => setForm((prev) => ({ ...prev, story_id: e.target.value }))}
-            required
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-          >
-            <option value="" disabled>Select a Story</option>
-            {stories.map((story) => (
-              <option key={story.id} value={story.id}>{story.title}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select
-            value={form.status}
-            onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-          >
-            {statuses.map((status) => (
-              <option key={status.slug} value={status.slug}>{status.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-          <select
-            value={form.priority}
-            onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value }))}
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-          >
-            {['low', 'medium', 'high', 'urgent'].map((p) => (
-              <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-          <input
-            type="datetime-local"
-            value={form.start_time}
-            min={sprintDates?.start}
-            max={startMax}
-            onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-          <input
-            type="datetime-local"
-            value={form.end_time}
-            min={endMin}
-            max={sprintDates?.end}
-            onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-          <input
-            type="number"
-            min="0"
-            value={form.points}
-            onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
-            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-      </div>
-
-      <div className="border-t border-gray-100 pt-4">
-        <label className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-xl cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.is_blocked}
-            onChange={(e) => setForm((prev) => ({ ...prev, is_blocked: e.target.checked }))}
-            className="w-5 h-5 text-amber-600 rounded-lg focus:ring-amber-500 border-amber-300"
-          />
-          <div>
-            <span className="text-sm font-bold text-amber-900 block">Flag as Blocked</span>
-            <span className="text-[10px] text-amber-700 italic leading-tight">{form.is_blocked ? 'Provide a reason below' : 'Surface issues to manager'}</span>
-          </div>
-        </label>
-        
-        {form.is_blocked && (
-          <textarea
-            value={form.blocker_reason}
-            onChange={(e) => setForm((prev) => ({ ...prev, blocker_reason: e.target.value }))}
-            placeholder="Why is this task blocked?"
-            rows={2}
-            className="mt-2 w-full border border-amber-200 bg-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-amber-900"
-          />
-        )}
-      </div>
-
-      <div className="flex gap-3 pt-6 border-t border-gray-100">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md shadow-blue-100 transition-all"
-        >
-          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Task'}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  ) : (
-    <div className="flex justify-center py-12">
-      <Spinner size="lg" />
+  const footer = (
+    <div className="flex gap-3">
+      <button
+        type="button"
+        onClick={submit}
+        disabled={saving || !showForm}
+        className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md shadow-blue-100 transition-all"
+      >
+        {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Task'}
+      </button>
+      <button
+        type="button"
+        onClick={onClose}
+        className="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all"
+      >
+        Cancel
+      </button>
     </div>
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 backdrop-blur-sm px-4 py-8 overflow-y-auto"
-      onClick={onClose}
-      role="presentation"
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={isEdit ? 'Edit Task' : 'Create New Task'}
+      description={project?.name}
+      footer={footer}
+      size="xl"
     >
-      <div
-        className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl my-auto mt-10 relative border border-gray-100"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center justify-between p-6 border-b border-gray-100 rounded-t-[32px]">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm font-medium">
+          {error}
+        </div>
+      )}
+      {!showForm ? (
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Task' : 'Create New Task'}</h1>
-            {project && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{project.name}</p>}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              required
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors p-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="p-8">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm font-medium">
-              {error}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              rows={3}
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
+            <div className="flex flex-col sm:flex-row gap-3 mb-3">
+              <input
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder="Search by username or name…"
+                className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <select
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                <option value="">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
             </div>
+            <div className="border rounded-xl p-3 max-h-40 overflow-y-auto bg-gray-50/30">
+              {assigneeOptions.length === 0 ? (
+                <p className="text-sm text-gray-500">No project members available</p>
+              ) : (
+                <div className="space-y-1">
+                  {assigneeOptions.map((member) => (
+                    <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-sm cursor-pointer transition-all text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.assigned_to_ids?.includes(member.id) || false}
+                        onChange={() => toggleAssignee(member.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span>{member.first_name || member.username} {member.last_name || ''}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isEdit && (
+            <AISuggestPanel 
+              pk={projectId} 
+              taskId={taskId} 
+              task={taskData} 
+              onSelectCandidate={handleSelectCandidate} 
+            />
           )}
-          {formContent}
-        </div>
-      </div>
-    </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">User Story *</label>
+              <select
+                value={form.story_id}
+                onChange={(e) => setForm((prev) => ({ ...prev, story_id: e.target.value }))}
+                required
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                <option value="" disabled>Select a Story</option>
+                {stories.map((story) => (
+                  <option key={story.id} value={story.id}>{story.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                {statuses.map((status) => (
+                  <option key={status.slug} value={status.slug}>{status.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                {['low', 'medium', 'high', 'urgent'].map((p) => (
+                  <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <input
+                type="datetime-local"
+                value={form.start_time}
+                min={sprintDates?.start}
+                max={startMax}
+                onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <input
+                type="datetime-local"
+                value={form.end_time}
+                min={endMin}
+                max={sprintDates?.end}
+                onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+              <input
+                type="number"
+                min="0"
+                value={form.points}
+                onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <label className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-xl cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.is_blocked}
+                onChange={(e) => setForm((prev) => ({ ...prev, is_blocked: e.target.checked }))}
+                className="w-5 h-5 text-amber-600 rounded-lg focus:ring-amber-500 border-amber-300"
+              />
+              <div>
+                <span className="text-sm font-bold text-amber-900 block">Flag as Blocked</span>
+                <span className="text-[10px] text-amber-700 italic leading-tight">{form.is_blocked ? 'Provide a reason below' : 'Surface issues to manager'}</span>
+              </div>
+            </label>
+            
+            {form.is_blocked && (
+              <textarea
+                value={form.blocker_reason}
+                onChange={(e) => setForm((prev) => ({ ...prev, blocker_reason: e.target.value }))}
+                placeholder="Why is this task blocked?"
+                rows={2}
+                className="mt-2 w-full border border-amber-200 bg-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-amber-900"
+              />
+            )}
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }

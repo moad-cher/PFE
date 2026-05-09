@@ -11,8 +11,9 @@ import {
 } from '../../../api';
 import Spinner from '../../shared/ui/Spinner';
 import Guard from '../../../auth/Guard';
+import Modal from '../../shared/ui/Modal';
 
-const COLOR_OPTS = ['#e74c3c','#f39c12','#3498db','#2ecc71','#9b59b6','#1abc9c','#e67e22','#34495e'];
+const COLOR_OPTS = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 const ESSENTIAL_SLUGS = ['todo', 'done'];
 const TODO_ORDER = -1000;
 const DONE_ORDER = 1000;
@@ -31,7 +32,7 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
-  const [newStatus, setNewStatus] = useState({ name:'', slug:'', order: 0, color:'#3498db' });
+  const [newStatus, setNewStatus] = useState({ name: '', slug: '', order: 0, color: '#3498db' });
 
   useEffect(() => {
     if (!isOpen || !pk) return;
@@ -44,14 +45,6 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
       })
       .finally(() => setLoading(false));
   }, [pk, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
 
   const saveConfig = async (e) => {
     e.preventDefault();
@@ -90,7 +83,7 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
     const statusToCreate = { ...newStatus, order: maxOrder + 1 };
     const res = await createProjectStatus(pk, statusToCreate);
     setStatuses((prev) => [...prev, res.data]);
-    setNewStatus({ name:'', slug:'', order: 0, color:'#3498db' });
+    setNewStatus({ name: '', slug: '', order: 0, color: '#3498db' });
     setMsg('Column added.');
     if (onSuccess) onSuccess();
   };
@@ -149,8 +142,6 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
     }
   };
 
-  if (!isOpen) return null;
-
   const modalBody = loading ? (
     <div className="flex justify-center py-12">
       <Spinner size="lg" />
@@ -169,7 +160,7 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Parameters</h2>
             <form onSubmit={saveConfig} className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[['points_on_time','On-time pts'],['points_late','Late pts'],['notify_deadline_days','Notify N days before'],['sprint_duration_days', 'Sprint Duration (days)']].map(([k,l]) => (
+                {[['points_on_time', 'On-time pts'], ['points_late', 'Late pts'], ['notify_deadline_days', 'Notify N days before'], ['sprint_duration_days', 'Sprint Duration (days)']].map(([k, l]) => (
                   <div key={k}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{l}</label>
                     <input
@@ -231,11 +222,10 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`flex items-center justify-between border rounded-xl px-4 py-3 transition-all ${
-                            snapshot.isDragging
+                          className={`flex items-center justify-between border rounded-xl px-4 py-3 transition-all ${snapshot.isDragging
                               ? 'shadow-lg bg-blue-50 border-blue-300'
                               : 'hover:shadow-md'
-                          } cursor-grab active:cursor-grabbing`}
+                            } cursor-grab active:cursor-grabbing`}
                           style={{ ...provided.draggableProps.style }}
                         >
                           <div className="flex items-center gap-3">
@@ -331,34 +321,14 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 backdrop-blur-sm px-4 py-8"
-      onClick={onClose}
-      role="presentation"
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title="Project Settings"
+      description={project?.name}
+      size="xl"
     >
-      <div
-        className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl my-auto mt-10 relative border border-gray-100 max-h-[calc(100vh-80px)] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center justify-between p-6 border-b border-gray-100 rounded-t-[32px]">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Project Settings</h1>
-            {project && (
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{project.name}</p>
-            )}
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors p-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="p-8">
-          {modalBody}
-        </div>
-      </div>
-    </div>
+      {modalBody}
+    </Modal>
   );
 }

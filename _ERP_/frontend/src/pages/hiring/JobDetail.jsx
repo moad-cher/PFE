@@ -6,7 +6,7 @@ import Spinner from '../../components/shared/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import Guard, { usePermissions } from '../../auth/Guard';
 import EditJobModal from '../../components/features/hiring/EditJobModal';
-import ApplyModal from './ApplyModal';
+import ApplyModal from '../../components/features/hiring/ApplyModal';
 
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {

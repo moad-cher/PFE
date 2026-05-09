@@ -16,8 +16,8 @@ import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import { isProjectManager } from '../../auth/permissions';
-import TaskEdit from './TaskEdit';
-import StoryNew from './StoryNew';
+import TaskEdit from '../../components/features/projects/TaskEdit';
+import StoryNew from '../../components/features/projects/StoryNew';
 
 export default function ScrumBoard3() {
   const { pk } = useParams();
