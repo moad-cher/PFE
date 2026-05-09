@@ -271,7 +271,7 @@ async def get_project_manager_overview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not is_admin(current_user) and not can_manage_projects(current_user) and not can_manage_hiring(current_user):
+    if not can_manage_projects(current_user) and not can_manage_hiring(current_user):
         raise HTTPException(403, "Insufficient permissions")
     """Project manager overview: all their projects' health."""
     if is_admin(current_user):

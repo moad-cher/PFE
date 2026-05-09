@@ -187,9 +187,10 @@ async def apply(
     background_tasks.add_task(analyze_resume, application.id)
 
     # Notify all HR managers and admins of the new application
+    from app.auth.permissions import HR_ROLES
     hr_res = await db.execute(
         select(User).where(
-            User.role.in_([RoleEnum.hr_manager, RoleEnum.admin]),
+            User.role.in_(HR_ROLES),
             User.is_active.is_(True),
         )
     )

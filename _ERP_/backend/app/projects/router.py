@@ -254,13 +254,13 @@ async def update_project(
             raise HTTPException(400, "A project with this name already exists")
 
     if data.manager_id is not None and data.manager_id != project.manager_id:
-        if current_user.role != "admin" and project.manager_id != current_user.id:
+        if not is_admin(current_user) and project.manager_id != current_user.id:
             raise HTTPException(403, "Only the current manager or an admin can transfer ownership")
         
         new_manager = await db.get(User, data.manager_id)
         if not new_manager:
             raise HTTPException(404, "New manager user not found")
-        if new_manager.role not in _PROJECT_MANAGERS:
+        if not can_manage_projects(new_manager):
             raise HTTPException(400, "New manager must have 'admin' or 'project_manager' role")
 
     for field, value in data.model_dump(exclude_none=True).items():
