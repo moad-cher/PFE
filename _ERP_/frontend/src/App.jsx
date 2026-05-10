@@ -15,7 +15,7 @@ import ProjectDetail from './pages/projects/ProjectDetail';
 import KanbanBoard from './pages/projects/KanbanBoard';
 import ScrumBoard from './pages/projects/ScrumBoard';
 import ScrumBoard3 from './pages/projects/ScrumBoard3';
-import TaskEdit from './pages/projects/TaskEdit';
+import TaskEdit from './components/features/projects/TaskEdit';
 import Members from './pages/projects/Members';
 import Leaderboard from './pages/projects/Leaderboard';
 import ProjectChat from './pages/projects/ProjectChat';
