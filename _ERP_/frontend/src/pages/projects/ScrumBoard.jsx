@@ -246,12 +246,15 @@ export default function ScrumBoard() {
                     </button>
                   </div>
                 </td>
-                {!isReadOnly && (
+                                {!isReadOnly && (
                   <td className="px-4 py-2">
                     {t.is_blocked ? (
                       <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-amber-200">Blocked</span>
                     ) : (
-                      <StatusBadge status={t.status} />
+                      <StatusBadge 
+                        status={t.status} 
+                        color={statuses.find(s => s.slug === t.status)?.color}
+                      />
                     )}
                   </td>
                 )}

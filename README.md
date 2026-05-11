@@ -72,13 +72,13 @@ Product
 
 
 ### medium priority
-- [ ] resume bulk appraisal for a job posting 
-- [ ] data streaming
+- resume bulk appraisal for a job posting 
+- data streaming
 
 ### low priority
-- @mentions in group chat and comments
+- all text editors in the app should support markdown with @mentions and #tags
 - jobs search with filters (vector search maybe)
-
+- foolproofing
 
 # role permissions matrix
 

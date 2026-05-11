@@ -41,7 +41,7 @@ export default function JobForm({ initial = defaultInitial, onSubmit, onSuccess,
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow p-8">
+    <div>
       {title && <h1 className="text-xl font-bold text-gray-900 mb-6">{title}</h1>}
       {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">

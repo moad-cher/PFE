@@ -1,11 +1,11 @@
 import React, { useMemo, useRef } from 'react';
 
 const SHIFTS = [
-  { start: [8, 30], end: [12, 0] }, // Morning
+  { start: [8, 30], end: [13, 0] }, // Morning
   { start: [14, 0], end: [17, 0] }  // Evening
 ];
 
-export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, valueEnd, onChange }) {
+export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, valueEnd, isEdit, onChange }) {
   const scrollRef = useRef(), trackRef = useRef(), scrollTimer = useRef();
 
   // 1. Generate Sprint Days
@@ -17,6 +17,27 @@ export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, val
 
   const total = days.length * 2;
 
+  // 1.5 Calculate minIdx for new tasks
+  const minIdx = useMemo(() => {
+    if (isEdit) return 0;
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('sv');
+    const dayIdx = days.findIndex(d => d.toLocaleDateString('sv') === todayStr);
+    if (dayIdx === -1) {
+        return now < new Date(days[0]) ? 0 : total;
+    }
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    const morningStart = 8 * 60 + 30;
+    const afternoonStart = 14 * 60;
+    const grace = 30; // 30 minutes grace
+
+    if (currentTime >= 17 * 60) return (dayIdx + 1) * 2;
+    if (currentTime >= afternoonStart + grace) return (dayIdx + 1) * 2; 
+    if (currentTime >= morningStart + grace) return dayIdx * 2 + 1;
+    return dayIdx * 2;
+  }, [days, isEdit, total]);
+
   // 2. Mapping Helpers
   const toISO = (idx, isEnd) => {
     const d = new Date(days[Math.floor(idx / 2)]);
@@ -26,19 +47,20 @@ export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, val
   };
 
   const toIdx = (iso) => {
-    if (!iso) return 0;
+    if (!iso) return isEdit ? 0 : minIdx;
     const d = new Date(iso), ds = iso.split('T')[0];
     const day = days.findIndex(x => x.toLocaleDateString('sv') === ds);
     return Math.max(0, day) * 2 + (d.getHours() >= 13 ? 1 : 0);
   };
 
-  const sIdx = toIdx(valueStart), eIdx = toIdx(valueEnd);
+  const sIdx = Math.max(isEdit ? 0 : minIdx, toIdx(valueStart));
+  const eIdx = Math.max(sIdx, toIdx(valueEnd));
 
   // 3. Compact Interaction Logic
   const move = (clientX, type) => {
     const rect = trackRef.current.getBoundingClientRect();
     let slot = Math.floor(((clientX - rect.left) / rect.width) * total);
-    slot = Math.max(0, Math.min(total - 1, slot));
+    slot = Math.max(isEdit ? 0 : minIdx, Math.min(total - 1, slot));
 
     let ns = sIdx, ne = eIdx;
     if (type === 'start') ns = Math.min(slot, eIdx);
@@ -73,6 +95,14 @@ export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, val
         </div>
 
         <div ref={trackRef} className="relative h-12 bg-gray-100 rounded-xl border border-gray-200 cursor-pointer" onMouseDown={e => onDown(e, 'jump')}>
+          {/* Past Slots Overlay */}
+          {!isEdit && minIdx > 0 && (
+            <div 
+              className="absolute top-0 bottom-0 left-0 bg-gray-400/20 z-10 pointer-events-none rounded-l-xl border-r border-gray-300"
+              style={{ width: `${(minIdx / total) * 100}%` }}
+            />
+          )}
+
           {/* Track Grid: Weekends & Markers */}
           <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}>
             {days.map((d, i) => (d.getDay() % 6 === 0) && (
@@ -98,12 +128,24 @@ export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, val
 
         {/* Labels */}
         <div className="flex justify-between mt-2">
-          {days.map((d, i) => (
-            <div key={i} className="flex-1 text-center text-gray-500">
-              <div className={`text-[10px] font-bold ${d.getDay()%6===0?'text-gray-300':''}`}>{d.toLocaleDateString('en', { weekday: 'short' })}</div>
-              <div className="text-[9px] opacity-70">{d.getDate()}</div>
-            </div>
-          ))}
+          {days.map((d, i) => {
+            const isToday = d.toLocaleDateString('sv') === new Date().toLocaleDateString('sv');
+            return (
+              <div key={i} className="flex-1 text-center">
+                <div className={`text-[10px] font-bold mb-1 ${isToday ? 'text-purple-600' : d.getDay()%6===0?'text-gray-300':'text-gray-500'}`}>
+                  {d.toLocaleDateString('en', { weekday: 'short' })}
+                </div>
+                <div className="flex justify-center">
+                  <div className={`
+                    text-[10px] w-6 h-6 flex items-center justify-center rounded-full transition-colors
+                    ${isToday ? 'bg-purple-600 text-white font-black shadow-sm' : 'text-gray-400 opacity-70'}
+                  `}>
+                    {d.getDate()}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

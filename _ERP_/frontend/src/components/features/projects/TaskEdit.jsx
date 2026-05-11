@@ -240,6 +240,13 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
         end_time: fromDateTimeLocal(form.end_time),
       };
 
+      const gracePeriod = 30 * 60 * 1000; // 30 minutes
+      if (!isEdit && payload.start_time && new Date(payload.start_time) < new Date(Date.now() - gracePeriod)) {
+        setError('Task start date must be in the future');
+        setSaving(false);
+        return;
+      }
+
       if (isEdit) {
         await updateTask(projectId, taskId, payload);
         if (onSuccess) onSuccess();
@@ -459,6 +466,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                   sprintEnd={sprintDates.end}
                   valueStart={form.start_time}
                   valueEnd={form.end_time}
+                  isEdit={isEdit}
                   onChange={(start, end) => setForm(prev => ({ ...prev, start_time: start, end_time: end }))}
                 />
               </div>

@@ -12,9 +12,25 @@ const STATUS_MAP = {
   archived: 'bg-gray-100 text-gray-600',
 };
 
-export default function StatusBadge({ status, className = '' }) {
-  const colorClass = STATUS_MAP[status?.toLowerCase()] || 'bg-gray-100 text-gray-600';
+export default function StatusBadge({ status, color, className = '' }) {
   const label = status ? status.replace(/_/g, ' ') : 'unknown';
+  
+  if (color) {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter border capitalize ${className}`}
+        style={{ 
+          backgroundColor: color + '15', 
+          color: color, 
+          borderColor: color + '30' 
+        }}
+      >
+        {label}
+      </span>
+    );
+  }
+
+  const colorClass = STATUS_MAP[status?.toLowerCase()] || 'bg-gray-100 text-gray-600';
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${colorClass} ${className}`}

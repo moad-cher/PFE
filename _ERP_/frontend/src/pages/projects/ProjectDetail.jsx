@@ -511,7 +511,6 @@ export default function ProjectDetail() {
               lineColors={['#EF4444', '#94A3B8']}
               showLegend={true}
               emptyText={burndownEmptyText}
-              colSpan={2}
               leftAction={
                 <button
                   onClick={() => {
