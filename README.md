@@ -46,6 +46,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
     - [x] sprint burndown chart
     - [x] kanban for current sprint
     - [x] backlog management with drag and drop to sprints
+    - [ ] retrospective notes and action items
 ```
 Product
     │
@@ -71,10 +72,13 @@ Product
 
 
 ### medium priority
-- [ ] resume bulk appraisal for a job posting
+- [ ] resume bulk appraisal for a job posting 
+- [ ] data streaming
 
 ### low priority
 - @mentions in group chat and comments
+- jobs search with filters (vector search maybe)
+
 
 # role permissions matrix
 
@@ -117,9 +121,10 @@ mindmap
       Priority ordering
       Unassigned pool
     Tasks
+      retrieve points when removed from done
       %% State machine
       %% Assignee
-      Done definition
+      %% Done definition
     Ceremonies
       %% Sprint planning
       Sprint review
@@ -131,7 +136,6 @@ mindmap
       Capacity view
     AI Features
       Sprint planning assist
-      Standup summarizer
       Velocity predictor
       %% Assignee suggester
 ```

@@ -38,6 +38,33 @@ backend/
   alembic/versions/                  # Migrations
 ```
 
+## Actual Frontend Structure
+The frontend follows a feature-based structure for domain logic and a shared folder for reusable primitives.
+
+```
+frontend/src/
+  api.js                             # Centralized Axios instance and API calls
+  App.jsx                            # Route definitions and providers wrapping
+  auth/                              # Role-based guards and permission logic
+    Guard.jsx
+    ProtectedRoute.jsx
+  components/
+    features/                        # Domain-specific components
+      admin/                         # User and Department management
+      chat/                          # Real-time chat window
+      hiring/                        # Job and Application modals/forms
+      projects/                      # Gantt, Task distribution, Task Edit, Story New
+    shared/
+      cards/                         # Centralized StatCard and DashboardChartRegistry
+      layout/                        # App shell, Navbar, Notifications
+      ui/                            # Primitive UI components (Spinner, Modal, badges)
+  context/                           # Auth and Real-time providers
+  pages/                             # Main route entry points
+    dashboards/                      # Role-specific dashboards (Admin, HR, PM, Team)
+    projects/                        # Project detail, Kanban, Scrum (v1 & v3), Members
+    hiring/                          # Job list, Job detail, Application detail
+```
+
 ## Running
 From workspace root:
 - _ERP_/run_project.bat
@@ -64,7 +91,7 @@ What it does:
 
 ### Frontend Component Layout
 - Shared UI primitives live in `components/shared/ui/` (e.g., `Spinner.jsx`, `PdfViewer.jsx`, `StatusBadge.jsx`).
-- Dashboard specific components (cards, charts) live in `pages/dashboards/cards/` (e.g., `StatCard.jsx`, `DashboardChartRegistry.jsx`).
+- Dashboard specific components (cards, charts) live in `components/shared/cards/` (e.g., `StatCard.jsx`, `DashboardChartRegistry.jsx`).
 - Domain components live in `components/features/<domain>/`:
   - `components/features/chat/ChatWindow.jsx`
   - `components/features/hiring/CreateJobModal.jsx`
@@ -74,8 +101,8 @@ What it does:
 ### Common Import Targets
 - Use these canonical imports in pages/components:
   - `Spinner` -> `components/shared/ui/Spinner.jsx`
-  - `StatCard` -> `pages/dashboards/cards/StatCard.jsx`
-  - `DashboardChart` -> `pages/dashboards/cards/DashboardChartRegistry.jsx`
+  - `StatCard` -> `components/shared/cards/StatCard.jsx`
+  - `DashboardChart` -> `components/shared/cards/DashboardChartRegistry.jsx`
   - `ChatWindow` -> `components/features/chat/ChatWindow.jsx`
   - `Guard` / `usePermissions` -> `auth/Guard.jsx`
   - `CreateJobModal` -> `components/features/hiring/CreateJobModal.jsx`
@@ -85,7 +112,7 @@ What it does:
 ### Real-time and Notifications
 - Shared WS manager supports room grouping, per-user fan-out (user_<id>), presence, and dead-socket pruning.
 - **Standardized WS Auth**: Authentication is centralized in `app/websockets/auth.py`.
-  - **Strict Requirement**: Handshake extracts JWT **only** from the query string (`?token=...`). 
+  - **Strict Requirement**: Handshake extracts JWT **only** from the query string (`?token=...` or `?access_token=...`). 
   - **No Fallbacks**: Headers and subprotocols are no longer supported for authentication to maintain a singular, clean transport pattern.
   - **Unified**: All modules (Notifications, Chat, AI Stream) now follow this high-maintainability pattern.
 - Notification writes are persisted to DB first, then pushed live.
@@ -107,7 +134,7 @@ What it does:
 - **Bulk User Management**: Department modal supports multi-selection (Ctrl/Shift click) and bulk drag-and-drop.
 - Project member stats and leaderboard use grouped DB queries (not per-user N+1 loops).
 - Messaging supports project and task chat via REST history + WS live events.
-- AI suggest assignee after clicking "Suggest Assignees"
+- AI suggest assignee after clicking "Find Best Candidates" inside the Task Edit panel.
 
 ### Hiring and AI Workflow
 - Hiring includes jobs, applications, interviews, and HR stats.
@@ -133,7 +160,6 @@ What it does:
 - RealTimeContext owns the notification WS connection and distributes events to subscribers.
 - Project routes include multiple scrum variants:
   - `/projects/:pk/scrum`
-  - `/projects/:pk/scrum2`
   - `/projects/:pk/scrum3` (v3 ✨)
 
 ## Key API/WS Endpoints
@@ -150,7 +176,7 @@ Notifications:
 - PATCH /notifications/{notif_id}/read
 - DELETE /notifications/{notif_id}
 - GET /notifications/unread-count
-- WS /ws/notifications?token=[token]
+- WS /ws/notifications?token=[token] or ?access_token=[token]
 
 Stories:
 - GET /projects/{pk}/stories
@@ -168,14 +194,14 @@ Sprints:
 Messaging:
 - GET /chat/project/{pk}
 - GET /chat/task/{pk}
-- WS /ws/chat/{room_type}/{pk}?token=[token]
+- WS /ws/chat/{room_type}/{pk}?token=[token] or ?access_token=[token]
 
 AI:
 - GET /ai/status
 - POST /ai/chat
 - POST /ai/summarize
 - POST /ai/generate-description
-- WS /ws/ai/stream?token=[token]
+- WS /ws/ai/stream?token=[token] or ?access_token=[token]
 
 ## Tests Present
 Backend tests currently in backend/tests:

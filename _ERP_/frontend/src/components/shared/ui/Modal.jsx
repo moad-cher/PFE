@@ -48,12 +48,12 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6"
       onClick={() => !preventCloseOnOverlay && onClose()}
       role="presentation"
     >
       <div
-        className={`w-full ${SIZES[size] || SIZES.md} rounded-2xl bg-white shadow-2xl border border-purple-100/50 my-auto animate-in fade-in zoom-in-95 duration-200 ${className}`}
+        className={`w-full ${SIZES[size] || SIZES.md} rounded-2xl bg-white shadow-2xl border border-purple-100/50 flex flex-col max-h-full animate-in fade-in zoom-in-95 duration-200 ${className}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -61,7 +61,7 @@ export default function Modal({
       >
         {/* Header */}
         {(title || showClose) && (
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="flex-none flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <div>
               {title && (
                 <h3 id="modal-title" className="text-lg font-semibold text-gray-900">
@@ -88,13 +88,13 @@ export default function Modal({
         )}
 
         {/* Content */}
-        <div className="px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="border-t border-gray-100 px-6 py-4 bg-gray-50/30 rounded-b-2xl">
+          <div className="flex-none border-t border-gray-100 px-6 py-4 bg-gray-50/30 rounded-b-2xl">
             {footer}
           </div>
         )}

@@ -14,6 +14,7 @@ import {
 import { useRealTime } from '../../../context/RealTimeContext';
 import Spinner from '../../shared/ui/Spinner';
 import Modal from '../../shared/ui/Modal';
+import TimelineSlider from '../../shared/ui/TimelineSlider';
 
 const buildDefaultForm = (storyId) => ({
   title: '',
@@ -28,6 +29,14 @@ const buildDefaultForm = (storyId) => ({
   is_blocked: false,
   blocker_reason: '',
 });
+
+const formatDisplayTime = (iso) => {
+  if (!iso) return 'Not set';
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${day} at ${time}`;
+};
 
 const toDateTimeLocal = (value) => {
   if (!value) return '';
@@ -430,38 +439,49 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-              <input
-                type="datetime-local"
-                value={form.start_time}
-                min={sprintDates?.start}
-                max={startMax}
-                onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+          <div className="col-span-2 space-y-4">
+            {sprintDates && (
+              <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4">
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Task Schedule</label>
+                    <p className="text-sm font-bold text-purple-600">
+                      {formatDisplayTime(form.start_time)} → {formatDisplayTime(form.end_time)}
+                    </p>
+                  </div>
+                  <div className="text-[10px] text-gray-400 font-medium">
+                    Sprint: {new Date(sprintDates.start).toLocaleDateString()} - {new Date(sprintDates.end).toLocaleDateString()}
+                  </div>
+                </div>
+                
+                <TimelineSlider 
+                  sprintStart={sprintDates.start}
+                  sprintEnd={sprintDates.end}
+                  valueStart={form.start_time}
+                  valueEnd={form.end_time}
+                  onChange={(start, end) => setForm(prev => ({ ...prev, start_time: start, end_time: end }))}
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.points}
+                  onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
+                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div className="flex items-end pb-1">
+                <p className="text-[10px] text-gray-400 leading-tight">
+                  Schedule is restricted to Morning (08:30-12:00) or Afternoon (14:00-17:00) shifts.
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-              <input
-                type="datetime-local"
-                value={form.end_time}
-                min={endMin}
-                max={sprintDates?.end}
-                onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
-              <input
-                type="number"
-                min="0"
-                value={form.points}
-                onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
+          </div>
           </div>
 
           <div className="border-t border-gray-100 pt-4">

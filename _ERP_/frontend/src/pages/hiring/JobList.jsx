@@ -23,7 +23,8 @@ const FILTERS = [
 
 function JobCard({ job, active }) {
   return (
-    <Link to={`/hiring/jobs/${job.id}`}
+    <Link 
+      to={active ? "/hiring/jobs" : `/hiring/jobs/${job.id}`}
       className={`block bg-white rounded-xl shadow-sm border p-5 transition-all hover:shadow-md ${
         active ? 'border-blue-500 ring-1 ring-blue-500' : 'hover:border-blue-200'
       }`}>
@@ -102,7 +103,7 @@ export default function JobList() {
       ) : (
         <div className={`flex flex-col lg:flex-row gap-8`}>
           {/* Master List */}
-          <div className={`${isDetailView ? 'lg:w-1/3 space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full'}`}>
+          <div className={`${isDetailView ? 'lg:w-1/3 space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto p-2 custom-scrollbar' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full'}`}>
             {jobs.map(job => (
               <JobCard 
                 key={job.id} 
