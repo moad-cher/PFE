@@ -209,6 +209,13 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
     setDeleteConfirm(dept);
   };
 
+  const openCreateModal = () => {
+    setEditingDepartment(null);
+    setDeleteConfirm(null);
+    setForm(initialDepartmentForm);
+    setIsCreating(true);
+  };
+
   const mainFooter = (
     <div className="flex justify-between items-center w-full">
       <p className="text-sm text-gray-500">
@@ -251,21 +258,38 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
           </div>
         )}
 
+        <div className="mb-4 flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h4 className="text-lg font-semibold text-gray-900">Departments</h4>
+            <p className="text-sm text-gray-500">
+              {localDepartments.length} department(s) • {allUsers.length - unassignedUsers.length} user(s) assigned
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-3 px-6 py-3 border-2 border-dashed border-purple-200 rounded-2xl text-purple-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/40 transition-all shadow-sm"
+          >
+            <span className="text-lg font-bold">+</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Create Department</span>
+          </button>
+        </div>
+
         <div className="max-h-[60vh] overflow-y-auto">
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
               {/* Unassigned Users Column */}
               <Droppable droppableId="unassigned">
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-4 min-h-[200px]"
+                    className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-4 h-[420px] flex flex-col"
                   >
                     <h4 className="font-semibold text-gray-700 mb-3 flex items-center justify-between">
                       <span>Unassigned ({unassignedUsers.length})</span>
                     </h4>
-                    <div className="space-y-2">
+                    <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1">
                       {unassignedUsers.map((user, index) => {
                         const isSelected = selectedUserIds.includes(user.id);
                         return (
@@ -323,7 +347,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="bg-white rounded-xl border border-gray-200 p-4 min-h-[200px] flex flex-col"
+                        className="bg-white rounded-xl border border-gray-200 p-4 h-[420px] flex flex-col"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-semibold text-gray-900">
@@ -354,7 +378,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
                         {dept.description && (
                           <p className="text-xs text-gray-500 mb-3 line-clamp-2">{dept.description}</p>
                         )}
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1">
                           {deptUsers.map((user, userIndex) => {
                             const isSelected = selectedUserIds.includes(user.id);
                             return (

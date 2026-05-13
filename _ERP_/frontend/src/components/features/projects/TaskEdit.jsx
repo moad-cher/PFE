@@ -483,11 +483,6 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                   className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
-              <div className="flex items-end pb-1">
-                <p className="text-[10px] text-gray-400 leading-tight">
-                  Schedule is restricted to Morning (08:30-12:00) or Afternoon (14:00-17:00) shifts.
-                </p>
-              </div>
             </div>
           </div>
           </div>

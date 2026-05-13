@@ -50,7 +50,7 @@ export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, val
     if (!iso) return isEdit ? 0 : minIdx;
     const d = new Date(iso), ds = iso.split('T')[0];
     const day = days.findIndex(x => x.toLocaleDateString('sv') === ds);
-    return Math.max(0, day) * 2 + (d.getHours() >= 13 ? 1 : 0);
+    return Math.max(0, day) * 2 + (d.getHours() >= 14 ? 1 : 0);
   };
 
   const sIdx = Math.max(isEdit ? 0 : minIdx, toIdx(valueStart));
@@ -109,7 +109,11 @@ export default function TimelineSlider({ sprintStart, sprintEnd, valueStart, val
               <div key={i} className="bg-gray-200/50" style={{ gridColumn: `${i*2 + 1} / span 2` }} />
             ))}
             {Array.from({ length: total + 1 }).map((_, i) => (
-              <div key={i} className={`h-full w-px ${i % 2 ? 'bg-gray-200' : 'bg-gray-300 w-[2px]'}`} style={{ gridColumnStart: i + 1 }} />
+              <div
+                key={i}
+                className={`h-full ${i % 2 ? 'bg-gray-300 w-px' : 'bg-gray-400 w-[2px]'}`}
+                style={{ gridColumnStart: i + 1 }}
+              />
             ))}
           </div>
 
