@@ -172,7 +172,7 @@ export default function ProjectsDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-2 lg:auto-rows-[320px] gap-6 mb-8">
+      <div className="grid lg:grid-cols-2 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
           title="Project Completion Rates"
           type={CHART_TYPES.BAR}
@@ -198,8 +198,8 @@ export default function ProjectsDashboard() {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Projects */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">{isAdmin ? 'All Projects' : 'My Projects'}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">{isAdmin ? 'All Projects' : 'My Projects'}</h2>
             {!isAdmin && (
               <Link
                 to="/projects/new"
@@ -350,8 +350,8 @@ export default function ProjectsDashboard() {
 
         {/* Due This Week */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Due This Week</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Due This Week</h2>
             <span className="text-sm text-gray-500">{tasksDueThisWeek.length} tasks</span>
           </div>
 

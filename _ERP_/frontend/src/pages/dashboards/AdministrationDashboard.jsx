@@ -204,15 +204,13 @@ export default function AdministrationDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isAdmin ? 'Admin' : 'System'} Dashboard</h1>
-          <p className="text-gray-600 mt-1">{isAdmin ? 'System overview and user management' : 'Organization overview and statistics'}</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">{isAdmin ? 'Admin' : 'System'} Dashboard</h1>
+        <p className="text-gray-600 mt-1">{isAdmin ? 'System overview and user management' : 'Organization overview and statistics'}</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
         <StatCard
           label="Total Users"
           value={stats?.total_users || 0}
@@ -267,7 +265,7 @@ export default function AdministrationDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-4 lg:auto-rows-[320px] gap-6 mb-8">
+      <div className="grid lg:grid-cols-4 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
           title="Role Distribution"
           rowSpan={2}
@@ -388,7 +386,7 @@ export default function AdministrationDashboard() {
       <Card className="overflow-hidden">
         <div className="p-6 border-b border-gray-200 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+            <h2 className="text-xl font-bold text-gray-900">User Management</h2>
             <p className="text-sm text-gray-600 mt-1">
               {filteredAndSortedUsers.length} shown of {users.length} total users
             </p>

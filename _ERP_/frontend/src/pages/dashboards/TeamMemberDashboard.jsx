@@ -175,10 +175,11 @@ export default function TeamMemberDashboard() {
         <h1 className="text-2xl font-bold text-gray-900">
           Hello {user?.first_name || user?.username}
         </h1>
+        <p className="text-gray-600 mt-1">Here is your personal overview and task schedule</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           label="My Tasks"
           value={myTasks.length}
@@ -226,7 +227,7 @@ export default function TeamMemberDashboard() {
       {/* Today's Tasks */}
       {todayTasks.length > 0 && (
         <Card variant="panelLg" className="p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">📅 Today's Schedule</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">📅 Today's Schedule</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <h3 className="font-medium mb-3 flex items-center gap-2">
@@ -263,7 +264,7 @@ export default function TeamMemberDashboard() {
       )}
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 lg:auto-rows-[300px] gap-6 mb-8">
+      <div className="grid lg:grid-cols-3 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
           title="Task Status"
           type={CHART_TYPES.PIE}
@@ -304,8 +305,8 @@ export default function TeamMemberDashboard() {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* All My Tasks */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Tasks</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">My Tasks</h2>
             <span className="text-sm text-gray-500">{myTasks.length} total</span>
           </div>
           <div className="space-y-8 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
@@ -398,8 +399,8 @@ export default function TeamMemberDashboard() {
 
         {/* Upcoming Deadlines */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Due Times</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Upcoming Due Times</h2>
             <span className="text-sm text-gray-500">{upcomingTasks.length} this week</span>
           </div>
           <div className="space-y-3">

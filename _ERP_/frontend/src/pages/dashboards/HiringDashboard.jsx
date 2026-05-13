@@ -164,7 +164,7 @@ export default function HiringDashboard() {
       {/* Conversion Metrics */}
       {pipeline?.conversion_metrics && (
         <Card variant="panelLg" className="p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Recruiting Conversion Metrics</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Recruiting Conversion Metrics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className="text-gray-500 text-sm">Total Applications</p>
@@ -236,7 +236,7 @@ export default function HiringDashboard() {
       />
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 lg:auto-rows-[320px] gap-6 mb-8">
+      <div className="grid lg:grid-cols-3 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
           rowSpan={2}
           title="Recruitment Funnel"
@@ -266,7 +266,7 @@ export default function HiringDashboard() {
       {/* Recent Candidates */}
       <Card className="overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Candidates</h2>
+          <h2 className="text-xl font-bold text-gray-900">Recent Candidates</h2>
           <p className="text-sm text-gray-600 mt-1">Latest applications received</p>
         </div>
 

@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     MEDIA_DIR: str = "media"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    # OLLAMA_MODEL: str = "minimax-m2.7:cloud"
-    OLLAMA_MODEL: str = "gemma3:1b-it-qat"
+    OLLAMA_MODEL: str = "gemma4:31b-cloud"
+    # OLLAMA_MODEL: str = "gemma3:1b-it-qat"
     
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
