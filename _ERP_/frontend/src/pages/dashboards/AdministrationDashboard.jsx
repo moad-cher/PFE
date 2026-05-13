@@ -8,7 +8,8 @@ import {
   adminDeactivateUser,
   adminActivateUser,
   listDepartments,
-  createUser
+  createUser,
+  getAdminActivityTrend
 } from '../../api';
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
@@ -16,7 +17,7 @@ import Spinner from '../../components/shared/ui/Spinner';
 import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
 import StatCard from '../../components/shared/cards/StatCard';
-import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
+import { CHART_TYPES, CHART_COLORS } from '../../components/shared/cards/DashboardChartRegistry';
 import Guard, { usePermissions } from '../../auth/Guard';
 
 export default function AdministrationDashboard() {
@@ -24,6 +25,7 @@ export default function AdministrationDashboard() {
   const { isAdmin, isHR } = usePermissions();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
+  const [trend, setTrend] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,14 +44,16 @@ export default function AdministrationDashboard() {
 
   const loadData = async () => {
     try {
-      const [usersRes, statsRes, deptsRes] = await Promise.all([
+      const [usersRes, statsRes, deptsRes, trendRes] = await Promise.all([
         adminListUsers(),
         adminGetStats(),
         listDepartments(),
+        getAdminActivityTrend(30)
       ]);
       setUsers(usersRes.data);
       setStats(statsRes.data);
       setDepartments(deptsRes.data);
+      setTrend(trendRes.data);
     } catch (err) {
       setError('Failed to load administration dashboard');
       console.error(err);
@@ -57,6 +61,36 @@ export default function AdministrationDashboard() {
       setLoading(false);
     }
   };
+
+  const trendData = useMemo(() => {
+    if (!trend) return [];
+    
+    // Create a map of all dates across all sources
+    const dates = new Set();
+    trend.users.forEach(d => dates.add(`${d.month}/${d.day}`));
+    trend.tasks.forEach(d => dates.add(`${d.month}/${d.day}`));
+    trend.applications.forEach(d => dates.add(`${d.month}/${d.day}`));
+    
+    return Array.from(dates)
+      .sort((a, b) => {
+        const [am, ad] = a.split('/').map(Number);
+        const [bm, bd] = b.split('/').map(Number);
+        return am !== bm ? am - bm : ad - bd;
+      })
+      .map(date => {
+        const [m, d] = date.split('/').map(Number);
+        const userPoint = trend.users.find(u => u.month === m && u.day === d);
+        const taskPoint = trend.tasks.find(t => t.month === m && t.day === d);
+        const appPoint = trend.applications.find(a => a.month === m && a.day === d);
+        
+        return {
+          name: `${d}/${m}`,
+          Users: userPoint?.users || 0,
+          Tasks: taskPoint?.tasks || 0,
+          Applications: appPoint?.applications || 0
+        };
+      });
+  }, [trend]);
 
   const handleChangeRole = async (userId, newRole) => {
     if (!isAdmin) return;
@@ -267,15 +301,37 @@ export default function AdministrationDashboard() {
       {/* Charts Row */}
       <div className="grid lg:grid-cols-4 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
+          title="System Activity Trend (30d)"
+          colSpan={3}
+          type={CHART_TYPES.AREA}
+          data={trendData}
+          dataKey="Users" // Default key, but we have multiple
+          nameKey="name"
+          lineKeys={['Users', 'Tasks', 'Applications']}
+          lineColors={['#8B5CF6', '#10B981', '#F59E0B']}
+          // Note: DashboardChart needs to support multiple Area keys if we want a stacked/multi area.
+          // Currently DashboardChart handles CHART_TYPES.AREA with a single dataKey.
+          // Let's use MULTI_LINE or modify DashboardChart if needed.
+          // Actually, let's use MULTI_LINE for now or just Users if AREA only supports one.
+          // Wait, DashboardChart implementation for AREA:
+          // <Area type="monotone" dataKey={dataKey} ... />
+          // I should probably use MULTI_LINE or update DashboardChart.
+          // The goal is "rich", so let's stick to what we have or slightly adapt.
+          // I'll use MULTI_LINE which supports multi keys.
+          type={CHART_TYPES.MULTI_LINE}
+          lineKeys={['Users', 'Tasks', 'Applications']}
+        />
+        <DashboardChartCard
           title="Role Distribution"
-          rowSpan={2}
-          colSpan={2}
-          type={CHART_TYPES.PIE}
+          type={CHART_TYPES.DONUT}
           data={roleChartData}
           dataKey="value"
           nameKey="name"
-          horizontal={false}
         />
+      </div>
+
+      {/* Second Row */}
+      <div className="grid lg:grid-cols-4 gap-6 mb-8">
         <DashboardChartCard
           title="Users per Department"
           colSpan={2}
@@ -284,34 +340,8 @@ export default function AdministrationDashboard() {
           dataKey="value"
           nameKey="name"
           horizontal={true}
+          color="#3B82F6"
         />
-      </div>
-
-      {/* Two Column Layout */}
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        {/* Users per Role (List) */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Role Breakdown</h3>
-          <div className="space-y-3">
-            {Object.entries(stats?.users_per_role || {}).map(([role, count]) => {
-              const percentage = stats?.total_users ? Math.round((count / stats.total_users) * 100) : 0;
-              return (
-                <div key={role}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-gray-700 capitalize text-sm">{role.replace('_', ' ')}</span>
-                    <span className="font-semibold text-purple-600 text-sm">{count}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
 
         {/* Quick Actions */}
         <Card className="p-6">
@@ -319,31 +349,29 @@ export default function AdministrationDashboard() {
           <div className="space-y-3">
             <button
               onClick={() => setCreateUserOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
             >
-              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
               <div>
-                <p className="font-medium text-gray-900">Create New User</p>
-                <p className="text-xs text-gray-500">Add a new team member</p>
+                <p className="font-medium text-gray-900 text-sm">Create User</p>
               </div>
             </button>
             <Guard roles={['admin', 'hr_manager']}>
               <button
                 onClick={() => setDepartmentModalOpen(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
               >
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Manage Departments</p>
-                  <p className="text-xs text-gray-500">View and edit departments</p>
+                  <p className="font-medium text-gray-900 text-sm">Departments</p>
                 </div>
               </button>
             </Guard>
@@ -355,28 +383,30 @@ export default function AdministrationDashboard() {
           <h3 className="font-semibold text-gray-900 mb-4">System Status</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">Database</span>
-              <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span> Connected
+              <span className="text-gray-600 text-xs">Database</span>
+              <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">API Server</span>
-              <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span> Online
+              <span className="text-gray-600 text-xs">API Server</span>
+              <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-sm">User Activity Rate</span>
-              <span className="text-purple-600 text-sm font-medium">
-                {stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-purple-500 h-2 rounded-full"
-                style={{ width: `${stats?.total_users ? (stats.active_count / stats.total_users) * 100 : 0}%` }}
-              />
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-gray-600 text-xs">Activity Rate</span>
+                <span className="text-purple-600 text-xs font-medium">
+                  {stats?.total_users ? Math.round((stats.active_count / stats.total_users) * 100) : 0}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                <div
+                  className="bg-purple-500 h-1.5 rounded-full"
+                  style={{ width: `${stats?.total_users ? (stats.active_count / stats.total_users) * 100 : 0}%` }}
+                />
+              </div>
             </div>
           </div>
         </Card>

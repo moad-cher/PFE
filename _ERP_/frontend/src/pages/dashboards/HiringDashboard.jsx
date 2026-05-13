@@ -84,12 +84,16 @@ export default function HiringDashboard() {
       .filter(d => d.value > 0);
   }, [stats?.applications_by_status]);
 
-  // Jobs with applications bar chart
+  // Jobs with applications stacked status chart
   const jobsChartData = useMemo(() => {
     if (!pipeline?.jobs) return [];
     return pipeline.jobs.slice(0, 8).map(job => ({
       name: job.title.length > 20 ? job.title.slice(0, 20) + '...' : job.title,
-      applications: Number(job.total_applications) || 0,
+      pending: Number(job.status_breakdown?.pending) || 0,
+      reviewed: Number(job.status_breakdown?.reviewed) || 0,
+      interview: Number(job.status_breakdown?.interview) || 0,
+      accepted: Number(job.status_breakdown?.accepted) || 0,
+      rejected: Number(job.status_breakdown?.rejected) || 0,
     }));
   }, [pipeline?.jobs]);
 
@@ -245,12 +249,12 @@ export default function HiringDashboard() {
         />
         <DashboardChartCard
           colSpan={2}
-          title="Applications per Job"
+          title="Job Pipeline Breakdown"
           type={CHART_TYPES.BAR}
           data={jobsChartData}
-          dataKey="applications"
-          nameKey="name"
-          color="#10B981"
+          stacked={true}
+          stackKeys={['pending', 'reviewed', 'interview', 'accepted', 'rejected']}
+          stackColors={['#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#6b7280']}
         />
         <DashboardChartCard
           title="AI Score Distribution"

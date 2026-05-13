@@ -102,6 +102,14 @@ export default function ProjectsDashboard() {
     ];
   }, [stats]);
 
+  const managerWorkloadData = useMemo(() => {
+    if (!stats?.projects_per_manager) return [];
+    return Object.entries(stats.projects_per_manager).map(([name, value]) => ({
+      name,
+      value: Number(value) || 0,
+    }));
+  }, [stats?.projects_per_manager]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -172,8 +180,9 @@ export default function ProjectsDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-2 lg:auto-rows-[340px] gap-6 mb-8">
+      <div className="grid lg:grid-cols-4 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
+          colSpan={2}
           title="Project Completion Rates"
           type={CHART_TYPES.BAR}
           data={projectCompletionData}
@@ -184,7 +193,7 @@ export default function ProjectsDashboard() {
         />
         <DashboardChartCard
           title="Task Status Distribution"
-          type={CHART_TYPES.PIE}
+          type={CHART_TYPES.DONUT}
           data={taskStatusData}
           dataKey="value"
           nameKey="name"
@@ -192,6 +201,13 @@ export default function ProjectsDashboard() {
             completed: KANBAN_STATUS_COLORS.done,
             'in progress': KANBAN_STATUS_COLORS.in_progress,
           }}
+        />
+        <DashboardChartCard
+          title="Projects per Manager"
+          type={CHART_TYPES.DONUT}
+          data={managerWorkloadData}
+          dataKey="value"
+          nameKey="name"
         />
       </div>
 

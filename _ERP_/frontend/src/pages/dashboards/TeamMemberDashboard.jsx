@@ -267,7 +267,7 @@ export default function TeamMemberDashboard() {
       <div className="grid lg:grid-cols-3 lg:auto-rows-[340px] gap-6 mb-8">
         <DashboardChartCard
           title="Task Status"
-          type={CHART_TYPES.PIE}
+          type={CHART_TYPES.DONUT}
           data={statusData}
           dataKey="value"
           nameKey="name"
@@ -294,7 +294,7 @@ export default function TeamMemberDashboard() {
         />
         <DashboardChartCard
           title="Points History"
-          type={CHART_TYPES.LINE}
+          type={CHART_TYPES.AREA}
           data={pointsHistoryData}
           dataKey="points"
           nameKey="day"
