@@ -306,25 +306,29 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
   );
 }
 
-export default function KanbanBoard() {
+export default function KanbanBoard({ project: propProject, isTab, onRefresh }) {
   const { pk } = useParams();
   const { user } = useAuth();
   const { checkPM } = usePermissions();
   const [columns, setColumns] = useState([]);
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [project, setProject] = useState(propProject || null);
+  const [loading, setLoading] = useState(!propProject);
   const [editingTask, setEditingTask] = useState(null);
   const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
 
   const fetchData = () => {
-    Promise.all([getKanban(pk), getProject(pk)])
-      .then(([k, p]) => { setColumns(k.data); setProject(p.data); })
+    if (!propProject) setLoading(true);
+    Promise.all([getKanban(pk), propProject ? Promise.resolve({ data: propProject }) : getProject(pk)])
+      .then(([k, p]) => { 
+        setColumns(k.data); 
+        setProject(p.data); 
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchData();
-  }, [pk]);
+  }, [pk, propProject]);
 
   const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
@@ -363,6 +367,7 @@ export default function KanbanBoard() {
     if (sourceColSlug !== destColSlug) {
       try {
         await moveTask(pk, taskId, destColSlug);
+        if (onRefresh) onRefresh();
       } catch (error) {
         const res = await getKanban(pk);
         setColumns(res.data);
@@ -376,26 +381,18 @@ export default function KanbanBoard() {
   const isPM = checkPM(project);
 
   return (
-    <div className="px-4 py-6">
-      <div className="max-w-7xl mx-auto">
+    <div className={`px-4 py-6 ${isTab ? '' : 'max-w-7xl mx-auto'}`}>
+      {!isTab && (
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Link to={`/projects/${pk}`} className="hover:text-purple-600 transition-colors">← {project?.name}</Link>
             <span>/</span><span className="font-medium text-gray-700">Kanban</span>
           </div>
-          <div className="flex gap-2 items-center">
-            <button 
-              onClick={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
-              className={`px-3 py-1.5 text-sm rounded-xl transition-all border ${showOnlyMyTasks ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'}`}
-            >
-              {showOnlyMyTasks ? '👤 My Tasks' : '👥 All Tasks'}
-            </button>
-            <Link to={`/projects/${pk}/scrum`} className="px-3 py-1.5 text-sm bg-violet-50 text-violet-600 rounded-xl hover:bg-violet-100 transition-colors">Scrum</Link>
-            <Link to={`/projects/${pk}/scrum3`} className="px-3 py-1.5 text-sm bg-pink-50 text-pink-600 rounded-xl border border-pink-100 hover:bg-pink-100 transition-colors font-bold">Scrum v3 ✨</Link>
-          </div>
         </div>
+      )}
 
-        <div className="mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
           {activeSprint ? (
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-gray-900">{activeSprint.name}</h2>
@@ -404,96 +401,103 @@ export default function KanbanBoard() {
           ) : (
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-gray-400 italic">No Active Sprint</h2>
-              <Link to={`/projects/${pk}/scrum`} className="text-xs text-purple-600 hover:underline font-medium">Start a sprint in Scrum Roadmap →</Link>
             </div>
           )}
         </div>
-
-        <TaskEdit 
-          isOpen={!!editingTask} 
-          onClose={() => { setEditingTask(null); }} 
-          pk={pk} 
-          taskId={editingTask?.id}
-          onSuccess={fetchData} 
-        />
-
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
-            {columns.map((col, colIndex) => {
-              const displayedTasks = col.tasks.filter(task => !showOnlyMyTasks || task.assigned_to?.some(u => u.id === user?.id));
-              
-              return (
-                <div key={col.status.id} className="flex-shrink-0 w-72">
-                  <div className={`${colIndex % 2 === 0 ? 'rounded-2xl' : 'rounded-xl'} p-3 backdrop-blur-sm`} style={{ background: col.status.color + '18' }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full shadow-sm" style={{ background: col.status.color }} />
-                        <span className="font-semibold text-sm text-gray-700">{col.status.name}</span>
-                      </div>
-                      <span className="text-xs bg-white/80 px-2 py-0.5 rounded-full text-gray-500 shadow-sm">{displayedTasks.length}</span>
-                    </div>
-                    <Droppable droppableId={col.status.slug}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`space-y-2 min-h-[100px] rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-purple-50/50 ring-2 ring-purple-200 ring-dashed' : ''}`}
-                        >
-                          {displayedTasks.map((task, index) => {
-                            const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
-                            const canDrag = isPM || isAssignee;
-                            
-                            return (
-                              <Draggable 
-                                key={task.id} 
-                                draggableId={`task-${task.id}`} 
-                                index={index}
-                                isDragDisabled={!canDrag}
-                              >
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className={!canDrag ? 'cursor-not-allowed' : ''}
-                                    title={!canDrag ? 'Only assignees can move this task' : ''}
-                                    style={{
-                                      ...provided.draggableProps.style,
-                                      userSelect: 'none',
-                                      position: 'relative',
-                                      left: 0,
-                                      top: 0
-                                    }}
-                                  >
-                                    <TaskCard 
-                                      task={task} 
-                                      projectId={pk} 
-                                      isDragging={snapshot.isDragging} 
-                                      isLocked={!canDrag}
-                                      isPM={isPM}
-                                      onEdit={(t) => setEditingTask(t)}
-                                    />
-                                  </div>
-                                )}
-                              </Draggable>
-                            );
-                          })}
-                          {provided.placeholder}
-                          {displayedTasks.length === 0 && snapshot.isDraggingOver && (
-                            <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">
-                              Drop tasks here
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Droppable>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </DragDropContext>
+        <div className="flex gap-2 items-center">
+          <button 
+            onClick={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
+            className={`px-3 py-1.5 text-sm rounded-xl transition-all border ${showOnlyMyTasks ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'}`}
+          >
+            {showOnlyMyTasks ? '👤 My Tasks' : '👥 All Tasks'}
+          </button>
+        </div>
       </div>
+
+      <TaskEdit 
+        isOpen={!!editingTask} 
+        onClose={() => { setEditingTask(null); }} 
+        pk={pk} 
+        taskId={editingTask?.id}
+        onSuccess={fetchData} 
+      />
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
+          {columns.map((col, colIndex) => {
+            const displayedTasks = col.tasks.filter(task => !showOnlyMyTasks || task.assigned_to?.some(u => u.id === user?.id));
+            
+            return (
+              <div key={col.status.id} className="flex-shrink-0 w-72">
+                <div className={`${colIndex % 2 === 0 ? 'rounded-2xl' : 'rounded-xl'} p-3 backdrop-blur-sm`} style={{ background: col.status.color + '18' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full shadow-sm" style={{ background: col.status.color }} />
+                      <span className="font-semibold text-sm text-gray-700">{col.status.name}</span>
+                    </div>
+                    <span className="text-xs bg-white/80 px-2 py-0.5 rounded-full text-gray-500 shadow-sm">{displayedTasks.length}</span>
+                  </div>
+                  <Droppable droppableId={col.status.slug}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`space-y-2 min-h-[100px] rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-purple-50/50 ring-2 ring-purple-200 ring-dashed' : ''}`}
+                      >
+                        {displayedTasks.map((task, index) => {
+                          const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
+                          const canDrag = isPM || isAssignee;
+                          
+                          return (
+                            <Draggable 
+                              key={task.id} 
+                              draggableId={`task-${task.id}`} 
+                              index={index}
+                              isDragDisabled={!canDrag}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={!canDrag ? 'cursor-not-allowed' : ''}
+                                  title={!canDrag ? 'Only assignees can move this task' : ''}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    userSelect: 'none',
+                                    position: 'relative',
+                                    left: 0,
+                                    top: 0
+                                  }}
+                                >
+                                  <TaskCard 
+                                    task={task} 
+                                    projectId={pk} 
+                                    isDragging={snapshot.isDragging} 
+                                    isLocked={!canDrag}
+                                    isPM={isPM}
+                                    onEdit={(t) => setEditingTask(t)}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                        {displayedTasks.length === 0 && snapshot.isDraggingOver && (
+                          <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">
+                            Drop tasks here
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </DragDropContext>
     </div>
   );
 }

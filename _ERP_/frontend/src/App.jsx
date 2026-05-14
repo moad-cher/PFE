@@ -12,13 +12,7 @@ import Unauthorized from './pages/auth/Unauthorized';
 
 import ProjectNew from './pages/projects/ProjectNew';
 import ProjectDetail from './pages/projects/ProjectDetail';
-import KanbanBoard from './pages/projects/KanbanBoard';
-import ScrumBoard from './pages/projects/ScrumBoard';
-import ScrumBoard3 from './pages/projects/ScrumBoard3';
 import TaskEdit from './components/features/projects/TaskEdit';
-import Members from './pages/projects/Members';
-import Leaderboard from './pages/projects/Leaderboard';
-import ProjectChat from './pages/projects/ProjectChat';
 
 import JobList from './pages/hiring/JobList';
 import ApplicationDetail from './pages/hiring/ApplicationDetail';
@@ -64,13 +58,12 @@ export default function App() {
               }
             />
             <Route path="/projects/:pk" element={<ProjectDetail />} />
-            <Route path="/projects/:pk/kanban" element={<KanbanBoard />} />
-            <Route path="/projects/:pk/scrum" element={<ScrumBoard />} />
-            <Route path="/projects/:pk/scrum3" element={<ScrumBoard3 />} />
-            <Route path="/projects/:pk/tasks/:taskId" element={<TaskEdit />} />
-            <Route path="/projects/:pk/tasks/:taskId/edit" element={<TaskEdit />} />
-            <Route path="/projects/:pk/members" element={<Members />} />            <Route path="/projects/:pk/leaderboard" element={<Leaderboard />} />
-            <Route path="/projects/:pk/chat" element={<ProjectChat />} />
+            <Route path="/projects/:pk/kanban" element={<Navigate to="../?tab=kanban" replace />} />
+            <Route path="/projects/:pk/scrum" element={<Navigate to="../?tab=scrum" replace />} />
+            <Route path="/projects/:pk/scrum3" element={<Navigate to="../?tab=scrum3" replace />} />
+            <Route path="/projects/:pk/members" element={<Navigate to="../?tab=members" replace />} />
+            <Route path="/projects/:pk/leaderboard" element={<Navigate to="../?tab=leaderboard" replace />} />
+            <Route path="/projects/:pk/chat" element={<Navigate to="../?tab=chat" replace />} />
 
             {/* Hiring routes - Admin and HR Manager only */}
             <Route

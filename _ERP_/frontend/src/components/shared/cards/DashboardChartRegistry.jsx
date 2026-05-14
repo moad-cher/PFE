@@ -101,7 +101,7 @@ export default function DashboardChart({
             {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={!horizontal} horizontal={horizontal} stroke="#f3f4f6" />}
             {horizontal ? (
               <>
-                <XAxis type="number" hide />
+                <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <YAxis dataKey={nameKey} type="category" width={100} tick={{ fontSize: 11, fill: '#6b7280' }} />
               </>
             ) : (

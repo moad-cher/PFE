@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -98,26 +98,26 @@ async def list_tasks(
         .options(selectinload(Task.assigned_to))
         .order_by(Task.created_at)
     )
-    from datetime import datetime, timezone, timedelta
-    import logging
-    ...
-    @router.post("/", response_model=TaskRead, status_code=201)
-    async def create_task(
-        project_id: int,
-        data: TaskCreate,
-        background_tasks: BackgroundTasks,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-    ):
-        project = await _get_project_or_403(project_id, current_user, db)
-        if not can_create_task(current_user, project):
-            raise HTTPException(403, "Only managers can create tasks")
+    return result.scalars().all()
 
-        # 30-minute grace period for discrete shift selection
-        if data.start_time and data.start_time < (datetime.now(timezone.utc) - timedelta(minutes=30)):
-            raise HTTPException(400, "Task start date must be in the future")
 
-        assignee_ids = data.assigned_to_ids
+@router.post("/", response_model=TaskRead, status_code=201)
+async def create_task(
+    project_id: int,
+    data: TaskCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await _get_project_or_403(project_id, current_user, db)
+    if not can_create_task(current_user, project):
+        raise HTTPException(403, "Only managers can create tasks")
+
+    # 30-minute grace period for discrete shift selection
+    if data.start_time and data.start_time < (datetime.now(timezone.utc) - timedelta(minutes=30)):
+        raise HTTPException(400, "Task start date must be in the future")
+
+    assignee_ids = data.assigned_to_ids
     task_data = data.model_dump(exclude={"assigned_to_ids"})
     task = Task(**task_data, project_id=project_id)
     if assignee_ids:

@@ -19,16 +19,16 @@ import { isProjectManager } from '../../auth/permissions';
 import TaskEdit from '../../components/features/projects/TaskEdit';
 import StoryNew from '../../components/features/projects/StoryNew';
 
-export default function ScrumBoard3() {
+export default function ScrumBoard3({ project: propProject, isTab, onRefresh }) {
   const { pk } = useParams();
   const { user } = useAuth();
   
   // Data State
-  const [project, setProject] = useState(null);
+  const [project, setProject] = useState(propProject || null);
   const [statuses, setStatuses] = useState([]);
   const [sprints, setSprints] = useState([]);
   const [stories, setStories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propProject);
 
   // UI State
   const [view, setView] = useState('backlog'); // 'backlog' or 'sprint'
@@ -43,7 +43,8 @@ export default function ScrumBoard3() {
   const [sprintForm, setSprintForm] = useState({ name: '', start_date: '', end_date: '', goal: '' });
 
   const fetchData = () => {
-    Promise.all([getProject(pk), getProjectStatuses(pk), getSprints(pk), getStories(pk)])
+    if (!propProject) setLoading(true);
+    Promise.all([propProject ? Promise.resolve({ data: propProject }) : getProject(pk), getProjectStatuses(pk), getSprints(pk), getStories(pk)])
       .then(([p, s, spr, sto]) => {
         setProject(p.data);
         setStatuses(s.data.sort((a, b) => a.order - b.order));
@@ -65,9 +66,8 @@ export default function ScrumBoard3() {
   };
 
   useEffect(() => {
-    setLoading(true);
     fetchData();
-  }, [pk]);
+  }, [pk, propProject]);
 
   const openTaskModal = (storyId = '', taskId = null) => {
     setTaskModalStoryId(storyId);

@@ -3,16 +3,22 @@ import { Link, useParams } from 'react-router-dom';
 import { getProject } from '../../api';
 import ChatWindow from '../../components/features/chat/ChatWindow';
 
-export default function ProjectChat() {
+export default function ProjectChat({ project: propProject, isTab }) {
   const { pk } = useParams();
-  const [project, setProject] = useState(null);
-  useEffect(() => { getProject(pk).then(r => setProject(r.data)); }, [pk]);
+  const [project, setProject] = useState(propProject || null);
+  useEffect(() => { 
+    if (!propProject) {
+      getProject(pk).then(r => setProject(r.data)); 
+    }
+  }, [pk, propProject]);
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-        <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name || 'Project'}</Link>
-        <span>/</span><span className="text-gray-700 font-medium">Chat</span>
-      </div>
+    <div className={`px-4 py-6 ${isTab ? '' : 'max-w-4xl mx-auto'}`}>
+      {!isTab && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+          <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name || 'Project'}</Link>
+          <span>/</span><span className="text-gray-700 font-medium">Chat</span>
+        </div>
+      )}
       {project && (
         <div className="flex items-center gap-3 mb-4 bg-white rounded-xl border px-4 py-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">

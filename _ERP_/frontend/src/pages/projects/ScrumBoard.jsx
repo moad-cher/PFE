@@ -9,16 +9,16 @@ import { isProjectManager } from '../../auth/permissions';
 import TaskEdit from '../../components/features/projects/TaskEdit';
 import StoryNew from '../../components/features/projects/StoryNew';
 
-export default function ScrumBoard() {
+export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
   const { pk } = useParams();
   const { user } = useAuth();
-  const [project, setProject] = useState(null);
+  const [project, setProject] = useState(propProject || null);
   const [statuses, setStatuses] = useState([]);
   const [sprints, setSprints] = useState([]);
   const [stories, setStories] = useState([]);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propProject);
   const [showSprintModal, setShowSprintModal] = useState(false);
   const [sprintForm, setSprintForm] = useState({ name: '', start_date: '', end_date: '', goal: '' });
   const [minStartDate, setMinStartDate] = useState('');
@@ -28,7 +28,8 @@ export default function ScrumBoard() {
   const [showStoryModal, setShowStoryModal] = useState(false);
 
   const fetchData = () => {
-    Promise.all([getProject(pk), getProjectStatuses(pk), getSprints(pk), getStories(pk)])
+    if (!propProject) setLoading(true);
+    Promise.all([propProject ? Promise.resolve({ data: propProject }) : getProject(pk), getProjectStatuses(pk), getSprints(pk), getStories(pk)])
       .then(([p, s, spr, sto]) => {
         setProject(p.data);
         setStatuses(s.data);
@@ -39,9 +40,8 @@ export default function ScrumBoard() {
   };
 
   useEffect(() => {
-    setLoading(true);
     fetchData();
-  }, [pk]);
+  }, [pk, propProject]);
 
   const openTaskModal = (storyId = '', taskId = null) => {
     setTaskModalStoryId(storyId);
@@ -393,16 +393,15 @@ export default function ScrumBoard() {
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className={`px-4 py-8 ${isTab ? '' : 'max-w-5xl mx-auto'}`}>
+        {!isTab && (
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
+            <span>/</span><span className="font-medium text-gray-700">Scrum Roadmap</span>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
-              <span>/</span><span className="font-medium text-gray-700">Scrum Roadmap</span>
-              <Link to={`/projects/${pk}/scrum3`} className="ml-4 px-2 py-0.5 bg-pink-50 text-pink-600 text-[10px] font-black uppercase rounded border border-pink-100 hover:bg-pink-100 transition-colors">
-                Try v3 ✨
-              </Link>
-            </div>
             <h1 className="text-2xl font-bold text-gray-900">Sprint Timeline</h1>
           </div>
           <div className="flex gap-3">

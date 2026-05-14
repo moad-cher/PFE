@@ -4,27 +4,29 @@ import { getLeaderboard, getProject } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/shared/ui/Spinner';
 
-export default function Leaderboard() {
+export default function Leaderboard({ project: propProject, isTab }) {
   const { pk } = useParams();
   const { user } = useAuth();
-  const [project, setProject] = useState(null);
+  const [project, setProject] = useState(propProject || null);
   const [board, setBoard] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getLeaderboard(pk), getProject(pk)])
+    Promise.all([getLeaderboard(pk), propProject ? Promise.resolve({ data: propProject }) : getProject(pk)])
       .then(([b, p]) => { setBoard(b.data); setProject(p.data); })
       .finally(() => setLoading(false));
-  }, [pk]);
+  }, [pk, propProject]);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
-        <span>/</span><span className="text-gray-700 font-medium">Leaderboard</span>
-      </div>
+    <div className={`px-4 py-8 ${isTab ? '' : 'max-w-2xl mx-auto'}`}>
+      {!isTab && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
+          <span>/</span><span className="text-gray-700 font-medium">Leaderboard</span>
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-gray-900 mb-6">🏆 Leaderboard</h1>
       <div className="bg-white rounded-2xl shadow overflow-hidden">
         <table className="w-full">

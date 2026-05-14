@@ -63,9 +63,9 @@ Product
 **scrum process:**
 - product backlog (user stories)
 - loop:
-    - sprint planning: move stories from backlog to sprint, break into tasks, assign
-    - sprint review: demo completed work, gather feedback
-    - sprint retrospective: discuss what went well and what can be improved
+    - [x] sprint planning: move stories from backlog to sprint, break into tasks, assign
+    - ~~sprint review: demo completed work, gather feedback~~
+    - [ ] sprint retrospective: discuss what went well and what can be improved
 
 
 ![image](./docs/what-is-scrum-process.jpg)
@@ -76,9 +76,9 @@ Product
 - data streaming
 
 ### low priority
-- all text editors in the app should support markdown with @mentions and #tags
+- all text editors in the app should support markdown with @mentions(users, projects, tasks)
 - jobs search with filters (vector search maybe)
-- foolproofing
+- foolproofing (archiving, crtl+z, etc)
 
 # role permissions matrix
 
@@ -116,12 +116,12 @@ mindmap
       %% Sprint state machine
       %% Incomplete stories
       Sprint timed start/close operation
-    Backlog
-      Story points & estimates
-      Priority ordering
-      Unassigned pool
+    %% Backlog
+      %% Story points & estimates
+      %% Priority ordering
     Tasks
       retrieve points when removed from done
+      team capacity management
       %% State machine
       %% Assignee
       %% Done definition
@@ -130,10 +130,10 @@ mindmap
       Sprint review
       Retrospective
     Reporting
+      more charts
       %% team workload
       %% Burndown chart
       %% Velocity history
-      Capacity view
     AI Features
       Sprint planning assist
       Velocity predictor

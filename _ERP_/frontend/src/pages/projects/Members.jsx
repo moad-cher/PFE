@@ -69,28 +69,29 @@ function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnershi
   );
 }
 
-export default function Members() {
+export default function Members({ project: propProject, isTab }) {
   const { pk } = useParams();
   const { user } = useAuth();
-  const [project, setProject] = useState(null);
+  const [project, setProject] = useState(propProject || null);
   const [members, setMembers] = useState([]);
   const [searchQ, setSearchQ] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [departments, setDepartments] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propProject);
 
   const canTransferOwnership = user?.role === 'admin' || project?.manager?.id === user?.id;
 
   const loadAll = useCallback(() => {
-    Promise.all([getProject(pk), getProjectMembers(pk), listDepartments()])
+    if (!propProject) setLoading(true);
+    Promise.all([propProject ? Promise.resolve({ data: propProject }) : getProject(pk), getProjectMembers(pk), listDepartments()])
       .then(([p, m, d]) => { 
         setProject(p.data); 
         setMembers(m.data); 
         setDepartments(d.data);
       })
       .finally(() => setLoading(false));
-  }, [pk]);
+  }, [pk, propProject]);
 
   useEffect(() => {
     loadAll();
@@ -133,11 +134,13 @@ export default function Members() {
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
-        <span>/</span><span className="text-gray-700 font-medium">Members</span>
-      </div>
+    <div className={`px-4 py-8 ${isTab ? '' : 'max-w-7xl mx-auto'}`}>
+      {!isTab && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
+          <span>/</span><span className="text-gray-700 font-medium">Members</span>
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
         Team Members <span className="text-gray-400 text-lg font-normal">({members.length})</span>
       </h1>
