@@ -33,7 +33,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
       .then(([p, s, spr, sto]) => {
         setProject(p.data);
         setStatuses(s.data);
-        setSprints(spr.data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date)));
+        setSprints(spr.data.sort((a, b) => new Date(b.start_date) - new Date(a.start_date)));
         setStories(sto.data);
       })
       .finally(() => setLoading(false));
@@ -57,7 +57,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
     const today = new Date().toISOString().split('T')[0];
     let defaultStart = today;
     if (sprints.length > 0) {
-      const lastSprint = sprints[sprints.length - 1];
+      const lastSprint = sprints[0];
       const d = new Date(lastSprint.end_date);
       d.setDate(d.getDate() + 1);
       defaultStart = d.toISOString().split('T')[0];
@@ -81,7 +81,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
     e.preventDefault();
     try {
       const res = await createSprint(pk, sprintForm);
-      setSprints([...sprints, res.data].sort((a, b) => new Date(a.start_date) - new Date(b.start_date)));
+      setSprints([res.data, ...sprints].sort((a, b) => new Date(b.start_date) - new Date(a.start_date)));
       setShowSprintModal(false);
     } catch (err) {
       const detail = err.response?.data?.detail;
@@ -449,8 +449,8 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
 
             <div className="space-y-16">
             {(() => {
-              const lastSprint = sprints[sprints.length - 1];
-              const isLastSprintDraft = lastSprint?.status === 'draft';
+              const latestSprint = sprints[0];
+              const isLatestSprintDraft = latestSprint?.status === 'draft';
               const renderedSprints = sprints.map((sprint, idx) => {
                 const isActive = sprint.status === 'active';
                 const isCompleted = sprint.status === 'completed';
@@ -524,8 +524,8 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                 );
               });
 
-              if (canManage && !isLastSprintDraft) {
-                renderedSprints.push(
+              if (canManage && !isLatestSprintDraft) {
+                renderedSprints.unshift(
                   <div key="next-sprint-trigger" className="relative pl-12 md:pl-20 opacity-60 hover:opacity-100 transition-opacity">
                     <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
                     <button 
