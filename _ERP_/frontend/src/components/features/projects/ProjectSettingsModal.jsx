@@ -32,7 +32,7 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
-  const [newStatus, setNewStatus] = useState({ name: '', slug: '', order: 0, color: '#3498db' });
+  const [newStatus, setNewStatus] = useState({ name: '', slug: '', order: 0, color: '#9b59b6' });
 
   useEffect(() => {
     if (!isOpen || !pk) return;
@@ -83,7 +83,7 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
     const statusToCreate = { ...newStatus, order: maxOrder + 1 };
     const res = await createProjectStatus(pk, statusToCreate);
     setStatuses((prev) => [...prev, res.data]);
-    setNewStatus({ name: '', slug: '', order: 0, color: '#3498db' });
+    setNewStatus({ name: '', slug: '', order: 0, color: '#9b59b6' });
     setMsg('Column added.');
     if (onSuccess) onSuccess();
   };
@@ -168,14 +168,14 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
                       min="0"
                       value={config[k]}
                       onChange={(e) => setConfig((c) => ({ ...c, [k]: e.target.value }))}
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
                     />
                   </div>
                 ))}
               </div>
               <button
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>
@@ -222,8 +222,8 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`flex items-center justify-between border rounded-xl px-4 py-3 transition-all ${snapshot.isDragging
-                              ? 'shadow-lg bg-blue-50 border-blue-300'
+                            className={`flex items-center justify-between border rounded-xl px-4 py-3 transition-all ${snapshot.isDragging
+                              ? 'shadow-lg bg-purple-50 border-purple-300'
                               : 'hover:shadow-md'
                             } cursor-grab active:cursor-grabbing`}
                           style={{ ...provided.draggableProps.style }}

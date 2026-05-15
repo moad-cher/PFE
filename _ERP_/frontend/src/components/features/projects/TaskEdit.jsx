@@ -304,7 +304,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
         type="button"
         onClick={submit}
         disabled={saving || !showForm}
-        className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md shadow-blue-100 transition-all"
+        className="px-6 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 disabled:opacity-50 shadow-md shadow-purple-100 transition-all"
       >
         {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Task'}
       </button>
@@ -344,7 +344,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
               required
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           </div>
           <div>
@@ -353,7 +353,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
               rows={3}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           </div>
 
@@ -364,12 +364,12 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
                 placeholder="Search by username or name…"
-                className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
               >
                 <option value="">All Departments</option>
                 {departments.map((d) => (
@@ -388,7 +388,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                         type="checkbox"
                         checked={form.assigned_to_ids?.includes(member.id) || false}
                         onChange={() => toggleAssignee(member.id)}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                       />
                       <span>{member.first_name || member.username} {member.last_name || ''}</span>
                     </label>
@@ -414,7 +414,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                 value={form.story_id}
                 onChange={(e) => setForm((prev) => ({ ...prev, story_id: e.target.value }))}
                 required
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
               >
                 <option value="" disabled>Select a Story</option>
                 {stories.map((story) => (
@@ -427,7 +427,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
               <select
                 value={form.status}
                 onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
               >
                 {statuses.map((status) => (
                   <option key={status.slug} value={status.slug}>{status.name}</option>
@@ -439,7 +439,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
               <select
                 value={form.priority}
                 onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
               >
                 {['low', 'medium', 'high', 'urgent'].map((p) => (
                   <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
@@ -480,7 +480,7 @@ export default function TaskEdit({ isOpen, onClose, pk: propPk, taskId: propTask
                   min="0"
                   value={form.points}
                   onChange={(e) => setForm((prev) => ({ ...prev, points: e.target.value }))}
-                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
                 />
               </div>
             </div>

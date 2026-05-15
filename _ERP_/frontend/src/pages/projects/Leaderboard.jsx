@@ -23,7 +23,7 @@ export default function Leaderboard({ project: propProject, isTab }) {
     <div className={`px-4 py-8 ${isTab ? '' : 'max-w-2xl mx-auto'}`}>
       {!isTab && (
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
+          <Link to={`/projects/${pk}`} className="hover:text-purple-600">← {project?.name}</Link>
           <span>/</span><span className="text-gray-700 font-medium">Leaderboard</span>
         </div>
       )}
@@ -48,7 +48,7 @@ export default function Leaderboard({ project: propProject, isTab }) {
                   key={entry.user_id} 
                   className={
                     isCurrentUser 
-                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500' 
+                      ? 'bg-gradient-to-r from-purple-50 to-purple-100 border-l-4 border-purple-500' 
                       : entry.rank === 1 
                         ? 'bg-yellow-50' 
                         : 'hover:bg-gray-50'
@@ -62,9 +62,9 @@ export default function Leaderboard({ project: propProject, isTab }) {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <div>
-                        <p className={`font-medium text-sm ${isCurrentUser ? 'text-blue-900 font-bold' : 'text-gray-900'}`}>
+                        <p className={`font-medium text-sm ${isCurrentUser ? 'text-purple-900 font-bold' : 'text-gray-900'}`}>
                           {entry.full_name || entry.username}
-                          {isCurrentUser && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">You</span>}
+                          {isCurrentUser && <span className="ml-2 text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">You</span>}
                         </p>
                         <p className="text-xs text-gray-400">@{entry.username}</p>
                       </div>
@@ -73,7 +73,7 @@ export default function Leaderboard({ project: propProject, isTab }) {
                   <td className="px-6 py-4">
                     <span className={`rounded-full px-3 py-1 text-sm font-semibold ${
                       isCurrentUser 
-                        ? 'bg-blue-100 text-blue-800' 
+                        ? 'bg-purple-100 text-purple-800' 
                         : 'bg-yellow-100 text-yellow-800'
                     }`}>
                       {entry.reward_points} pts

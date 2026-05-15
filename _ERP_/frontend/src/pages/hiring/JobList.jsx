@@ -26,7 +26,7 @@ function JobCard({ job, active }) {
     <Link 
       to={active ? "/hiring/jobs" : `/hiring/jobs/${job.id}`}
       className={`block bg-white rounded-xl shadow-sm border p-5 transition-all hover:shadow-md ${
-        active ? 'border-blue-500 ring-1 ring-blue-500' : 'hover:border-blue-200'
+        active ? 'border-purple-500 ring-1 ring-purple-500' : 'hover:border-purple-200'
       }`}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-semibold text-gray-900 line-clamp-1">{job.title}</h3>
@@ -77,7 +77,7 @@ export default function JobList() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
         <Guard canManageHiring>
-          <button type="button" onClick={() => setCreateJobOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+          <button type="button" onClick={() => setCreateJobOpen(true)} className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
             + New Job
           </button>
         </Guard>
@@ -88,7 +88,7 @@ export default function JobList() {
           {FILTERS.map(f => (
             <button key={f.value} onClick={() => setFilter(f.value)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                filter === f.value ? 'bg-blue-600 text-white' : 'bg-white border text-gray-600 hover:border-blue-300'
+                filter === f.value ? 'bg-purple-600 text-white' : 'bg-white border text-gray-600 hover:border-purple-300'
               }`}>
               {f.label}
             </button>

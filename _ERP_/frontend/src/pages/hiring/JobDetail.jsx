@@ -11,8 +11,8 @@ import ApplyModal from '../../components/features/hiring/ApplyModal';
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {
   pending: 'bg-gray-100 text-gray-600',
-  reviewed: 'bg-blue-100 text-blue-700',
-  interview: 'bg-purple-100 text-purple-700',
+  reviewed: 'bg-purple-100 text-purple-700',
+  interview: 'bg-purple-200 text-purple-800',
   accepted: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-700',
 };
@@ -120,7 +120,7 @@ export default function JobDetail({ jobId, initialData, onDeleted }) {
     <div className="p-8 text-center bg-white rounded-2xl shadow-sm border border-red-100">
       <div className="text-3xl mb-2">⚠️</div>
       <p className="text-red-600 font-medium">{error}</p>
-      <Link to="/hiring/jobs" className="mt-4 inline-block text-blue-600 hover:underline text-sm font-medium">Back to List</Link>
+      <Link to="/hiring/jobs" className="mt-4 inline-block text-purple-600 hover:underline text-sm font-medium">Back to List</Link>
     </div>
   );
 
@@ -165,7 +165,7 @@ export default function JobDetail({ jobId, initialData, onDeleted }) {
                     <button 
                       type="button" 
                       onClick={() => setEditOpen(true)} 
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
                       title="Edit Job"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,7 +219,7 @@ export default function JobDetail({ jobId, initialData, onDeleted }) {
         {skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t">
             {skills.map(s => (
-              <span key={s} className="bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 text-xs">{s}</span>
+              <span key={s} className="bg-purple-50 text-purple-700 rounded-full px-2 py-0.5 text-xs">{s}</span>
             ))}
           </div>
         )}
@@ -251,7 +251,7 @@ export default function JobDetail({ jobId, initialData, onDeleted }) {
                     {applications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <Link to={`/hiring/applications/${app.id}`} className="font-medium text-gray-900 hover:text-blue-600">
+                          <Link to={`/hiring/applications/${app.id}`} className="font-medium text-gray-900 hover:text-purple-600">
                             {app.first_name} {app.last_name}
                           </Link>
                           <p className="text-xs text-gray-400">{app.email}</p>
@@ -259,13 +259,13 @@ export default function JobDetail({ jobId, initialData, onDeleted }) {
                         <td className="px-4 py-3"><ScoreBar score={app.ai_score} /></td>
                         <td className="px-4 py-3">
                           <select value={app.status} onChange={e => changeStatus(app.id, e.target.value)}
-                            className={`text-xs rounded-full px-2 py-0.5 border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${STATUS_STYLE[app.status]}`}>
+                            className={`text-xs rounded-full px-2 py-0.5 border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 ${STATUS_STYLE[app.status]}`}>
                             {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400">{new Date(app.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3">
-                          <Link to={`/hiring/applications/${app.id}`} className="text-xs text-blue-600 hover:underline">View →</Link>
+                          <Link to={`/hiring/applications/${app.id}`} className="text-xs text-purple-600 hover:underline">View →</Link>
                         </td>
                       </tr>
                     ))}

@@ -64,7 +64,7 @@ export default function ProjectNew() {
               value={form.name}
               onChange={handleChange}
               placeholder="e.g. Website Redesign"
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
 
@@ -78,7 +78,7 @@ export default function ProjectNew() {
               onChange={handleChange}
               rows={4}
               placeholder="Brief description of the project..."
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             />
           </div>
 
@@ -88,7 +88,7 @@ export default function ProjectNew() {
               name="status"
               value={form.status}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
             >
               <option value="active">Active</option>
               <option value="paused">Paused</option>
@@ -101,7 +101,7 @@ export default function ProjectNew() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center gap-2"
+              className="px-6 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 disabled:opacity-60 transition-colors flex items-center gap-2"
             >
               {loading && <Spinner size="sm" className="border-white border-t-transparent" />}
               Create Project

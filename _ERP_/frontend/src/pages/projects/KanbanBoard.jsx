@@ -143,7 +143,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
         <div className="flex gap-1">
           <button 
             onClick={toggleDetails}
-            className={`p-1.5 rounded-lg transition-colors ${showDetails ? 'bg-blue-100 text-blue-700' : 'text-gray-400 hover:bg-gray-100'}`}
+            className={`p-1.5 rounded-lg transition-colors ${showDetails ? 'bg-purple-100 text-purple-700' : 'text-gray-400 hover:bg-gray-100'}`}
             title="View Details"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -188,19 +188,19 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
       </div>
 
       {showDetails && (
-        <div className="mt-3 pt-3 border-t border-blue-50 space-y-3 text-[10px]" onClick={e => e.stopPropagation()}>
+        <div className="mt-3 pt-3 border-t border-purple-50 space-y-3 text-[10px]" onClick={e => e.stopPropagation()}>
           {task.description && (
-            <div className="bg-blue-50/30 rounded-lg p-2 border border-blue-100/50">
+            <div className="bg-purple-50/30 rounded-lg p-2 border border-purple-100/50">
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[8px] mb-1">Description</p>
               <p className="text-gray-700 leading-relaxed whitespace-pre-line">{task.description}</p>
             </div>
           )}
           <div className="grid grid-cols-2 gap-2">
-            <div className="flex justify-between items-center bg-white p-1.5 rounded-md border border-blue-50/50">
+            <div className="flex justify-between items-center bg-white p-1.5 rounded-md border border-purple-50/50">
               <span className="text-gray-500 font-medium">Start</span>
               <span className="text-gray-700 font-bold">{task.start_time ? formatDateTime(task.start_time) : '—'}</span>
             </div>
-            <div className="flex justify-between items-center bg-white p-1.5 rounded-md border border-blue-50/50">
+            <div className="flex justify-between items-center bg-white p-1.5 rounded-md border border-purple-50/50">
               <span className="text-gray-500 font-medium">End</span>
               <span className={task.is_overdue ? 'text-red-500 font-black' : task.deadline_approaching ? 'text-orange-500' : 'text-gray-700'}>
                 {task.end_time ? formatDateTime(task.end_time) : '—'}
@@ -220,11 +220,11 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
             </div>
           )}
           {task.assigned_to?.length > 0 && (
-            <div className="border-t border-blue-50/50 pt-2">
+            <div className="border-t border-purple-50/50 pt-2">
               <p className="text-gray-500 mb-1 font-bold uppercase text-[8px]">Assignees</p>
               <div className="flex flex-wrap gap-1">
                 {task.assigned_to.map(u => (
-                  <span key={u.id} className="bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 font-bold border border-blue-100">{u.username}</span>
+                  <span key={u.id} className="bg-purple-50 text-purple-700 rounded-full px-2 py-0.5 font-bold border border-purple-100">{u.username}</span>
                 ))}
               </div>
             </div>

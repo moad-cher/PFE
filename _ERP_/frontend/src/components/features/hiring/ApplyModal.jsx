@@ -31,7 +31,7 @@ export default function ApplyModal({ open, onClose, jobId, jobTitle }) {
 
   const footer = submitted ? (
     <div className="flex justify-center">
-      <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+      <button onClick={onClose} className="px-6 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
         Close
       </button>
     </div>
@@ -71,35 +71,35 @@ export default function ApplyModal({ open, onClose, jobId, jobTitle }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
               <input value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} required
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
               <input value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} required
-                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
             <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cover Letter</label>
             <textarea value={form.cover_letter} onChange={e => setForm(f => ({ ...f, cover_letter: e.target.value }))} rows={4}
               placeholder="Tell us about yourself..."
-              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Resume / CV *</label>
             <input type="file" accept=".pdf,.docx,.doc,.txt" required
               onChange={e => setFile(e.target.files?.[0] || null)}
-              className="w-full border rounded-xl px-3 py-2 text-sm file:mr-3 file:bg-blue-50 file:text-blue-700 file:border-0 file:rounded-lg file:px-3 file:py-1 file:text-xs file:cursor-pointer" />
+              className="w-full border rounded-xl px-3 py-2 text-sm file:mr-3 file:bg-purple-50 file:text-purple-700 file:border-0 file:rounded-lg file:px-3 file:py-1 file:text-xs file:cursor-pointer" />
             <p className="text-xs text-gray-400 mt-1">PDF, DOCX, DOC or TXT — max 10 MB</p>
           </div>
         </form>

@@ -258,7 +258,7 @@ const handleCompleteSprint = async (sprintId) => {
                     <span className="text-xs font-semibold flex-1 truncate">{s.name}</span>
                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
                       s.status === 'active' ? 'bg-green-100 text-green-700' : 
-                      s.status === 'completed' ? 'bg-gray-200 text-gray-600' : 'bg-blue-100 text-blue-700'
+                      s.status === 'completed' ? 'bg-gray-200 text-gray-600' : 'bg-purple-100 text-purple-700'
                     }`}>
                       {s.status}
                     </span>

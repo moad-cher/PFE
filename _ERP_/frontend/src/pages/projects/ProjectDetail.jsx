@@ -24,7 +24,7 @@ function QuickCard({ id, icon, label, color, active, onClick, isCollapsed, activ
     <button
       onClick={() => onClick(id)}
       className={`w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${active
-          ? (activeClasses || 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100')
+          ? (activeClasses || 'bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-100')
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
         } ${isCollapsed ? 'justify-center px-2' : ''}`}
       title={isCollapsed ? label : ''}
@@ -49,7 +49,7 @@ function ProjectDashboard({
       {/* Page Header */}
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em] mb-1">Project Dashboard</h2>
+          <h2 className="text-xs font-bold text-purple-600 uppercase tracking-[0.2em] mb-1">Project Dashboard</h2>
           <p className="text-gray-500 text-sm max-w-2xl leading-relaxed">
             {project?.description || "Manage your tasks, track sprint progress, and collaborate with your team in real-time."}
           </p>
@@ -544,9 +544,9 @@ export default function ProjectDetail() {
           {!isSidebarCollapsed && (
             <div className="flex items-center gap-2 mb-4">
               <div className="flex-1 overflow-hidden h-1.5 rounded-full bg-gray-100">
-                <div style={{ width: `${project?.progress}%` }} className="h-full bg-blue-500 rounded-full transition-all duration-500"></div>
+                <div style={{ width: `${project?.progress}%` }} className="h-full bg-purple-500 rounded-full transition-all duration-500"></div>
               </div>
-              <span className="text-xs font-bold text-blue-600">{project?.progress}%</span>
+              <span className="text-xs font-bold text-purple-600">{project?.progress}%</span>
             </div>
           )}
           {!isSidebarCollapsed && (
@@ -571,7 +571,7 @@ export default function ProjectDetail() {
               <div>
                 <label className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Manager</label>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 uppercase">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-600 uppercase">
                     {project?.manager?.first_name?.[0]}{project?.manager?.last_name?.[0]}
                   </div>
                   <span className="text-xs font-semibold text-gray-900 truncate">
@@ -610,12 +610,12 @@ export default function ProjectDetail() {
           <QuickCard
             id="kanban"
             label="Kanban Board"
-            color="bg-blue-50"
+            color="bg-purple-50"
             active={activeTab === 'kanban'}
             onClick={setTab}
             isCollapsed={isSidebarCollapsed}
-            activeClasses="bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100"
-            icon={<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>}
+            activeClasses="bg-purple-50 text-purple-600 shadow-sm ring-1 ring-purple-100"
+            icon={<svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>}
           />
           <QuickCard
             id="scrum"

@@ -27,7 +27,7 @@ export default function InterviewScheduleModal({ isOpen, onClose, applicationId,
         Cancel
       </button>
       <button type="button" onClick={submit} disabled={saving}
-        className="flex-[2] py-3.5 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-100">
+        className="flex-[2] py-3.5 bg-purple-600 text-white rounded-2xl text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-100">
         {saving ? (
           <div className="flex items-center justify-center gap-2">
             <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -59,19 +59,19 @@ export default function InterviewScheduleModal({ isOpen, onClose, applicationId,
           <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Date & Time *</label>
           <input type="datetime-local" value={form.scheduled_at}
             onChange={e => setForm(f => ({ ...f, scheduled_at: e.target.value }))} required
-            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-blue-500 transition-all shadow-inner" />
+            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" />
         </div>
         <div>
           <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Location / Link</label>
           <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
             placeholder="Office, Google Meet, Zoom..."
-            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-blue-500 transition-all shadow-inner" />
+            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" />
         </div>
         <div>
           <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Internal Notes</label>
           <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3}
             placeholder="What should the interviewers know?"
-            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-blue-500 transition-all shadow-inner" />
+            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" />
         </div>
       </form>
     </Modal>

@@ -12,17 +12,17 @@ function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnershi
   const initials = [u.first_name, u.last_name].filter(Boolean).map(n => n[0]).join('').toUpperCase()
     || u.username[0].toUpperCase();
   return (
-    <div className={`bg-white rounded-xl shadow-sm border p-5 ${isOwner ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}>
+    <div className={`bg-white rounded-xl shadow-sm border p-5 ${isOwner ? 'ring-2 ring-purple-500 ring-opacity-50' : ''}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold text-sm ${isOwner ? 'bg-blue-600' : 'bg-blue-500'}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold text-sm ${isOwner ? 'bg-purple-600' : 'bg-purple-500'}`}>
             {initials}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <p className="font-semibold text-gray-900 text-sm">{u.first_name} {u.last_name}</p>
               {isOwner && (
-                <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Owner</span>
+                <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Owner</span>
               )}
             </div>
             <p className="text-xs text-gray-400">{u.username} · {u.role?.replace(/_/g, ' ')}</p>
@@ -39,7 +39,7 @@ function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnershi
           </Guard>
           {canTransferOwnership && !isOwner && canBeOwner && (
             <button onClick={() => onTransfer(u.id)}
-              className="text-blue-500 hover:text-blue-700 text-xs px-2 py-1 rounded border border-blue-200 hover:border-blue-400 transition-colors">
+              className="text-purple-500 hover:text-purple-700 text-xs px-2 py-1 rounded border border-purple-200 hover:border-purple-400 transition-colors">
               Set as Owner
             </button>
           )}
@@ -61,7 +61,7 @@ function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnershi
         <div className="mt-3 pt-3 border-t">
           <p className="text-xs text-gray-500 mb-1">Active tasks:</p>
           {member.active_tasks.slice(0, 3).map(t => (
-            <p key={t.id} className="text-xs text-blue-600 truncate">· {t.title}</p>
+            <p key={t.id} className="text-xs text-purple-600 truncate">· {t.title}</p>
           ))}
         </div>
       )}
@@ -137,7 +137,7 @@ export default function Members({ project: propProject, isTab }) {
     <div className={`px-4 py-8 ${isTab ? '' : 'max-w-7xl mx-auto'}`}>
       {!isTab && (
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name}</Link>
+          <Link to={`/projects/${pk}`} className="hover:text-purple-600">← {project?.name}</Link>
           <span>/</span><span className="text-gray-700 font-medium">Members</span>
         </div>
       )}
@@ -151,12 +151,12 @@ export default function Members({ project: propProject, isTab }) {
           <div className="flex flex-col md:flex-row gap-3">
             <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
               placeholder="Search by username or name…"
-              className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             
             <select 
               value={departmentFilter} 
               onChange={e => setDepartmentFilter(e.target.value)}
-              className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
             >
               <option value="">All Departments</option>
               {departments.map(d => (

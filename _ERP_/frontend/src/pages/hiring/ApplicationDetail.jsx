@@ -9,7 +9,7 @@ import InterviewScheduleModal from '../../components/features/hiring/InterviewSc
 const STATUS_OPTS = ['pending', 'reviewed', 'interview', 'accepted', 'rejected'];
 const STATUS_STYLE = {
   pending: 'bg-gray-100 text-gray-600',
-  reviewed: 'bg-blue-100 text-blue-700',
+  reviewed: 'bg-purple-100 text-purple-700',
   interview: 'bg-purple-100 text-purple-700',
   accepted: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-700',
@@ -149,9 +149,9 @@ export default function ApplicationDetail() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to="/hiring/jobs" className="hover:text-blue-600">← Jobs</Link>
+        <Link to="/hiring/jobs" className="hover:text-purple-600">← Jobs</Link>
         {app.job_id && (
-          <><span>/</span><Link to={`/hiring/jobs/${app.job_id}`} className="hover:text-blue-600">Job Detail</Link></>
+          <><span>/</span><Link to={`/hiring/jobs/${app.job_id}`} className="hover:text-purple-600">Job Detail</Link></>
         )}
         <span>/</span><span className="text-gray-700 font-medium">{app.first_name} {app.last_name}</span>
       </div>
@@ -164,7 +164,7 @@ export default function ApplicationDetail() {
             <div className="flex items-start justify-between gap-4 mb-4">
               <h1 className="text-2xl font-bold text-gray-900">{app.first_name} {app.last_name}</h1>
               <select value={app.status} onChange={e => changeStatus(e.target.value)}
-                className={`text-sm rounded-full px-3 py-1 border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${STATUS_STYLE[app.status]}`}>
+                className={`text-sm rounded-full px-3 py-1 border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 ${STATUS_STYLE[app.status]}`}>
                 {STATUS_OPTS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>
             </div>
@@ -188,13 +188,13 @@ export default function ApplicationDetail() {
             <div className="bg-white rounded-2xl shadow p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-gray-900">Resume / CV</h2>
-                <a href={resumeUrl} download className="text-xs text-blue-600 hover:underline">Download ↓</a>
+                <a href={resumeUrl} download className="text-xs text-purple-600 hover:underline">Download ↓</a>
               </div>
               {isPdf ? (
                 <PdfViewer url={resumeUrl} />
               ) : (
                 <a href={resumeUrl} target="_blank" rel="noreferrer"
-                  className="block text-center py-8 border-2 border-dashed rounded-xl text-blue-600 hover:bg-blue-50">
+                  className="block text-center py-8 border-2 border-dashed rounded-xl text-purple-600 hover:bg-purple-50">
                   Open file ↗
                 </a>
               )}
@@ -224,7 +224,7 @@ export default function ApplicationDetail() {
           {!['accepted', 'rejected'].includes(app.status) && (
             <button
               onClick={() => setShowInterviewModal(true)}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 shadow-sm transition-all active:scale-[0.98]"
+              className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 shadow-sm transition-all active:scale-[0.98]"
             >
               Schedule Interview
             </button>
