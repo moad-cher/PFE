@@ -51,7 +51,7 @@ export default function DashboardChart({
   data = [], 
   dataKey = 'value', 
   nameKey = 'name',
-  color = '#8B5CF6',
+  color = '#cd87fb',
   colorMap = {},
   height = '100%',
   horizontal = false,
@@ -91,7 +91,7 @@ export default function DashboardChart({
               ))}
             </Pie>
             {showTooltip && <Tooltip content={<DefaultTooltip />} />}
-            {showLegend && <Legend verticalAlign="bottom" height={36}/>}
+            {showLegend && <Legend verticalAlign="bottom" height={45}/>}
           </PieChart>
         );
 

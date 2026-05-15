@@ -13,7 +13,7 @@ export default function ProjectChat({ project: propProject, isTab }) {
   }, [pk, propProject]);
   return (
     <div className={`px-4 py-6 ${isTab ? '' : 'max-w-4xl mx-auto'}`}>
-      {!isTab && (
+      {/* {!isTab && (
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
           <Link to={`/projects/${pk}`} className="hover:text-blue-600">← {project?.name || 'Project'}</Link>
           <span>/</span><span className="text-gray-700 font-medium">Chat</span>
@@ -29,7 +29,7 @@ export default function ProjectChat({ project: propProject, isTab }) {
             <p className="text-xs text-gray-400">{project.members?.length || 0} members</p>
           </div>
         </div>
-      )}
+      )} */}
       <ChatWindow roomType="project" pk={pk} />
     </div>
   );

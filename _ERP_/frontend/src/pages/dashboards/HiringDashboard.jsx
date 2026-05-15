@@ -262,7 +262,6 @@ export default function HiringDashboard() {
           data={aiScoreData}
           dataKey="count"
           nameKey="category"
-          color="#3498db"
           horizontal={true}
         />
       </div>

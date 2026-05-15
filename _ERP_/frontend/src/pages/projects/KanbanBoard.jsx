@@ -367,7 +367,6 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
     if (sourceColSlug !== destColSlug) {
       try {
         await moveTask(pk, taskId, destColSlug);
-        if (onRefresh) onRefresh();
       } catch (error) {
         const res = await getKanban(pk);
         setColumns(res.data);

@@ -238,14 +238,7 @@ export default function ProjectsDashboard() {
               {projects.map((project) => {
                 const stories = project.stories || [];
                 const tasks = project.tasks || [];
-                const totalStories = stories.length;
-                const completedStories = stories.filter((story) => {
-                  const storyTasks = tasks.filter((t) => t.story_id === story.id);
-                  return storyTasks.length > 0 && storyTasks.every((t) => t.status === 'done');
-                }).length;
-                const completionRate = totalStories > 0
-                  ? Math.round((completedStories / totalStories) * 100)
-                  : 0;
+                const completionRate = project.progress || 0;
                 const sprints = project.sprints || [];
                 const activeSprint = (() => {
                   if (sprints.length === 0) return null;

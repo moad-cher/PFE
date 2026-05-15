@@ -20,7 +20,7 @@ function Avatar({ user }) {
     );
   }
   return (
-    <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+    <div className="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
       {initials}
     </div>
   );
@@ -161,9 +161,9 @@ export default function ChatWindow({ roomType, pk }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)] bg-white rounded-2xl shadow border overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-7rem)] bg-white/80 rounded-xl shadow-sm border border-purple-100 ring-1 ring-purple-100 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-indigo-600 text-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-purple-100 bg-purple-50 text-purple-700">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
           <span className="font-semibold text-sm">
@@ -171,7 +171,7 @@ export default function ChatWindow({ roomType, pk }) {
           </span>
         </div>
         {onlineCount > 0 && (
-          <span className="text-xs bg-indigo-500 rounded-full px-2 py-0.5">
+          <span className="text-xs bg-purple-100 text-purple-700 rounded-full px-2 py-0.5">
             {onlineCount} online
           </span>
         )}
@@ -206,7 +206,7 @@ export default function ChatWindow({ roomType, pk }) {
                 <div
                   className={`px-3 py-2 rounded-2xl text-sm ${
                     isOwn
-                      ? 'bg-indigo-600 text-white rounded-tr-sm'
+                      ? 'bg-purple-600 text-white rounded-tr-sm'
                       : 'bg-gray-100 text-gray-800 rounded-tl-sm'
                   }`}
                 >
@@ -233,19 +233,19 @@ export default function ChatWindow({ roomType, pk }) {
       </div>
 
       {/* Input */}
-      <form onSubmit={sendMessage} className="flex items-center gap-2 px-4 py-3 border-t bg-gray-50">
+      <form onSubmit={sendMessage} className="flex items-center gap-2 px-4 py-3 border-t border-purple-100 bg-white/70">
         <input
           type="text"
           value={input}
           onChange={handleTyping}
           placeholder={connected ? 'Type a message...' : 'Reconnecting...'}
           disabled={!connected}
-          className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50"
+          className="flex-1 px-3 py-2 rounded-xl border border-purple-100 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={!connected || !input.trim()}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Send
         </button>

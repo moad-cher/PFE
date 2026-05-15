@@ -32,7 +32,10 @@ every project has tasks, deadlines, and tasks have assigned team members.
 | Agentic loop with multi-tool reasoning |     Shows i understand agents      |
 | Bulk resume appraisal                  | Showcases the ML pipeline at scale |
 
-# features
+# To do :
+
+## for now
+
 
 ## AI
 <!--  -->
@@ -47,6 +50,7 @@ every project has tasks, deadlines, and tasks have assigned team members.
     - [x] kanban for current sprint
     - [x] backlog management with drag and drop to sprints
     - [ ] retrospective notes and action items
+    - [ ] proper scrum
 ```
 Product
     │
@@ -66,7 +70,7 @@ Product
     - [x] sprint planning: move stories from backlog to sprint, break into tasks, assign
     - ~~sprint review: demo completed work, gather feedback~~
     - [ ] sprint retrospective: discuss what went well and what can be improved
-
+- paused project
 
 ![image](./docs/what-is-scrum-process.jpg)
 
@@ -74,9 +78,9 @@ Product
 ### medium priority
 - resume bulk appraisal for a job posting 
 - data streaming
+- all text editors in the app should support markdown with @mentions(users, projects, tasks)
 
 ### low priority
-- all text editors in the app should support markdown with @mentions(users, projects, tasks)
 - jobs search with filters (vector search maybe)
 - foolproofing (archiving, crtl+z, etc)
 
@@ -103,22 +107,10 @@ Product
 ```mermaid
 mindmap
   root((Scrum App))
-    %% Users & Org
-      %% Departments
-      %% organization structure mechanics
-      %% Roles & permissions
-      %% HR access scope
-    %% Projects
-      %% scrum mode only
-      %% 1 Team per project
-      %% Project manager ownership transfer
     Sprints
       %% Sprint state machine
       %% Incomplete stories
       Sprint timed start/close operation
-    %% Backlog
-      %% Story points & estimates
-      %% Priority ordering
     Tasks
       retrieve points when removed from done
       team capacity management

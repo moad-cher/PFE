@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { getProject, deleteProject, getKanban } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { canManageProjects } from '../../auth/permissions';
@@ -19,31 +19,30 @@ import Members from './Members';
 import Leaderboard from './Leaderboard';
 import ProjectChat from './ProjectChat';
 
-function QuickCard({ id, icon, label, color, active, onClick }) {
+function QuickCard({ id, icon, label, color, active, onClick, isCollapsed, activeClasses }) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-        active 
-          ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100' 
+      className={`w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${active
+          ? (activeClasses || 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100')
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-      }`}
+        } ${isCollapsed ? 'justify-center px-2' : ''}`}
+      title={isCollapsed ? label : ''}
     >
       <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center transition-transform group-hover:scale-110 flex-shrink-0 ${active ? 'scale-110' : ''}`}>
         {icon}
       </div>
-      <span className="text-sm font-semibold">{label}</span>
+      {!isCollapsed && <span className="text-sm font-semibold truncate">{label}</span>}
     </button>
   );
 }
 
-function ProjectDashboard({ 
-  project, kanbanData, workloadData, sprintVelocityData, 
-  sprintStatusMixData, burndownSprint, sprintBurndownData, 
-  burndownEmptyText, activeSprint, sortedSprints, 
-  burndownSprintId, setBurndownSprintId, hasScrumContext, 
-  openTaskModal, pk, user,
-  setShowSettingsModal, setShowEditModal, deleteConfirm, setDeleteConfirm, handleDelete
+function ProjectDashboard({
+  project, kanbanData, workloadData, sprintVelocityData,
+  sprintStatusMixData, burndownSprint, sprintBurndownData,
+  burndownEmptyText, activeSprint, sortedSprints,
+  burndownSprintId, setBurndownSprintId, hasScrumContext,
+  openTaskModal, pk
 }) {
   return (
     <div className="max-w-6xl mx-auto px-8 py-8">
@@ -55,47 +54,6 @@ function ProjectDashboard({
             {project?.description || "Manage your tasks, track sprint progress, and collaborate with your team in real-time."}
           </p>
         </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {canManageProjects(user) && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowSettingsModal(true)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-                title="Settings"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEditModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm"
-              >
-                Edit Project
-              </button>
-              {deleteConfirm ? (
-                <div className="flex items-center gap-2 bg-red-50 p-1 rounded-xl border border-red-100">
-                  <button onClick={handleDelete} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">Confirm</button>
-                  <button onClick={() => setDeleteConfirm(false)} className="px-3 py-1.5 text-gray-600 text-xs font-bold">Cancel</button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDeleteConfirm(true)}
-                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                  title="Delete Project"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="space-y-10">
@@ -103,8 +61,8 @@ function ProjectDashboard({
         <div className="grid lg:grid-cols-3 lg:auto-rows-[340px] gap-8">
           {/* Task Distribution Chart */}
           {kanbanData.length > 0 && (
-            <DashboardChartCard 
-              colSpan={1} 
+            <DashboardChartCard
+              colSpan={1}
               title="Task Distribution"
               type={CHART_TYPES.DONUT}
               data={kanbanData}
@@ -116,8 +74,8 @@ function ProjectDashboard({
           )}
           {/* Team Workload */}
           {workloadData.length > 0 && (
-            <DashboardChartCard 
-              title="Team Workload" 
+            <DashboardChartCard
+              title="Team Workload"
               colSpan={2}
               type={CHART_TYPES.BAR}
               data={workloadData}
@@ -168,6 +126,7 @@ function ProjectDashboard({
                 title={burndownSprint ? `Sprint Burndown: ${burndownSprint.name}` : 'Sprint Burndown'}
                 type={CHART_TYPES.BURNDOWN}
                 data={sprintBurndownData}
+                colSpan={3}
                 dataKey="actual"
                 nameKey="name"
                 height={320}
@@ -213,12 +172,12 @@ function ProjectDashboard({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Project Roadmap</h2>
           </div>
-          
-          <GanttChart 
-            tasks={project?.tasks || []} 
-            sprints={project?.sprints || []} 
+
+          <GanttChart
+            tasks={project?.tasks || []}
+            sprints={project?.sprints || []}
             statuses={project?.statuses || []}
-            project_id={pk} 
+            project_id={pk}
             onAddTask={openTaskModal}
             onEditTask={openTaskModal}
           />
@@ -243,6 +202,8 @@ export default function ProjectDetail() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showProjectInfo, setShowProjectInfo] = useState(false);
 
   const setTab = (tabId) => {
     setSearchParams({ tab: tabId });
@@ -267,7 +228,7 @@ export default function ProjectDetail() {
           }));
         }
         setProject(enrichedData);
-        
+
         // Process kanban data for chart
         const kData = kanbanRes.data;
         const columns = Array.isArray(kData?.columns) ? kData.columns : kData;
@@ -313,22 +274,22 @@ export default function ProjectDetail() {
 
   const workloadData = useMemo(() => {
     if (!project || !project.members) return [];
-    
+
     const memberWorkload = project.members.map(member => {
-      const activeTasks = project.tasks.filter(t => 
+      const activeTasks = project.tasks.filter(t =>
         t.status !== 'done' && t.assigned_to.some(a => a.id === member.id)
       ).length;
-      const completedTasks = project.tasks.filter(t => 
+      const completedTasks = project.tasks.filter(t =>
         t.status === 'done' && t.assigned_to.some(a => a.id === member.id)
       ).length;
-      
+
       return {
         name: `${member.first_name} ${member.last_name}`,
         active: activeTasks,
         completed: completedTasks,
       };
     });
-    
+
     return memberWorkload;
   }, [project]);
 
@@ -349,12 +310,12 @@ export default function ProjectDetail() {
     return sortedSprints
       .map((sprint) => {
         const sprintStories = stories.filter((s) => s.sprint_id === sprint.id);
-        
+
         // Use frozen committed_points if available, fallback to current stories sum
         const committed = sprint.committed_points !== null && sprint.committed_points !== undefined
           ? sprint.committed_points
           : sprintStories.reduce((sum, s) => sum + Number(s.points || 0), 0);
-        
+
         // Done points are the sum of points of stories currently in the sprint that are fully completed
         // (A story is completed if all its tasks are 'done' and it has at least one task)
         const done = sprintStories
@@ -363,7 +324,7 @@ export default function ProjectDetail() {
             return storyTasks.length > 0 && storyTasks.every(t => t.status === 'done');
           })
           .reduce((sum, s) => sum + Number(s.points || 0), 0);
-          
+
         return { name: sprint.name, committed, done };
       })
       .filter((d) => d.committed > 0 || d.done > 0);
@@ -416,7 +377,7 @@ export default function ProjectDetail() {
     if (!burndownSprint) return [];
     const stories = project?.stories || [];
     const sprintStories = stories.filter((s) => s.sprint_id === burndownSprint.id);
-    
+
     // Starting value: frozen committed_points or sum of points of stories currently in sprint
     const totalValue = burndownSprint.committed_points !== null && burndownSprint.committed_points !== undefined
       ? burndownSprint.committed_points
@@ -474,7 +435,7 @@ export default function ProjectDetail() {
       // Range for shading: [Math.min(actual, ideal), Math.max(actual, ideal)]
       // But we need to distinguish between Good (actual < ideal) and Bad (actual > ideal)
       const isAhead = remaining < ideal;
-      
+
       data.push({
         name: day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
         actual: isPastOrToday ? remaining : null, // Line stops at today
@@ -514,7 +475,7 @@ export default function ProjectDetail() {
 
   const renderTabContent = () => {
     const commonProps = { project, pk, isTab: true, onRefresh: fetchProject };
-    
+
     switch (activeTab) {
       case 'kanban':
         return <KanbanBoard {...commonProps} />;
@@ -531,28 +492,22 @@ export default function ProjectDetail() {
       case 'dashboard':
       default:
         return (
-          <ProjectDashboard 
-            project={project} 
-            kanbanData={kanbanData} 
-            workloadData={workloadData} 
-            sprintVelocityData={sprintVelocityData} 
-            sprintStatusMixData={sprintStatusMixData} 
-            burndownSprint={burndownSprint} 
-            sprintBurndownData={sprintBurndownData} 
-            burndownEmptyText={burndownEmptyText} 
-            activeSprint={activeSprint} 
-            sortedSprints={sortedSprints} 
-            burndownSprintId={burndownSprintId} 
-            setBurndownSprintId={setBurndownSprintId} 
-            hasScrumContext={hasScrumContext} 
-            openTaskModal={openTaskModal} 
-            pk={pk} 
-            user={user}
-            setShowSettingsModal={setShowSettingsModal}
-            setShowEditModal={setShowEditModal}
-            deleteConfirm={deleteConfirm}
-            setDeleteConfirm={setDeleteConfirm}
-            handleDelete={handleDelete}
+          <ProjectDashboard
+            project={project}
+            kanbanData={kanbanData}
+            workloadData={workloadData}
+            sprintVelocityData={sprintVelocityData}
+            sprintStatusMixData={sprintStatusMixData}
+            burndownSprint={burndownSprint}
+            sprintBurndownData={sprintBurndownData}
+            burndownEmptyText={burndownEmptyText}
+            activeSprint={activeSprint}
+            sortedSprints={sortedSprints}
+            burndownSprintId={burndownSprintId}
+            setBurndownSprintId={setBurndownSprintId}
+            hasScrumContext={hasScrumContext}
+            openTaskModal={openTaskModal}
+            pk={pk}
           />
         );
     }
@@ -561,33 +516,94 @@ export default function ProjectDetail() {
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-white/50">
       {/* Structural Left Sidebar */}
-      <aside className="w-72 border-r border-gray-100 bg-white/80 backdrop-blur-md sticky top-16 h-[calc(100vh-64px)] overflow-y-auto flex flex-col flex-shrink-0 z-10">
-        <div className="p-6 border-b border-gray-100/50">
-          {/* <Link to="/dashboard" className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-[0.2em] flex items-center gap-2 mb-4 group">
-            <svg className="w-3 h-3 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Overview
-          </Link> */}
-          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight leading-tight mb-2 truncate" title={project?.name}>
-            {project?.name}
-          </h1>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex-1 overflow-hidden h-1.5 rounded-full bg-gray-100">
-              <div style={{ width: `${project?.progress}%` }} className="h-full bg-blue-500 rounded-full transition-all duration-500"></div>
-            </div>
-            <span className="text-xs font-bold text-blue-600">{project?.progress}%</span>
+      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-72'} border-r border-gray-300 bg-white/80 backdrop-blur-md sticky top-16 h-[calc(100vh-64px)] overflow-hidden flex flex-col flex-shrink-0 z-10 transition-all duration-300 group/sidebar relative`}>
+        <div className={`p-6 border-b border-gray-100/50 ${isSidebarCollapsed ? 'px-4' : ''}`}>
+          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} mb-2`}>
+            {!isSidebarCollapsed && (
+              <h1 className="text-l font-extrabold text-gray-900 tracking-tight leading-tight truncate" title={project?.name}>
+                {project?.name}
+              </h1>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="group p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-expanded={!isSidebarCollapsed}
+              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <svg
+                className={`w-3 h-3 transition-transform flex-shrink-0 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
           </div>
+          {!isSidebarCollapsed && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 overflow-hidden h-1.5 rounded-full bg-gray-100">
+                <div style={{ width: `${project?.progress}%` }} className="h-full bg-blue-500 rounded-full transition-all duration-500"></div>
+              </div>
+              <span className="text-xs font-bold text-blue-600">{project?.progress}%</span>
+            </div>
+          )}
+          {!isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => setShowProjectInfo(!showProjectInfo)}
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <span>{showProjectInfo ? 'Hide details' : 'Show details'}</span>
+              <svg
+                className={`w-3 h-3 text-gray-400 transition-transform ${showProjectInfo ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          )}
+          {!isSidebarCollapsed && showProjectInfo && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Manager</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 uppercase">
+                    {project?.manager?.first_name?.[0]}{project?.manager?.last_name?.[0]}
+                  </div>
+                  <span className="text-xs font-semibold text-gray-900 truncate">
+                    {project?.manager ? `${project.manager.first_name} ${project.manager.last_name}` : 'Unassigned'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Deadline</label>
+                <div className="flex items-center gap-2 text-red-600">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-xs font-bold uppercase tracking-tight">
+                    {project?.end_date ? new Date(project.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not set'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          <h2 className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Navigation</h2>
+        <nav className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden  p-4 space-y-1 ${isSidebarCollapsed ? 'px-2' : ''}`}>
+          {!isSidebarCollapsed && <h2 className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Navigation</h2>}
           <QuickCard
             id="dashboard"
             label="Project Dashboard"
             color="bg-gray-100"
             active={activeTab === 'dashboard'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-gray-100 text-gray-600 shadow-sm ring-1 ring-gray-200"
             icon={<svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>}
           />
           <div className="h-2" />
@@ -597,6 +613,8 @@ export default function ProjectDetail() {
             color="bg-blue-50"
             active={activeTab === 'kanban'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100"
             icon={<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>}
           />
           <QuickCard
@@ -605,6 +623,8 @@ export default function ProjectDetail() {
             color="bg-indigo-50"
             active={activeTab === 'scrum'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100"
             icon={<svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>}
           />
           <QuickCard
@@ -613,6 +633,8 @@ export default function ProjectDetail() {
             color="bg-pink-50"
             active={activeTab === 'scrum3'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-pink-50 text-pink-600 shadow-sm ring-1 ring-pink-100"
             icon={<svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
           />
           <QuickCard
@@ -621,6 +643,8 @@ export default function ProjectDetail() {
             color="bg-green-50"
             active={activeTab === 'members'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-green-50 text-green-600 shadow-sm ring-1 ring-green-100"
             icon={<svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
           />
           <QuickCard
@@ -629,6 +653,8 @@ export default function ProjectDetail() {
             color="bg-yellow-50"
             active={activeTab === 'leaderboard'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-yellow-50 text-yellow-600 shadow-sm ring-1 ring-yellow-100"
             icon={<svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20h16M6 20v-9a1 1 0 011-1h2a1 1 0 011 1v9M10 20V8a1 1 0 011-1h2a1 1 0 011 1v12M14 20v-5a1 1 0 011-1h2a1 1 0 011 1v5" /></svg>}
           />
           <QuickCard
@@ -637,50 +663,68 @@ export default function ProjectDetail() {
             color="bg-purple-50"
             active={activeTab === 'chat'}
             onClick={setTab}
+            isCollapsed={isSidebarCollapsed}
+            activeClasses="bg-purple-50 text-purple-600 shadow-sm ring-1 ring-purple-100"
             icon={<svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
           />
         </nav>
 
-        <div className="p-6 bg-gray-50/50 border-t border-gray-100">
-          <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Project Details</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Manager</label>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 uppercase">
-                  {project?.manager?.first_name?.[0]}{project?.manager?.last_name?.[0]}
-                </div>
-                <span className="text-xs font-semibold text-gray-900 truncate">
-                  {project?.manager ? `${project.manager.first_name} ${project.manager.last_name}` : 'Unassigned'}
-                </span>
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Deadline</label>
-              <div className="flex items-center gap-2 text-red-600">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        {canManageProjects(user) && (
+          <div className={`mt-auto p-2 bg-gray-100 border-t border-gray-100 ${isSidebarCollapsed ? 'px-4 flex flex-col items-center' : ''}`}>
+            <div className={`w-full ${isSidebarCollapsed ? 'flex flex-col items-center gap-2' : 'flex flex-wrap items-center gap-2'}`}>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(true)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                title="Settings"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="text-xs font-bold uppercase tracking-tight">
-                  {project?.end_date ? new Date(project.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not set'}
-                </span>
-              </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                title="Edit Project"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              {deleteConfirm ? (
+                <div className={`flex items-center gap-2 bg-red-50 p-1 rounded-xl border border-red-100 ${isSidebarCollapsed ? 'w-full justify-center' : ''}`}>
+                  <button onClick={handleDelete} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">Confirm</button>
+                  <button onClick={() => setDeleteConfirm(false)} className="px-3 py-1.5 text-gray-600 text-xs font-bold">Cancel</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setDeleteConfirm(true)}
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                  title="Delete Project"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 overflow-y-auto">
         {renderTabContent()}
 
-        <TaskEdit 
-          isOpen={showTaskModal} 
-          onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }} 
-          pk={pk} 
+        <TaskEdit
+          isOpen={showTaskModal}
+          onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }}
+          pk={pk}
           taskId={editingTaskId}
           initialStoryId={taskModalSprintId}
-          onSuccess={fetchProject} 
+          onSuccess={fetchProject}
         />
         <ProjectEditModal
           isOpen={showEditModal}

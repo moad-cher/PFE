@@ -9,7 +9,7 @@ import {
   adminActivateUser,
   listDepartments,
   createUser,
-  getAdminActivityTrend
+  // getAdminActivityTrend
 } from '../../api';
 import CreateUserModal from '../../components/features/admin/CreateUserModal';
 import DepartmentModal from '../../components/features/admin/DepartmentModal';
@@ -25,7 +25,7 @@ export default function AdministrationDashboard() {
   const { isAdmin, isHR } = usePermissions();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
-  const [trend, setTrend] = useState(null);
+  // const [trend, setTrend] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,16 +44,14 @@ export default function AdministrationDashboard() {
 
   const loadData = async () => {
     try {
-      const [usersRes, statsRes, deptsRes, trendRes] = await Promise.all([
+      const [usersRes, statsRes, deptsRes] = await Promise.all([
         adminListUsers(),
         adminGetStats(),
         listDepartments(),
-        getAdminActivityTrend(30)
       ]);
       setUsers(usersRes.data);
       setStats(statsRes.data);
       setDepartments(deptsRes.data);
-      setTrend(trendRes.data);
     } catch (err) {
       setError('Failed to load administration dashboard');
       console.error(err);
@@ -62,35 +60,35 @@ export default function AdministrationDashboard() {
     }
   };
 
-  const trendData = useMemo(() => {
-    if (!trend) return [];
+  // const trendData = useMemo(() => {
+  //   if (!trend) return [];
     
-    // Create a map of all dates across all sources
-    const dates = new Set();
-    trend.users.forEach(d => dates.add(`${d.month}/${d.day}`));
-    trend.tasks.forEach(d => dates.add(`${d.month}/${d.day}`));
-    trend.applications.forEach(d => dates.add(`${d.month}/${d.day}`));
+  //   // Create a map of all dates across all sources
+  //   const dates = new Set();
+  //   trend.users.forEach(d => dates.add(`${d.month}/${d.day}`));
+  //   trend.tasks.forEach(d => dates.add(`${d.month}/${d.day}`));
+  //   trend.applications.forEach(d => dates.add(`${d.month}/${d.day}`));
     
-    return Array.from(dates)
-      .sort((a, b) => {
-        const [am, ad] = a.split('/').map(Number);
-        const [bm, bd] = b.split('/').map(Number);
-        return am !== bm ? am - bm : ad - bd;
-      })
-      .map(date => {
-        const [m, d] = date.split('/').map(Number);
-        const userPoint = trend.users.find(u => u.month === m && u.day === d);
-        const taskPoint = trend.tasks.find(t => t.month === m && t.day === d);
-        const appPoint = trend.applications.find(a => a.month === m && a.day === d);
+  //   return Array.from(dates)
+  //     .sort((a, b) => {
+  //       const [am, ad] = a.split('/').map(Number);
+  //       const [bm, bd] = b.split('/').map(Number);
+  //       return am !== bm ? am - bm : ad - bd;
+  //     })
+  //     .map(date => {
+  //       const [m, d] = date.split('/').map(Number);
+  //       const userPoint = trend.users.find(u => u.month === m && u.day === d);
+  //       const taskPoint = trend.tasks.find(t => t.month === m && t.day === d);
+  //       const appPoint = trend.applications.find(a => a.month === m && a.day === d);
         
-        return {
-          name: `${d}/${m}`,
-          Users: userPoint?.users || 0,
-          Tasks: taskPoint?.tasks || 0,
-          Applications: appPoint?.applications || 0
-        };
-      });
-  }, [trend]);
+  //       return {
+  //         name: `${d}/${m}`,
+  //         Users: userPoint?.users || 0,
+  //         Tasks: taskPoint?.tasks || 0,
+  //         Applications: appPoint?.applications || 0
+  //       };
+  //     });
+  // }, [trend]);
 
   const handleChangeRole = async (userId, newRole) => {
     if (!isAdmin) return;
@@ -300,7 +298,7 @@ export default function AdministrationDashboard() {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-4 lg:auto-rows-[340px] gap-6 mb-8">
-        <DashboardChartCard
+        {/* <DashboardChartCard
           title="System Activity Trend (30d)"
           colSpan={3}
           type={CHART_TYPES.AREA}
@@ -319,19 +317,19 @@ export default function AdministrationDashboard() {
           // The goal is "rich", so let's stick to what we have or slightly adapt.
           // I'll use MULTI_LINE which supports multi keys.
           type={CHART_TYPES.MULTI_LINE}
-          lineKeys={['Users', 'Tasks', 'Applications']}
-        />
+        /> */}
         <DashboardChartCard
           title="Role Distribution"
           type={CHART_TYPES.DONUT}
           data={roleChartData}
+          
           dataKey="value"
           nameKey="name"
         />
-      </div>
+      {/* </div> */}
 
       {/* Second Row */}
-      <div className="grid lg:grid-cols-4 gap-6 mb-8">
+      {/* <div className="grid lg:grid-cols-4 gap-6 mb-8"> */}
         <DashboardChartCard
           title="Users per Department"
           colSpan={2}
@@ -340,7 +338,6 @@ export default function AdministrationDashboard() {
           dataKey="value"
           nameKey="name"
           horizontal={true}
-          color="#3B82F6"
         />
 
         {/* Quick Actions */}
