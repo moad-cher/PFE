@@ -8,6 +8,7 @@ import {
   getProjectConfig,
   updateProjectConfig,
   updateProjectStatusOrder,
+  updateProject,
 } from '../../../api';
 import Spinner from '../../shared/ui/Spinner';
 import Guard from '../../../auth/Guard';
@@ -50,14 +51,21 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
     e.preventDefault();
     setSaving(true);
     try {
-      await updateProjectConfig(pk, {
-        points_on_time: Number(config.points_on_time),
-        points_late: Number(config.points_late),
-        notify_deadline_days: Number(config.notify_deadline_days),
-        sprint_duration_days: Number(config.sprint_duration_days),
-      });
+      await Promise.all([
+        updateProjectConfig(pk, {
+          points_on_time: Number(config.points_on_time),
+          points_late: Number(config.points_late),
+          notify_deadline_days: Number(config.notify_deadline_days),
+          sprint_duration_days: Number(config.sprint_duration_days),
+        }),
+        updateProject(pk, {
+          deadline: project.deadline || null,
+        }),
+      ]);
       setMsg('Settings saved.');
       if (onSuccess) onSuccess();
+    } catch (err) {
+      setMsg('Error saving settings.');
     } finally {
       setSaving(false);
     }
@@ -172,6 +180,15 @@ export default function ProjectSettingsModal({ isOpen, onClose, pk, onSuccess })
                     />
                   </div>
                 ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Deadline</label>
+                  <input
+                    type="date"
+                    value={project?.deadline || ''}
+                    onChange={(e) => setProject((p) => ({ ...p, deadline: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
               </div>
               <button
                 disabled={saving}

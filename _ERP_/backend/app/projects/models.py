@@ -36,6 +36,7 @@ class Project(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     manager_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

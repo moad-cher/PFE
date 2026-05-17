@@ -8,7 +8,7 @@ export default function PublicLayout() {
   return (
     <div className="relative min-h-screen bg-transparent">
       {/* filter */}
-      <div className="absolute inset-0 bg-white/35 pointer-events-none" aria-hidden="true" />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true" />
       {user && <Navbar />}
       <div className="relative z-10">
         <Outlet />

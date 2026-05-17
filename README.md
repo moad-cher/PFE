@@ -49,8 +49,8 @@ every project has tasks, deadlines, and tasks have assigned team members.
     - [x] sprint burndown chart
     - [x] kanban for current sprint
     - [x] backlog management with drag and drop to sprints
-    - [ ] retrospective notes and action items
-    - [ ] proper scrum
+    - [ ] retrospective
+    - [ ] 
 ```
 Product
     │
@@ -59,6 +59,8 @@ Product
     │       └── Tasks
     │
     └── Sprints
+        ├── retrospective
+        ├── review
         └── Sprint Backlog
             └── Stories
                 └── Tasks
@@ -86,33 +88,21 @@ Product
 
 # role permissions matrix
 
-| Action                     | admin | hr_manager | project_manager | team_member |
-| -------------------------- | :---: | :--------: | :-------------: | :---------: |
-| View all users             |   O   |     O      |        X        |      X      |
-| Edit user profile (own)    |   O   |     O      |        O        |      O      |
-| Edit user profile (others) |   O   |     O      |        X        |      X      |
-| Change roles               |   O   |     X      |        X        |      X      |
-| Activate/deactivate        |   O   |     O      |        X        |      X      |
-| Delete user (hard)         |   O   |     X      |        X        |      X      |
-| Manage departments         |   O   |     O      |        X        |      X      |
-| Create job posting         |   O   |     O      |        X        |      X      |
-| View applications          |   O   |     O      |        X        |      X      |
-| Create project             |   O   |     X      |        O        |      X      |
-| Assign tasks               |   O   |     X      |        O        |      X      |
-| View own tasks             |   O   |     -      |        O        |      O      |
 
 <br>
 <br>
+
+# mindmap
 
 ```mermaid
 mindmap
-  root((Scrum App))
+  root((App))
     Sprints
       %% Sprint state machine
       %% Incomplete stories
-      Sprint timed start/close operation
+      Sprint timed start & close <br> operations
     Tasks
-      retrieve points when removed from done
+      retrieve points when <br> removed from done
       team capacity management
       %% State machine
       %% Assignee
@@ -130,4 +120,6 @@ mindmap
       Sprint planning assist
       Velocity predictor
       %% Assignee suggester
+    Hiring
+      onboarding process
 ```

@@ -12,7 +12,6 @@ class ChatMessageCreate(BaseModel):
 class ChatMessageRead(BaseModel):
     id: int
     project_id: int
-    task_id: int | None
     author: UserBrief
     content: str
     created_at: datetime

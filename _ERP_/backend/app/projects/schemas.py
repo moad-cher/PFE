@@ -178,6 +178,7 @@ class ProjectCreate(BaseModel):
     description: str = ""
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    deadline: Optional[date] = None
 
 
 class ProjectRead(BaseModel):
@@ -186,6 +187,7 @@ class ProjectRead(BaseModel):
     description: str
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    deadline: Optional[date] = None
     manager: Optional[UserBrief] = None
     members: list[UserBrief] = []
     tasks: list[TaskRead] = []
@@ -204,6 +206,7 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    deadline: Optional[date] = None
     manager_id: Optional[int] = None
 
 
