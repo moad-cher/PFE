@@ -76,11 +76,6 @@ export default function JobList() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
-        <Guard canManageHiring>
-          <button type="button" onClick={() => setCreateJobOpen(true)} className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700">
-            + New Job
-          </button>
-        </Guard>
       </div>
 
       {canManageHiring && (
@@ -98,12 +93,21 @@ export default function JobList() {
 
       {loading && jobs.length === 0 ? (
         <div className="flex justify-center py-12"><Spinner /></div>
-      ) : jobs.length === 0 ? (
+      ) : jobs.length === 0 && !canManageHiring ? (
         <div className="text-center text-gray-400 py-16">No job postings found.</div>
       ) : (
         <div className={`flex flex-col lg:flex-row gap-8`}>
           {/* Master List */}
           <div className={`${isDetailView ? 'lg:w-1/3 space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto p-2 custom-scrollbar' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full'}`}>
+            <Guard canManageHiring>
+              <button 
+                onClick={() => setCreateJobOpen(true)}
+                className="w-full py-12 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50/30 transition-all shadow-sm"
+              >
+                <span className="text-4xl font-light">+</span>
+                <span className="text-xs font-bold uppercase tracking-wider">New Job Offer</span>
+              </button>
+            </Guard>
             {jobs.map(job => (
               <JobCard 
                 key={job.id} 

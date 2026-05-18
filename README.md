@@ -102,15 +102,14 @@ mindmap
       %% Incomplete stories
       Sprint timed start & close <br> operations
     Tasks
-      retrieve points when <br> removed from done
+      retrieve points when removed from done
       team capacity management
       %% State machine
       %% Assignee
       %% Done definition
     Ceremonies
       %% Sprint planning
-      Sprint review
-      Retrospective
+      %% Retrospective
     Reporting
       more charts
       %% team workload

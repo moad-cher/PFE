@@ -1,8 +1,9 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from typing import Optional
 from sqlalchemy import Integer, delete, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import logging
 
 from app.core.deps import get_db, get_current_user
@@ -532,6 +533,48 @@ async def scrum_board(
     return [TaskRead.model_validate(t) for t in tasks]
 
 
+async def _validate_sprint_integrity(
+    db: AsyncSession,
+    project: Project,
+    start_date: date,
+    end_date: date,
+    status: SprintStatus,
+    sprint_id: Optional[int] = None,
+):
+    # 1. Date Check
+    if start_date >= end_date:
+        raise HTTPException(400, "Sprint end_date must be after start_date")
+
+    # 2. Project Bounds
+    if project.start_date and start_date < project.start_date:
+        raise HTTPException(400, f"Sprint start_date cannot be before project start_date ({project.start_date})")
+    if project.deadline and end_date > project.deadline:
+        raise HTTPException(400, f"Sprint end_date cannot be after project deadline ({project.deadline})")
+
+    # 3. Overlap Check
+    # We use a query to ensure we catch everything even if project.sprints is stale
+    overlap_query = select(Sprint).where(
+        Sprint.project_id == project.id,
+        Sprint.id != sprint_id if sprint_id else True,
+        Sprint.start_date < end_date,
+        Sprint.end_date > start_date
+    )
+    result = await db.execute(overlap_query)
+    if result.scalars().first():
+        raise HTTPException(400, "Sprint dates overlap with an existing sprint in this project")
+
+    # 4. Active Sprint Lock
+    if status == SprintStatus.active:
+        active_query = select(Sprint).where(
+            Sprint.project_id == project.id,
+            Sprint.id != sprint_id if sprint_id else True,
+            Sprint.status == SprintStatus.active
+        )
+        result = await db.execute(active_query)
+        if result.scalars().first():
+            raise HTTPException(400, "An active sprint already exists for this project")
+
+
 # ── Sprints ───────────────────────────────────────────────────────────────────
 
 @router.get("/{pk}/sprints", response_model=list[SprintRead])
@@ -556,6 +599,10 @@ async def create_sprint(
     project = await _load_project(pk, db)
     if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
+
+    await _validate_sprint_integrity(
+        db, project, data.start_date, data.end_date, data.status
+    )
 
     sprint = Sprint(**data.model_dump(), project_id=pk)
     
@@ -587,6 +634,15 @@ async def update_sprint(
     sprint = result.scalar_one_or_none()
     if not sprint:
         raise HTTPException(404, "Sprint not found")
+
+    # Validate integrity if dates or status change
+    eff_start = data.start_date if data.start_date is not None else sprint.start_date
+    eff_end = data.end_date if data.end_date is not None else sprint.end_date
+    eff_status = data.status if data.status is not None else sprint.status
+
+    await _validate_sprint_integrity(
+        db, project, eff_start, eff_end, eff_status, sprint_id=sprint_id
+    )
     
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(sprint, field, value)

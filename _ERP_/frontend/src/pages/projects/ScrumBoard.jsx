@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { isProjectManager } from '../../auth/permissions';
 import TaskEdit from '../../components/features/projects/TaskEdit';
 import StoryNew from '../../components/features/projects/StoryNew';
+import SprintEditModal from '../../components/features/projects/SprintEditModal';
 
 export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
   const { pk } = useParams();
@@ -26,6 +27,8 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
   const [taskModalStoryId, setTaskModalStoryId] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [showStoryModal, setShowStoryModal] = useState(false);
+  const [showSprintEditModal, setShowSprintEditModal] = useState(false);
+  const [editingSprint, setEditingSprint] = useState(null);
 
   const fetchData = () => {
     if (!propProject) setLoading(true);
@@ -468,6 +471,17 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                           <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-lg font-bold text-gray-900">{sprint.name}</h3>
                             {isActive && <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
+                            {canManage && !isCompleted && (
+                              <button 
+                                onClick={() => { setEditingSprint(sprint); setShowSprintEditModal(true); }}
+                                className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Edit Sprint"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                           <p className="text-xs text-gray-500 font-medium">
                             {formatDate(sprint.start_date)} — {formatDate(sprint.end_date)}
@@ -500,6 +514,12 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                       {sprint.goal && (
                         <div className="px-6 py-2 bg-amber-50/30 border-y border-amber-100/50">
                           <p className="text-xs text-amber-800 italic leading-relaxed"><span className="font-bold mr-1">Goal:</span>{sprint.goal}</p>
+                        </div>
+                      )}
+
+                      {sprint.retrospective && (
+                        <div className="px-6 py-2 bg-green-50/30 border-y border-green-100/50">
+                          <p className="text-xs text-green-800 italic leading-relaxed"><span className="font-bold mr-1">Retrospective:</span>{sprint.retrospective}</p>
                         </div>
                       )}
 
@@ -587,6 +607,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                   <div>
                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Kickoff</label>
                     <input required type="date" value={sprintForm.start_date} min={minStartDate}
+                      max={project?.deadline || ''}
                       onChange={e => {
                         const start = e.target.value;
                         const duration = project?.config?.sprint_duration_days || 14;
@@ -604,6 +625,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                       type="date" 
                       value={sprintForm.end_date} 
                       min={sprintForm.start_date || minStartDate}
+                      max={project?.deadline || ''}
                       onChange={e => setSprintForm({...sprintForm, end_date: e.target.value})}
                       className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-purple-500" 
                     />
@@ -624,6 +646,16 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
             </div>
           </div>
         )}
+
+        <SprintEditModal
+          isOpen={showSprintEditModal}
+          onClose={() => { setShowSprintEditModal(false); setEditingSprint(null); }}
+          pk={pk}
+          sprint={editingSprint}
+          project={project}
+          sprints={sprints}
+          onSuccess={fetchData}
+        />
       </div>
     </DragDropContext>
   );

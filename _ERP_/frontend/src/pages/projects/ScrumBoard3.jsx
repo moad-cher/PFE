@@ -538,6 +538,7 @@ const handleCompleteSprint = async (sprintId) => {
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Start</label>
                   <input required type="date" value={sprintForm.start_date} min={minStartDate}
+                    max={project?.deadline || ''}
                     onChange={e => {
                       const start = e.target.value;
                       const duration = project?.config?.sprint_duration_days || 14;
@@ -555,6 +556,7 @@ const handleCompleteSprint = async (sprintId) => {
                     type="date" 
                     value={sprintForm.end_date} 
                     min={sprintForm.start_date || minStartDate}
+                    max={project?.deadline || ''}
                     onChange={e => setSprintForm({...sprintForm, end_date: e.target.value})}
                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500" 
                   />
