@@ -1,6 +1,10 @@
+from pathlib import Path
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List, Union
+
+# Resolve the backend root so settings load the .env regardless of CWD.
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -27,7 +31,7 @@ class Settings(BaseSettings):
 
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_FILE)
 
 
 settings = Settings()

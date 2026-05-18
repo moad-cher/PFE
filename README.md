@@ -100,15 +100,17 @@ mindmap
     Sprints
       %% Sprint state machine
       %% Incomplete stories
-      Sprint timed start & close <br> operations
+      Sprint timed start & close operations
     Tasks
+      DoD
       retrieve points when removed from done
       team capacity management
       %% State machine
       %% Assignee
       %% Done definition
     Ceremonies
-      %% Sprint planning
+      review
+      planning
       %% Retrospective
     Reporting
       more charts
