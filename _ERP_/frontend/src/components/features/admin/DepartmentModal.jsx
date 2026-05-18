@@ -221,6 +221,14 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
       <p className="text-sm text-gray-500">
         {localDepartments.length} department(s) • {allUsers.length - unassignedUsers.length} user(s) assigned
       </p>
+                <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-3 px-6 py-3 border-2 border-dashed border-purple-200 rounded-2xl text-purple-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/40 transition-all shadow-sm"
+          >
+            <span className="text-lg font-bold">+</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Create Department</span>
+          </button>
       <button
         type="button"
         onClick={onClose}
@@ -237,7 +245,7 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
         open={open}
         onClose={onClose}
         title="Manage Departments"
-        description="Drag and drop users between departments"
+        description="Drag and drop users between departments "
         footer={mainFooter}
         size="full"
         className="max-w-7xl"
@@ -257,23 +265,6 @@ export default function DepartmentModal({ open, onClose, departments, users, onR
             )}
           </div>
         )}
-
-        <div className="mb-4 flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900">Departments</h4>
-            <p className="text-sm text-gray-500">
-              {localDepartments.length} department(s) • {allUsers.length - unassignedUsers.length} user(s) assigned
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-3 px-6 py-3 border-2 border-dashed border-purple-200 rounded-2xl text-purple-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/40 transition-all shadow-sm"
-          >
-            <span className="text-lg font-bold">+</span>
-            <span className="text-xs font-bold uppercase tracking-wider">Create Department</span>
-          </button>
-        </div>
 
         <div className="max-h-[60vh] overflow-y-auto">
           <DragDropContext onDragEnd={handleDragEnd}>

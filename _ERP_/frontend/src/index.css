@@ -63,11 +63,12 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--lilac-100);
+  background: transparent;
+  margin-block: 12px; /* keeps scrollbar shorter to avoid clipping rounded corners */
 }
 ::-webkit-scrollbar-thumb {
   background: var(--lilac-300);
-  border-radius: 3px;
+  border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--lilac-400);

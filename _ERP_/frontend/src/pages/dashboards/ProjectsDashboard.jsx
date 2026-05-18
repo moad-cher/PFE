@@ -10,6 +10,7 @@ import DashboardChartCard from '../../components/shared/cards/DashboardChartCard
 import StatCard from '../../components/shared/cards/StatCard';
 import { CHART_TYPES } from '../../components/shared/cards/DashboardChartRegistry';
 import TaskEdit from '../../components/features/projects/TaskEdit';
+import ProjectNewModal from '../../components/features/projects/ProjectNewModal';
 import { usePermissions } from '../../auth/Guard';
 
 const KANBAN_STATUS_COLORS = {
@@ -30,6 +31,7 @@ export default function ProjectsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingTask, setEditingTask] = useState(null);
+  const [isProjectNewModalOpen, setIsProjectNewModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -216,14 +218,15 @@ export default function ProjectsDashboard() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">{isAdmin ? 'All Projects' : 'My Projects'}</h2>
-            {!isAdmin && (
-              <Link
-                to="/projects/new"
-                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+            {/* {!isAdmin && ( */}
+              <button
+                onClick={() => setIsProjectNewModalOpen(true)}
+                className="inline-flex items-center gap-3 px-6 py-3 border-2 border-dashed border-purple-200 rounded-2xl text-purple-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/40 transition-all shadow-sm"
               >
-                + New Project
-              </Link>
-            )}
+                <span className="text-lg font-bold">+</span>
+                <span className="text-xs font-bold uppercase tracking-wider">New Project</span>
+              </button>
+            {/* )} */}
           </div>
 
           {projects.length === 0 ? (
@@ -410,6 +413,10 @@ export default function ProjectsDashboard() {
         pk={editingTask?.project_id} 
         taskId={editingTask?.id} 
         onSuccess={loadData}
+      />
+      <ProjectNewModal 
+        isOpen={isProjectNewModalOpen} 
+        onClose={() => setIsProjectNewModalOpen(false)} 
       />
     </div>
   );

@@ -28,6 +28,16 @@ class UserCreate(BaseModel):
     last_name: str = ""
     role: RoleEnum = RoleEnum.team_member
 
+    @field_validator("username")
+    @classmethod
+    def username_valid(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("Username must be at least 3 characters long")
+        if not re.match(r"^[a-zA-Z0-9_]+$", v):
+            raise ValueError("Username must contain only letters, numbers, and underscores")
+        return v
+
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:

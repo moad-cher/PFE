@@ -10,7 +10,6 @@ import Dashboard from './pages/dashboards/Dashboard';
 import Profile from './pages/Profile';
 import Unauthorized from './pages/auth/Unauthorized';
 
-import ProjectNew from './pages/projects/ProjectNew';
 import ProjectDetail from './pages/projects/ProjectDetail';
 import TaskEdit from './components/features/projects/TaskEdit';
 
@@ -49,14 +48,6 @@ export default function App() {
             <Route path="/profile" element={<Profile />} />
             
             {/* Project routes - Admin and Project Manager can create/edit */}
-            <Route
-              path="/projects/new"
-              element={
-                <ProtectedRoute roles={['admin', 'project_manager']}>
-                  <ProjectNew />
-                </ProtectedRoute>
-              }
-            />
             <Route path="/projects/:pk" element={<ProjectDetail />} />
             <Route path="/projects/:pk/kanban" element={<Navigate to="../?tab=kanban" replace />} />
             <Route path="/projects/:pk/scrum" element={<Navigate to="../?tab=scrum" replace />} />
