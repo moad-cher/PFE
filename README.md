@@ -123,4 +123,9 @@ mindmap
       %% Assignee suggester
     Hiring
       onboarding process
+    notifications
+      little svg symbol
+      colored by type (info, warning, error)
+      linkes to the relevant item (task, sprint, etc)
+      
 ```

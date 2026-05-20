@@ -110,12 +110,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
         </div>
       )}
       <div className="flex justify-between items-start gap-2">
-        <div 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(task); }} 
-          className="block flex-1 cursor-pointer group/title"
-        >
-          <p className="font-medium text-sm text-gray-800 group-hover/title:text-purple-600 line-clamp-2 mb-2 transition-colors">{task.title}</p>
-        </div>
+          <p className="inline flex-1 font-medium text-sm text-gray-800 group-hover/title:text-purple-600 line-clamp-2 mb-2 transition-colors">{task.title}</p>
         {isPM && (
           <button 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(task); }}

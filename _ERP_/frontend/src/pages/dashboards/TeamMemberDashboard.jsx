@@ -309,7 +309,7 @@ export default function TeamMemberDashboard() {
             <h2 className="text-xl font-bold text-gray-900">My Tasks</h2>
             <span className="text-sm text-gray-500">{myTasks.length} total</span>
           </div>
-          <div className="space-y-8 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-8 max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 custom-scrollbar">
             {Object.values(groupedTasks).map((project) => (
               <div key={project.id} className="space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
@@ -322,7 +322,7 @@ export default function TeamMemberDashboard() {
                     </Link>
                   </h3>
                   <Link 
-                    to={`/projects/${project.id}/scrum`}
+                    to={`/projects/${project.id}?tab=scrum`}
                     className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase font-bold hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
                   >
                     View Scrumboard

@@ -83,6 +83,57 @@ async def _award_points(task: Task, db: AsyncSession):
     
     logger.info(f"[AWARD_POINTS] Completed, awarded to {len(task.assigned_to)} assignees")
 
+async def _revoke_points(task: Task, db: AsyncSession):
+    """Revoke points if task is removed from done."""
+    logger.info(f"[REVOKE_POINTS] Starting for task {task.id}")
+
+    # Delete RewardLogs and deduct points
+    logs_res = await db.execute(select(RewardLog).where(RewardLog.task_id == task.id))
+    logs = logs_res.scalars().all()
+    
+    for log in logs:
+        # Subtract from user points
+        user = await db.get(User, log.user_id)
+        if user and user.reward_points is not None:
+            user.reward_points = max(0, user.reward_points - log.points)
+            db.add(user)
+            
+        # Delete the corresponding reward notification for this user
+        from app.notifications.models import Notification, NotifTypeEnum
+        exact_message = f'You earned {log.points} point(s) for completing "{task.title}".'
+        notifs_res = await db.execute(
+            select(Notification)
+            .where(Notification.recipient_id == log.user_id)
+            .where(Notification.type == NotifTypeEnum.reward)
+            .where(Notification.message == exact_message)
+        )
+        # We need to dispatch a websocket event immediately to auto-remove from UI
+        from app.websockets.manager import ws_manager
+        
+        for notif in notifs_res.scalars().all():
+            notif_id = notif.id
+            await db.delete(notif)
+            try:
+                await ws_manager.send_personal(log.user_id, {
+                    "type": "notification_deleted",
+                    "id": notif_id
+                })
+            except Exception as e:
+                logger.error(f"Failed pushing WS block on reward revoke: {e}")
+                
+        try:
+            await ws_manager.send_personal(log.user_id, {
+                "type": "points_revoked",
+                "task_id": task.id
+            })
+        except Exception as e:
+            pass
+            
+        # remove the log entry
+        await db.delete(log)
+    
+    logger.info(f"[REVOKE_POINTS] Completed. Revoked logs: {len(logs)}")
+
 
 # ── Task CRUD ─────────────────────────────────────────────────────────────────
 
@@ -128,7 +179,7 @@ async def create_task(
     await db.refresh(task, ["assigned_to"])
 
     for uid in assignee_ids:
-        background_tasks.add_task(notify_task_assigned, uid, task.title, project.name, task.id)
+        background_tasks.add_task(notify_task_assigned, uid, task.title, project.name, task.project_id)
 
     return task
 
@@ -186,13 +237,13 @@ async def update_task(
             project.manager_id,
             task.title,
             task.blocker_reason or "No reason provided",
-            task.id
+            task.project_id
         )
 
     if task.status == "done" and not task.completed_at:
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
-        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
+        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.project_id)
 
     if assignee_ids is not None:
         if not can_manage_project(current_user, project):
@@ -205,7 +256,7 @@ async def update_task(
 
     detail = f"Status changed → {task.status}" if task.status != old_status else "Task updated"
     for assignee in task.assigned_to:
-        background_tasks.add_task(notify_task_updated, assignee.id, task.title, detail, task.id)
+        background_tasks.add_task(notify_task_updated, assignee.id, task.title, detail, task.project_id)
 
     return task
 
@@ -263,18 +314,23 @@ async def move_task(
     if not can_edit_task_status(current_user, task, project):
         raise HTTPException(403, "Only assignees or project managers can change task status")
 
+    previous_status = task.status
     task.status = data.status
-    if data.status == "done" and not task.completed_at:
+
+    if data.status == "done" and previous_status != "done":
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
-        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.id)
+        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.project_id)
+    elif previous_status == "done" and data.status != "done":
+        task.completed_at = None
+        await _revoke_points(task, db)
 
     await db.commit()
     await db.refresh(task, ["assigned_to"])
 
     detail = f"Status changed → {data.status}"
     for assignee in task.assigned_to:
-        background_tasks.add_task(notify_task_updated, assignee.id, task.title, detail, task.id)
+        background_tasks.add_task(notify_task_updated, assignee.id, task.title, detail, task.project_id)
 
     return task
 
@@ -312,7 +368,7 @@ async def reassign_task(
     await db.commit()
     await db.refresh(task, ["assigned_to"])
 
-    background_tasks.add_task(notify_task_assigned, new_user.id, task.title, project.name, task.id)
+    background_tasks.add_task(notify_task_assigned, new_user.id, task.title, project.name, task.project_id)
     return task
 
 
@@ -364,7 +420,7 @@ async def add_comment(
                 assignee.id,
                 task.title,
                 f"New comment by {current_user.username}",
-                task.id,
+                task.project_id
             )
 
     return comment

@@ -75,33 +75,33 @@ async def _create_and_push(
 #  Convenience wrappers                                                #
 # ------------------------------------------------------------------ #
 
-async def notify_task_assigned(user_id: int, task_title: str, project_name: str, task_id: int):
+async def notify_task_assigned(user_id: int, task_title: str, project_name: str, project_id: int):
     await _create_and_push(
         recipient_id=user_id,
         notif_type=NotifTypeEnum.task_assigned,
         title="Task assigned",
         message=f'You have been assigned to "{task_title}" in {project_name}.',
-        link=f"/tasks/{task_id}",
+        link=f"/projects/{project_id}?tab=kanban",
     )
 
 
-async def notify_task_completed(manager_id: int, task_title: str, task_id: int):
+async def notify_task_completed(manager_id: int, task_title: str, project_id: int):
     await _create_and_push(
         recipient_id=manager_id,
         notif_type=NotifTypeEnum.task_updated,
         title="Task completed",
         message=f'Task "{task_title}" has been marked as complete.',
-        link=f"/tasks/{task_id}",
+        link=f"/projects/{project_id}?tab=kanban",
     )
 
 
-async def notify_task_blocked(manager_id: int, task_title: str, reason: str, task_id: int):
+async def notify_task_blocked(manager_id: int, task_title: str, reason: str, project_id: int):
     await _create_and_push(
         recipient_id=manager_id,
         notif_type=NotifTypeEnum.task_blocked,
         title="Task Blocked",
         message=f'Task "{task_title}" is blocked: {reason}',
-        link=f"/tasks/{task_id}",
+        link=f"/projects/{project_id}?tab=kanban",
     )
 
 
@@ -135,13 +135,13 @@ async def notify_reward(user_id: int, points: int, task_title: str):
     )
 
 
-async def notify_task_updated(user_id: int, task_title: str, detail: str, task_id: int):
+async def notify_task_updated(user_id: int, task_title: str, detail: str, project_id: int):
     await _create_and_push(
         recipient_id=user_id,
         notif_type=NotifTypeEnum.task_updated,
         title="Task updated",
         message=f'"{task_title}": {detail}',
-        link=f"/tasks/{task_id}",
+        link=f"/projects/{project_id}?tab=kanban",
     )
 
 
