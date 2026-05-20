@@ -14,7 +14,6 @@ import ProjectSettingsModal from '../../components/features/projects/ProjectSett
 // Tab Components
 import KanbanBoard from './KanbanBoard';
 import ScrumBoard from './ScrumBoard';
-import ScrumBoard3 from './ScrumBoard3';
 import Members from './Members';
 import Leaderboard from './Leaderboard';
 import ProjectChat from './ProjectChat';
@@ -481,8 +480,6 @@ export default function ProjectDetail() {
         return <KanbanBoard {...commonProps} />;
       case 'scrum':
         return <ScrumBoard {...commonProps} />;
-      case 'scrum3':
-        return <ScrumBoard3 {...commonProps} />;
       case 'members':
         return <Members {...commonProps} />;
       case 'leaderboard':
@@ -626,16 +623,6 @@ export default function ProjectDetail() {
             isCollapsed={isSidebarCollapsed}
             activeClasses="bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100"
             icon={<svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>}
-          />
-          <QuickCard
-            id="scrum3"
-            label="Scrum v3"
-            color="bg-pink-50"
-            active={activeTab === 'scrum3'}
-            onClick={setTab}
-            isCollapsed={isSidebarCollapsed}
-            activeClasses="bg-pink-50 text-pink-600 shadow-sm ring-1 ring-pink-100"
-            icon={<svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
           />
           <QuickCard
             id="members"
