@@ -90,5 +90,32 @@ Changing the frontend alone will cause mismatches if the backend does not expose
   *   Add Scrum role selection per project member and show it in project context.
   *   Do not alter task creation/reassignment permissions.
 
-## 5. Observations on Gamification
-The `RewardLog` system is a non-standard addition to Scrum. While it can drive engagement, ensure it doesn't overshadow the **Sprint Goal** or lead to "Point Inflation" where quality is sacrificed for speed.
+## 6. Sprint Transition Timeline: Theory vs. Code
+
+This section compares the **Official Scrum Transition** with the current implementation in `app/projects/router.py`.
+
+### A. The Scrum Theory (Transition Phases)
+According to the Scrum Guide, the transition between Sprints follows a strict sequence:
+1.  **Sprint Review (Inspection):** The team and stakeholders inspect the Increment. Unfinished items are moved back to the **Product Backlog**.
+2.  **Sprint Retrospective (Adaptation):** The team inspects itself and plans improvements.
+3.  **Sprint Completion:** The active Sprint is closed.
+4.  **Sprint Planning (Initialization):** The Product Owner and Developers select items from the Product Backlog for the **next** Sprint, define the Sprint Goal, and create the Sprint Backlog (tasks).
+
+### B. The Current Implementation (`router.py`)
+In the current code, the transition is triggered by a single `PATCH` request to the Sprint endpoint with `status="completed"`.
+
+| Feature | Current Implementation Logic | Alignment |
+| :--- | :--- | :--- |
+| **Product Backlog** | stories sorted by `order` field. | ✅ **Aligned.** |
+| **Retrospective** | Handled as a static `Text` field updated during the `PATCH` call. | ⚠️ **Passive.** No enforced ceremony or collaborative capture. |
+| **Story Ordering** | Supported via drag-and-drop and bulk update API. | ✅ **Aligned.** |
+| **Sprint Planning** | New sprints are created as `draft`. Planning consists of `PATCH`ing stories to set their `sprint_id`. | ✅ **Functional.** |
+
+### C. Gaps and Future Refinements
+1.  **Ceremony Flow:** The "Complete Sprint" button in `ScrumBoard.jsx` currently closes the sprint in one click. To align with Scrum, it should be a **multi-step wizard**:
+    *   **Step 1 (Review):** Confirm status of stories.
+    *   **Step 2 (Retrospective):** Capture structured notes (Positive/Negative/Actions).
+    *   **Step 3 (Planning):** Define the **Goal** for the next sprint before starting it.
+2.  **Product Backlog Re-prioritization:** Currently, unfinished stories jump directly into the next sprint. Scrum dictates they should go to the Backlog for the Product Owner to re-evaluate their priority before the next Planning.
+3.  **Goal-Centric Planning:** The code validates dates and overlaps but does not enforce that a **Sprint Goal** must be set before a Sprint can be moved to `active`.
+

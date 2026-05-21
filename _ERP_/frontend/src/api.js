@@ -135,6 +135,7 @@ export const deleteSprint = (pk, sprintId) => api.delete(`/projects/${pk}/sprint
 
 // Stories
 export const getStories = (pk) => api.get(`/projects/${pk}/stories`);
+export const updateStoriesOrder = (pk, stories) => api.patch(`/projects/${pk}/stories/order`, { stories });
 export const createStory = (pk, data) => api.post(`/projects/${pk}/stories`, data);
 export const updateStory = (pk, storyId, data) => api.patch(`/projects/${pk}/stories/${storyId}`, data);
 export const deleteStory = (pk, storyId) => api.delete(`/projects/${pk}/stories/${storyId}`);

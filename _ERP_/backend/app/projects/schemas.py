@@ -49,6 +49,7 @@ class StoryCreate(BaseModel):
     description: str = ""
     status: str = "todo"
     points: int = 0
+    order: int = 0
     sprint_id: Optional[int] = None
 
 
@@ -60,6 +61,7 @@ class StoryRead(BaseModel):
     description: str
     status: str
     points: int
+    order: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -70,7 +72,17 @@ class StoryUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[str] = None
     points: Optional[int] = None
+    order: Optional[int] = None
     sprint_id: Optional[int] = None
+
+
+class StoryOrderUpdate(BaseModel):
+    id: int
+    order: int
+
+
+class StoryOrderUpdateRequest(BaseModel):
+    stories: list[StoryOrderUpdate]
 
 
 # ── TaskStatus ────────────────────────────────────────────────────────────────

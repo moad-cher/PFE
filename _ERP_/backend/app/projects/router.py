@@ -28,6 +28,8 @@ from app.projects.schemas import (
     StoryCreate,
     StoryRead,
     StoryUpdate,
+    StoryOrderUpdate,
+    StoryOrderUpdateRequest,
     TaskRead,
     TaskStatusCreate,
     TaskStatusOrderUpdate,
@@ -713,7 +715,29 @@ async def list_stories(
     project = await _load_project(pk, db)
     if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
-    return project.stories
+    
+    # Sort stories by order explicitly to ensure consistency
+    return sorted(project.stories, key=lambda s: s.order)
+
+
+@router.patch("/{pk}/stories/order")
+async def update_stories_order(
+    pk: int,
+    data: StoryOrderUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await _load_project(pk, db)
+    if not can_manage_project(current_user, project):
+        raise HTTPException(403, "Access denied")
+
+    story_map = {s.id: s for s in project.stories}
+    for item in data.stories:
+        if item.id in story_map:
+            story_map[item.id].order = item.order
+    
+    await db.commit()
+    return {"message": "Stories reordered"}
 
 
 @router.post("/{pk}/stories", response_model=StoryRead, status_code=201)
@@ -733,7 +757,13 @@ async def create_story(
         if sprint and sprint.status == "completed":
             raise HTTPException(400, "Cannot add stories to a completed sprint")
 
-    story = Story(**data.model_dump(), project_id=pk)
+    # Get max order to set next
+    max_order_res = await db.execute(
+        select(func.max(Story.order)).where(Story.project_id == pk)
+    )
+    max_order = max_order_res.scalar() or 0
+
+    story = Story(**data.model_dump(), project_id=pk, order=max_order + 1)
     db.add(story)
     await db.commit()
     await db.refresh(story)

@@ -7,6 +7,7 @@
 **/node_modules
 **/.vscode
 notes.md
+.**
 
 # LaTeX build artifacts (auxiliary files) – match anywhere
 **/*.aux

@@ -26,58 +26,43 @@ from app.users.models import RoleEnum, User
 
 
 STORY_TITLES = [
-    "Access control cleanup",
-    "Risk register workflow",
-    "Timesheet export",
-    "Team capacity planning",
-    "Project health dashboard",
-    "Hiring pipeline sync",
-    "Interview scheduling flow",
-    "Task template library",
-    "Email notification retries",
-    "Calendar integration",
-    "Budget burn tracking",
-    "Vendor onboarding",
-    "SLA alerts",
-    "Cross-project search",
-    "File attachments audit",
-    "Story grooming checklist",
-    "API pagination polish",
-    "Sprint review report",
-    "Mobile backlog tweaks",
-    "Performance profiling",
-    "Messaging latency fix",
-    "Org chart import",
-    "Profile permissions",
-    "Activity feed filters",
-    "Webhooks for tasks",
-    "Dependency mapping",
-    "Internal audit log",
-    "Resource allocation view",
-    "KPI definitions",
-    "Status color refresh",
+    "JWT Authentication & Role-based Access",
+    "Real-time WebSocket Notifications",
+    "AI Resume Parsing & Scoring",
+    "Kanban Board with Drag-and-Drop",
+    "Scrum Sprint Management & Backlog",
+    "Interactive Dashboard with Recharts",
+    "Automated Task Assignment Suggestions",
+    "Bulk Candidate Appraisal via LLM",
+    "Project Leaderboard & Gamification",
+    "Responsive Profile & Skill Management",
+    "Departmental Hierarchy & Bulk Actions",
+    "Live Chat for Projects and Tasks",
+    "Email Notification Retries & Log",
+    "Markdown Support with @Mentions",
+    "Multi-format Resume Storage (PDF/DOCX)",
 ]
 
 STORY_DESC_TEMPLATES = [
-    "Deliver {topic} with clear ownership and audit trail.",
-    "Stabilize {topic} to reduce manual follow-ups.",
-    "Improve {topic} for faster weekly reporting.",
-    "Finalize {topic} so the team can adopt it this sprint.",
+    "Implement the core {topic} functionality to meet PFE requirements.",
+    "Refine the {topic} module for better user experience and performance.",
+    "Integrate IA features into {topic} to automate decision making.",
+    "Finalize the {topic} implementation and add unit tests.",
 ]
 
 TASK_TITLES = [
-    "Draft requirements",
-    "Implement core flow",
-    "Add validation and edge cases",
-    "QA pass and fixes",
-    "Update docs and handoff",
+    "Define DB schema and models",
+    "Implement API endpoints",
+    "Create frontend components",
+    "Integrate AI service",
+    "Add real-time updates",
 ]
 
 BLOCKER_REASONS = [
-    "Waiting on product sign-off",
-    "Dependency API still unstable",
-    "Design review pending",
-    "Missing test data from HR",
+    "Ollama instance unreachable",
+    "Missing frontend-backend contract",
+    "Database migration conflict",
+    "Token expiration in WebSocket",
 ]
 
 
@@ -123,26 +108,34 @@ async def seed_historical_data():
     async with AsyncSessionLocal() as db:
         print("Starting seed process...")
         
-        # 1. Load users
-        res = await db.execute(select(User))
+        # 1. Load specific users
+        usernames = ["pm1", "tm1", "tm2", "tm3", "tm4", "tm5"]
+        res = await db.execute(select(User).where(User.username.in_(usernames)))
         users = res.scalars().all()
-        if not users:
-            print("No users found. Please register a user first via the UI or another script.")
+        user_map = {u.username: u for u in users}
+
+        if "pm1" not in user_map:
+            print("Error: User 'pm1' not found. Run 'create test users .py' first.")
+            return
+        
+        manager = user_map["pm1"]
+        # All tm's plus the manager are members
+        members = [u for u in users if u.username.startswith("tm") or u.username == "pm1"]
+
+        if not members:
+            print("No team members found. Please run the test user creation script.")
             return
 
-        manager = pick_manager(users)
-        members = pick_members(users, manager)
-
         # 2. Create Project
-        project_name = f"ERP Delivery Hub {random.randint(100, 999)}"
+        project_name = f"Intelligent ERP Delivery {random.randint(100, 999)}"
         today_date = date.today()
         start_date = today_date - timedelta(days=45)
         deadline = today_date + timedelta(days=30)
         project = Project(
             name=project_name,
             description=(
-                "Active ERP delivery project with ongoing sprints, hiring pipeline work, "
-                "and operational dashboard improvements."
+                "Implementation of a modern ERP system with Hiring and Project Management modules, "
+                "featuring AI-powered resume analysis and real-time task collaboration."
             ),
             manager_id=manager.id,
             start_date=start_date,
@@ -221,7 +214,7 @@ async def seed_historical_data():
             await db.flush()
             print(f"  Created {sprint.status.value} sprint: {sprint.name}")
 
-            for _ in range(num_stories):
+            for story_idx in range(num_stories):
                 title = random.choice(STORY_TITLES)
                 if title in used_titles:
                     title = f"{title} v{random.randint(2, 4)}"
@@ -243,6 +236,7 @@ async def seed_historical_data():
                     description=random.choice(STORY_DESC_TEMPLATES).format(topic=title.lower()),
                     points=story_points,
                     status=story_target,
+                    order=story_idx,
                 )
                 db.add(story)
                 await db.flush()

@@ -97,21 +97,25 @@ Product
 ```mermaid
 mindmap
   root((App))
-    Sprints
-      %% Sprint state machine
-      %% Incomplete stories
-      Sprint timed start & close operations
-    Tasks
-      DoD
-      retrieve points when removed from done
-      team capacity management
-      %% State machine
-      %% Assignee
-      %% Done definition
-    Ceremonies
-      review
-      planning
-      %% Retrospective
+    scrum
+      stories
+        %% ordered Backlog
+        capacity / velocity management
+      Sprints
+        %% Sprint state machine
+        %% Incomplete stories
+        Sprint timed start & close operations
+      Tasks
+        DoD
+        %% retrieve points when removed from done
+        %% team capacity management
+        %% State machine
+        %% Assignee
+      Ceremonies
+        review
+          ai suggest new backlog stories or modifications
+        planning
+        %% Retrospective
     Reporting
       more charts
       %% team workload
@@ -123,9 +127,9 @@ mindmap
       %% Assignee suggester
     Hiring
       onboarding process
-    notifications
-      little svg symbol
-      colored by type (info, warning, error)
-      linkes to the relevant item (task, sprint, etc)
-      
+    %% notifications
+    %%   little svg symbol
+    %%   colored by type (info, warning, error)
+    %%   linkes to the relevant item (task, sprint, etc)
+
 ```

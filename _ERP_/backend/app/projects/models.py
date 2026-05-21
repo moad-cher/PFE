@@ -43,7 +43,7 @@ class Project(Base):
     manager: Mapped["User"] = relationship("User", foreign_keys=[manager_id])  # noqa: F821
     members: Mapped[list["User"]] = relationship("User", secondary=project_members)  # noqa: F821
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="project", cascade="all, delete-orphan")
-    stories: Mapped[list["Story"]] = relationship("Story", back_populates="project", cascade="all, delete-orphan")
+    stories: Mapped[list["Story"]] = relationship("Story", back_populates="project", cascade="all, delete-orphan", order_by="Story.order")
     statuses: Mapped[list["TaskStatus"]] = relationship("TaskStatus", back_populates="project", cascade="all, delete-orphan")
     sprints: Mapped[list["Sprint"]] = relationship("Sprint", back_populates="project", cascade="all, delete-orphan")
     chat_messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="project")  # noqa: F821
@@ -98,7 +98,7 @@ class Sprint(Base):
     committed_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped["Project"] = relationship("Project", back_populates="sprints")
-    stories: Mapped[list["Story"]] = relationship("Story", back_populates="sprint")
+    stories: Mapped[list["Story"]] = relationship("Story", back_populates="sprint", order_by="Story.order")
 
 
 class Story(Base):
@@ -111,6 +111,7 @@ class Story(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(50), default="todo")
     points: Mapped[int] = mapped_column(Integer, default=0)
+    order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     project: Mapped["Project"] = relationship("Project", back_populates="stories")

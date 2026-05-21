@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, deleteStory, formatDate, deleteTask } from '../../api';
+import { getProject, getProjectStatuses, getSprints, getStories, createSprint, updateSprint, updateStory, deleteStory, formatDate, deleteTask, updateStoriesOrder } from '../../api';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -79,7 +79,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
       goal: ''
     });
     setShowSprintModal(true);
-    };
+  };
   const handleCreateSprint = async (e) => {
     e.preventDefault();
     try {
@@ -147,24 +147,80 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
-    if (destination.droppableId === source.droppableId) return;
 
     const storyId = parseInt(draggableId.replace('story-', ''));
-    const destSprintId = destination.droppableId === 'backlog' ? null : parseInt(destination.droppableId);
+    const sourceDroppableId = source.droppableId;
+    const destDroppableId = destination.droppableId;
+    const sourceIndex = source.index;
+    const destIndex = destination.index;
 
-    const updatedStories = stories.map(s => 
-      s.id === storyId ? { ...s, sprint_id: destSprintId } : s
-    );
-    setStories(updatedStories);
+    // 1. Determine destination sprint ID
+    const destSprintId = destDroppableId === 'backlog' ? null : parseInt(destDroppableId);
 
+    // 2. Clone stories and find target story
+    let newStories = [...stories];
+    const movedStoryIndex = newStories.findIndex(s => s.id === storyId);
+    if (movedStoryIndex === -1) return;
+
+    // 3. Handle move between/within columns
+    if (sourceDroppableId === destDroppableId) {
+      // Reordering within the same list
+      if (sourceIndex === destIndex) return;
+
+      // Get list of stories in this specific droppable
+      const currentList = newStories
+        .filter(s => (s.sprint_id === (sourceDroppableId === 'backlog' ? null : parseInt(sourceDroppableId))))
+        .sort((a, b) => a.order - b.order);
+
+      const [removed] = currentList.splice(sourceIndex, 1);
+      currentList.splice(destIndex, 0, removed);
+
+      // Update order values for the whole list
+      currentList.forEach((s, idx) => { s.order = idx; });
+
+      // Merge back into main stories array
+      const otherStories = newStories.filter(s => (s.sprint_id !== (sourceDroppableId === 'backlog' ? null : parseInt(sourceDroppableId))));
+      newStories = [...otherStories, ...currentList];
+    } else {
+      // Moving to a different list
+      const movedStory = { ...newStories[movedStoryIndex], sprint_id: destSprintId };
+      newStories.splice(movedStoryIndex, 1);
+
+      const destList = newStories
+        .filter(s => s.sprint_id === destSprintId)
+        .sort((a, b) => a.order - b.order);
+
+      destList.splice(destIndex, 0, movedStory);
+
+      // Update order values for the destination list
+      destList.forEach((s, idx) => { s.order = idx; });
+
+      // Merge back
+      const otherStories = newStories.filter(s => s.sprint_id !== destSprintId);
+      newStories = [...otherStories, ...destList];
+    }
+
+    setStories(newStories);
+
+    // 4. Persist to backend
     try {
-      await updateStory(pk, storyId, { sprint_id: destSprintId });
+      if (sourceDroppableId !== destDroppableId) {
+        // If moved to a different sprint, we MUST update sprint_id first
+        await updateStory(pk, storyId, { sprint_id: destSprintId });
+      }
+
+      // Send bulk order update for affected list
+      const storiesToUpdate = newStories
+        .filter(s => s.sprint_id === destSprintId)
+        .map(s => ({ id: s.id, order: s.order }));
+
+      await updateStoriesOrder(pk, storiesToUpdate);
     } catch (err) {
-      alert('Failed to move story');
+      console.error('Failed to update story order', err);
       fetchData();
     }
   };
-  
+
   const allMembers = useMemo(() => {
     if (!project) return [];
     const seen = new Set();
@@ -241,21 +297,25 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                     {t.is_blocked && (
                       <span className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.5)] animate-pulse" title={`Blocked: ${t.blocker_reason}`}></span>
                     )}
-                    <button 
-                      onClick={() => openTaskModal(t.story_id, t.id)}
-                      className={`font-medium text-left hover:text-purple-600 line-clamp-1 ${t.is_blocked ? 'text-amber-900' : 'text-gray-700'}`}
-                    >
-                      {t.title}
-                    </button>
+                    {isReadOnly ? (
+                      <span className="font-medium text-left text-gray-500">{t.title}</span>
+                    ) : (
+                      <button
+                        onClick={() => openTaskModal(t.story_id, t.id)}
+                        className={`font-medium text-left hover:text-purple-600 line-clamp-1 ${t.is_blocked ? 'text-amber-900' : 'text-gray-700'}`}
+                      >
+                        {t.title}
+                      </button>)
+                    }
                   </div>
                 </td>
-                                {!isReadOnly && (
+                {!isReadOnly && (
                   <td className="px-4 py-2">
                     {t.is_blocked ? (
                       <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-amber-200">Blocked</span>
                     ) : (
-                      <StatusBadge 
-                        status={t.status} 
+                      <StatusBadge
+                        status={t.status}
                         color={statuses.find(s => s.slug === t.status)?.color}
                       />
                     )}
@@ -274,7 +334,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                 {canManage && !isReadOnly && (
                   <td className="px-4 py-2 text-right">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
+                      <button
                         onClick={() => openTaskModal(t.story_id, t.id)}
                         className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                         title="Edit Task"
@@ -283,7 +343,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteTask(t.id)}
                         className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete Task"
@@ -312,7 +372,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
     return (
       <Draggable key={story.id} draggableId={`story-${story.id}`} index={index} isDragDisabled={isDragDisabled}>
         {(provided, snapshot) => (
-          <div 
+          <div
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
@@ -323,7 +383,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></div>
                 <div className="flex-1 min-w-0">
-                  <input 
+                  <input
                     className={`text-sm font-bold bg-transparent border-none rounded px-1 py-0.5 w-full outline-none transition-all ${canManage && !isReadOnly ? 'hover:bg-white/80 focus:bg-white focus:ring-1 focus:ring-purple-300' : 'cursor-default text-gray-800'}`}
                     value={story.title}
                     readOnly={!canManage || isReadOnly}
@@ -334,7 +394,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                   />
                   <div className="flex items-center gap-2 mt-0.5 ml-1">
                     <div className="flex items-center gap-0.5">
-                      <input 
+                      <input
                         type="number"
                         className={`text-[10px] font-bold bg-transparent border-none rounded px-1 py-0.5 w-10 outline-none transition-all ${canManage && !isReadOnly ? 'hover:bg-white/80 focus:bg-white focus:ring-1 focus:ring-purple-300' : 'cursor-default text-gray-400'}`}
                         value={story.points}
@@ -347,19 +407,19 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                     </div>
                     <span className="text-[10px] text-gray-300">•</span>
                     <div className="flex items-center gap-1.5">
-                       <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-500" style={{ width: `${progress}%` }}></div>
-                       </div>
-                       <span className="text-[9px] font-bold text-gray-500">{progress}%</span>
+                      <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-purple-500" style={{ width: `${progress}%` }}></div>
+                      </div>
+                      <span className="text-[9px] font-bold text-gray-500">{progress}%</span>
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2 flex-shrink-0">
                 {!isReadOnly && canManage && (
                   <div className="flex items-center gap-0.5 opacity-0 group-hover/story:opacity-100 transition-opacity">
-                    <button 
+                    <button
                       onClick={() => handleDeleteStory(story.id)}
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                       title="Delete Story"
@@ -409,20 +469,20 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
           </div>
           <div className="flex gap-3">
             {canManage && (
-                <button onClick={() => openStoryModal()} className="px-4 py-2 bg-white border border-purple-200 text-purple-700 rounded-xl text-sm font-semibold hover:bg-purple-50 transition-all shadow-sm">
-                 New Story
+              <button onClick={() => openStoryModal()} className="px-4 py-2 bg-white border border-purple-200 text-purple-700 rounded-xl text-sm font-semibold hover:bg-purple-50 transition-all shadow-sm">
+                New Story
               </button>
             )}
           </div>
         </div>
 
-        <TaskEdit 
-          isOpen={showTaskModal} 
-          onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }} 
-          pk={pk} 
+        <TaskEdit
+          isOpen={showTaskModal}
+          onClose={() => { setShowTaskModal(false); setEditingTaskId(null); }}
+          pk={pk}
           taskId={editingTaskId}
           initialStoryId={taskModalStoryId}
-          onSuccess={fetchData} 
+          onSuccess={fetchData}
         />
 
         <StoryNew
@@ -451,115 +511,115 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
             <div className="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-500 via-gray-200 to-transparent"></div>
 
             <div className="space-y-16">
-            {(() => {
-              const latestSprint = sprints[0];
-              const isLatestSprintDraft = latestSprint?.status === 'draft';
-              const renderedSprints = sprints.map((sprint, idx) => {
-                const isActive = sprint.status === 'active';
-                const isCompleted = sprint.status === 'completed';
-                const sprintStories = storiesBySprint[sprint.id] || [];
-                
-                return (
-                  <div key={sprint.id} className="relative pl-12 md:pl-20 transition-all">
-                    <div className={`absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 bg-white z-10 top-2 transition-all duration-500
-                      ${isActive ? 'border-purple-600 scale-125 ring-4 ring-purple-50' : isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
-                    </div>
+              {(() => {
+                const latestSprint = sprints[0];
+                const isLatestSprintDraft = latestSprint?.status === 'draft';
+                const renderedSprints = sprints.map((sprint, idx) => {
+                  const isActive = sprint.status === 'active';
+                  const isCompleted = sprint.status === 'completed';
+                  const sprintStories = storiesBySprint[sprint.id] || [];
 
-                    <div className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden ${isActive ? 'border-purple-500 border-2 ring-4 ring-purple-50/50 shadow-purple-100 shadow-xl' : 'border-gray-200 hover:border-gray-300'}`}>
-                      <div className={`px-6 py-4 flex flex-wrap items-center justify-between gap-4 ${isActive ? 'bg-purple-50/30' : isCompleted ? 'bg-gray-50/50' : ''}`}>
-                        <div>
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-bold text-gray-900">{sprint.name}</h3>
-                            {isActive && <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
-                            {canManage && !isCompleted && (
-                              <button 
-                                onClick={() => { setEditingSprint(sprint); setShowSprintEditModal(true); }}
-                                className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                                title="Edit Sprint"
+                  return (
+                    <div key={sprint.id} className="relative pl-12 md:pl-20 transition-all">
+                      <div className={`absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 bg-white z-10 top-2 transition-all duration-500
+                      ${isActive ? 'border-purple-600 scale-125 ring-4 ring-purple-50' : isCompleted ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
+                      </div>
+
+                      <div className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden ${isActive ? 'border-purple-500 border-2 ring-4 ring-purple-50/50 shadow-purple-100 shadow-xl' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <div className={`px-6 py-4 flex flex-wrap items-center justify-between gap-4 ${isActive ? 'bg-purple-50/30' : isCompleted ? 'bg-gray-50/50' : ''}`}>
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="text-lg font-bold text-gray-900">{sprint.name}</h3>
+                              {isActive && <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
+                              {canManage && !isCompleted && (
+                                <button
+                                  onClick={() => { setEditingSprint(sprint); setShowSprintEditModal(true); }}
+                                  className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                  title="Edit Sprint"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium">
+                              {formatDate(sprint.start_date)} — {formatDate(sprint.end_date)}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {canManage && sprint.status === 'draft' && (
+                              <button
+                                onClick={() => handleUpdateSprintStatus(sprint.id, 'active')}
+                                disabled={updatingSprintId === sprint.id}
+                                className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
+                                {updatingSprintId === sprint.id ? 'Starting...' : 'Start'}
                               </button>
                             )}
-                          </div>
-                          <p className="text-xs text-gray-500 font-medium">
-                            {formatDate(sprint.start_date)} — {formatDate(sprint.end_date)}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {canManage && sprint.status === 'draft' && (
-                            <button 
-                              onClick={() => handleUpdateSprintStatus(sprint.id, 'active')} 
-                              disabled={updatingSprintId === sprint.id}
-                              className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-                            >
-                              {updatingSprintId === sprint.id ? 'Starting...' : 'Start'}
-                            </button>
-                          )}
-                          {canManage && sprint.status === 'active' && (
-                            <button onClick={() => handleCompleteSprint(sprint.id)} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
-                          )}
-                          <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
-                          <div className="text-right hidden sm:block">
-                            <div className="text-xs font-bold text-gray-900">{sprintStories.length} Stories</div>
-                            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                               {sprintStories.reduce((acc, s) => acc + s.points, 0)} Story Pts
+                            {canManage && sprint.status === 'active' && (
+                              <button onClick={() => handleCompleteSprint(sprint.id)} className="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">Complete</button>
+                            )}
+                            <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
+                            <div className="text-right hidden sm:block">
+                              <div className="text-xs font-bold text-gray-900">{sprintStories.length} Stories</div>
+                              <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                                {sprintStories.reduce((acc, s) => acc + s.points, 0)} Story Pts
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      {sprint.goal && (
-                        <div className="px-6 py-2 bg-amber-50/30 border-y border-amber-100/50">
-                          <p className="text-xs text-amber-800 italic leading-relaxed"><span className="font-bold mr-1">Goal:</span>{sprint.goal}</p>
-                        </div>
-                      )}
-
-                      {sprint.retrospective && (
-                        <div className="px-6 py-2 bg-green-50/30 border-y border-green-100/50">
-                          <p className="text-xs text-green-800 italic leading-relaxed"><span className="font-bold mr-1">Retrospective:</span>{sprint.retrospective}</p>
-                        </div>
-                      )}
-
-                      <Droppable droppableId={String(sprint.id)} isDropDisabled={isCompleted}>
-                        {(provided, snapshot) => (
-                          <div 
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
-                            className={`p-4 bg-gray-50/30 min-h-[50px] transition-colors ${snapshot.isDraggingOver ? 'bg-purple-50/50' : ''}`}
-                          >
-                            {sprintStories.map((story, sIdx) => renderStory(story, sIdx, isCompleted, isCompleted))}
-                            {sprintStories.length === 0 && !snapshot.isDraggingOver && (
-                               <div className="py-12 text-center text-gray-400 italic text-sm">No stories in this sprint</div>
-                            )}
-                            {provided.placeholder}
+                        {sprint.goal && (
+                          <div className="px-6 py-2 bg-amber-50/30 border-y border-amber-100/50">
+                            <p className="text-xs text-amber-800 italic leading-relaxed"><span className="font-bold mr-1">Goal:</span>{sprint.goal}</p>
                           </div>
                         )}
-                      </Droppable>
-                    </div>
-                    
-                  </div>
-                );
-              });
 
-              if (canManage && !isLatestSprintDraft) {
-                renderedSprints.unshift(
-                  <div key="next-sprint-trigger" className="relative pl-12 md:pl-20 opacity-60 hover:opacity-100 transition-opacity">
-                    <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
-                    <button 
-                      onClick={openSprintModal}
-                      className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50/30 transition-all shadow-sm"
-                    >
-                      <span className="text-xl font-bold">+</span>
-                      <span className="text-xs font-bold uppercase tracking-wider">{sprints.length === 0 ? 'Initialize First Sprint' : 'Plan Next Sprint'}</span>
-                    </button>
-                  </div>
-                );
-              }
-              return renderedSprints;
-            })()}
+                        {sprint.retrospective && (
+                          <div className="px-6 py-2 bg-green-50/30 border-y border-green-100/50">
+                            <p className="text-xs text-green-800 italic leading-relaxed"><span className="font-bold mr-1">Retrospective:</span>{sprint.retrospective}</p>
+                          </div>
+                        )}
+
+                        <Droppable droppableId={String(sprint.id)} isDropDisabled={isCompleted}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className={`p-4 bg-gray-50/30 min-h-[50px] transition-colors ${snapshot.isDraggingOver ? 'bg-purple-50/50' : ''}`}
+                            >
+                              {sprintStories.map((story, sIdx) => renderStory(story, sIdx, isCompleted, isCompleted))}
+                              {sprintStories.length === 0 && !snapshot.isDraggingOver && (
+                                <div className="py-12 text-center text-gray-400 italic text-sm">No stories in this sprint</div>
+                              )}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      </div>
+
+                    </div>
+                  );
+                });
+
+                if (canManage && !isLatestSprintDraft) {
+                  renderedSprints.unshift(
+                    <div key="next-sprint-trigger" className="relative pl-12 md:pl-20 opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="absolute left-4 md:left-8 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-dashed border-gray-300 bg-white z-10 top-2"></div>
+                      <button
+                        onClick={openSprintModal}
+                        className="w-full py-6 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-gray-500 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50/30 transition-all shadow-sm"
+                      >
+                        <span className="text-xl font-bold">+</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{sprints.length === 0 ? 'Initialize First Sprint' : 'Plan Next Sprint'}</span>
+                      </button>
+                    </div>
+                  );
+                }
+                return renderedSprints;
+              })()}
             </div>
           </div>
 
@@ -600,7 +660,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
               <form onSubmit={handleCreateSprint} className="space-y-5">
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Sprint Identifier</label>
-                  <input required type="text" value={sprintForm.name} onChange={e => setSprintForm({...sprintForm, name: e.target.value})}
+                  <input required type="text" value={sprintForm.name} onChange={e => setSprintForm({ ...sprintForm, name: e.target.value })}
                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-purple-500" placeholder="e.g. Q2 - Performance Optimization" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -614,26 +674,26 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                         const d = new Date(start);
                         d.setDate(d.getDate() + duration);
                         const end = d.toISOString().split('T')[0];
-                        setSprintForm({...sprintForm, start_date: start, end_date: end});
+                        setSprintForm({ ...sprintForm, start_date: start, end_date: end });
                       }}
                       className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-purple-500" />
                   </div>
                   <div>
                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                    <input 
-                      required 
-                      type="date" 
-                      value={sprintForm.end_date} 
+                    <input
+                      required
+                      type="date"
+                      value={sprintForm.end_date}
                       min={sprintForm.start_date || minStartDate}
                       max={project?.deadline || ''}
-                      onChange={e => setSprintForm({...sprintForm, end_date: e.target.value})}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-purple-500" 
+                      onChange={e => setSprintForm({ ...sprintForm, end_date: e.target.value })}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Core Objective</label>
-                  <textarea rows="3" value={sprintForm.goal} onChange={e => setSprintForm({...sprintForm, goal: e.target.value})}
+                  <textarea rows="3" value={sprintForm.goal} onChange={e => setSprintForm({ ...sprintForm, goal: e.target.value })}
                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-purple-500" placeholder="What's the main goal?" />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">

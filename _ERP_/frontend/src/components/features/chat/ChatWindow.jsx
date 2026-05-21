@@ -206,7 +206,7 @@ export default function ChatWindow({ roomType, pk }) {
                 <div
                   className={`px-3 py-2 rounded-2xl text-sm ${
                     isOwn
-                      ? 'bg-purple-600 text-white rounded-tr-sm'
+                      ? 'bg-purple-400 text-white rounded-tr-sm'
                       : 'bg-gray-100 text-gray-800 rounded-tl-sm'
                   }`}
                 >

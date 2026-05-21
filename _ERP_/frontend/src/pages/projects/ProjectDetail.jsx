@@ -513,7 +513,7 @@ export default function ProjectDetail() {
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-white/50">
       {/* Structural Left Sidebar */}
-      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-72'} border-r border-gray-300 bg-white/80 backdrop-blur-md sticky top-16 h-[calc(100vh-64px)] overflow-hidden flex flex-col flex-shrink-0 z-10 transition-all duration-300 group/sidebar relative`}>
+      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-72'} border-r border-gray-300 bg-white shadow sticky top-16 h-[calc(100vh-64px)] overflow-hidden flex flex-col flex-shrink-0 z-10 transition-all duration-300 group/sidebar relative`}>
         <div className={`p-6 border-b border-gray-100/50 ${isSidebarCollapsed ? 'px-4' : ''}`}>
           <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} mb-2`}>
             {!isSidebarCollapsed && (
