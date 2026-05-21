@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getKanban, moveTask, getProject, getTaskComments, relativeTime, createTaskComment, updateTask, formatDateTime } from '../../api';
-import Spinner from '../../components/shared/ui/Spinner';
-import PriorityBadge from '../../components/shared/ui/PriorityBadge';
-import StatusBadge from '../../components/shared/ui/StatusBadge';
-import { useAuth } from '../../context/AuthContext';
-import Guard, { usePermissions } from '../../auth/Guard';
-import TaskEdit from '../../components/features/projects/TaskEdit';
+import { getKanban, moveTask, getProject, getTaskComments, relativeTime, createTaskComment, updateTask, formatDateTime, getStories } from './api';
+import Spinner from './components/shared/ui/Spinner';
+import PriorityBadge from './components/shared/ui/PriorityBadge';
+import StatusBadge from './components/shared/ui/StatusBadge';
+import { useAuth } from './context/AuthContext';
+import Guard, { usePermissions } from './auth/Guard';
+import TaskEdit from './components/features/projects/TaskEdit';
 
-function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
+function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM, isMyTask }) {
   const [showComments, setShowComments] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [comments, setComments] = useState([]);
@@ -93,7 +93,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
   };
 
   return (
-    <div className={`bg-white/95 rounded-2xl border ${isBlocked ? 'border-red-400 ring-2 ring-red-100' : 'border-purple-100/40'} shadow-lilac p-3 transition-all ${isDragging ? 'shadow-lg ring-2 ring-purple-400 rotate-2 scale-105 cursor-grabbing' : 'hover:shadow-md card-hover'} ${isLocked ? 'opacity-75 grayscale-[0.2]' : ''}`}>
+    <div className={`rounded-2xl border transition-all ${isMyTask ? 'bg-white border-purple-200 shadow-md ring-1 ring-purple-100' : 'bg-gray-50/90 border-gray-100 opacity-90'} ${isBlocked ? 'border-red-400 ring-2 ring-red-100' : ''} p-3 ${isDragging ? 'shadow-2xl ring-2 ring-purple-400 rotate-1 scale-105 cursor-grabbing z-50' : 'hover:shadow-lg card-hover'} ${isLocked ? 'opacity-75 grayscale-[0.2]' : ''}`}>
       {isBlocked && (
         <div className="mb-2 flex items-center gap-1 bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight w-fit">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -110,7 +110,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
         </div>
       )}
       <div className="flex justify-between items-start gap-2">
-          <p className="inline flex-1 font-medium text-sm text-gray-800 group-hover/title:text-purple-600 line-clamp-2 mb-2 transition-colors">{task.title}</p>
+          <p className={`inline flex-1 font-bold text-sm group-hover/title:text-purple-600 line-clamp-2 mb-2 transition-colors ${isMyTask ? 'text-gray-900' : 'text-gray-600'}`}>{task.title}</p>
         {isPM && (
           <button 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(task); }}
@@ -134,7 +134,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
         <PriorityBadge priority={task.priority} />
       </div>
 
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100/50">
         <div className="flex gap-1">
           <button 
             onClick={toggleDetails}
@@ -173,7 +173,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
             <div className="flex -space-x-1">
               {task.assigned_to.slice(0, 3).map(u => (
                 <div key={u.id} title={u.username}
-                  className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center text-white text-[9px] border-2 border-white shadow-sm">
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] border-2 border-white shadow-sm ${u.id === task.user_id ? 'bg-purple-600' : 'bg-gray-400'}`}>
                   {u.username[0].toUpperCase()}
                 </div>
               ))}
@@ -181,6 +181,7 @@ function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
           ) : <div className="w-5" />}
         </div>
       </div>
+
 
       {showDetails && (
         <div className="mt-3 pt-3 border-t border-purple-50 space-y-3 text-[10px]" onClick={e => e.stopPropagation()}>
@@ -307,16 +308,23 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
   const { checkPM } = usePermissions();
   const [columns, setColumns] = useState([]);
   const [project, setProject] = useState(propProject || null);
+  const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(!propProject);
   const [editingTask, setEditingTask] = useState(null);
   const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
+  const [groupBy, setGroupBy] = useState('none'); // none, story, assignee, priority
 
   const fetchData = () => {
     if (!propProject) setLoading(true);
-    Promise.all([getKanban(pk), propProject ? Promise.resolve({ data: propProject }) : getProject(pk)])
-      .then(([k, p]) => { 
+    Promise.all([
+      getKanban(pk), 
+      propProject ? Promise.resolve({ data: propProject }) : getProject(pk),
+      getStories(pk)
+    ])
+      .then(([k, p, s]) => { 
         setColumns(k.data); 
-        setProject(p.data); 
+        setProject(p.data);
+        setStories(s.data);
       })
       .finally(() => setLoading(false));
   };
@@ -331,13 +339,12 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
     
     const taskId = parseInt(draggableId.replace('task-', ''));
-    const sourceColSlug = source.droppableId;
-    const destColSlug = destination.droppableId;
+    const [sourceColSlug, sourceLaneId] = source.droppableId.split('|');
+    const [destColSlug, destLaneId] = destination.droppableId.split('|');
     
     setColumns(prev => {
       const sourceColIndex = prev.findIndex(c => c.status.slug === sourceColSlug);
       const destColIndex = prev.findIndex(c => c.status.slug === destColSlug);
-      
       if (sourceColIndex === -1 || destColIndex === -1) return prev;
       
       const newColumns = [...prev];
@@ -349,23 +356,48 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
       const [movedTask] = sourceCol.tasks.splice(source.index, 1);
       const updatedTask = { ...movedTask, status: destColSlug };
       
-      destCol.tasks.splice(destination.index, 0, updatedTask);
-      
-      newColumns[sourceColIndex] = sourceCol;
-      if (sourceColSlug !== destColSlug) {
-        newColumns[destColIndex] = destCol;
+      if (sourceLaneId !== destLaneId) {
+        if (groupBy === 'story') {
+          const newStoryId = destLaneId.replace('story-', '');
+          updatedTask.story_id = newStoryId === 'none' ? null : parseInt(newStoryId);
+        } else if (groupBy === 'priority') {
+          const newPriority = destLaneId.replace('priority-', '');
+          updatedTask.priority = newPriority === 'none' ? null : newPriority;
+        } else if (groupBy === 'assignee') {
+          const newUserId = destLaneId.replace('user-', '');
+          updatedTask.assigned_to = newUserId === 'none' ? [] : [{id: parseInt(newUserId), username: 'Updating...'}];
+        }
       }
       
+      destCol.tasks.splice(destination.index, 0, updatedTask);
+      newColumns[sourceColIndex] = sourceCol;
+      if (sourceColSlug !== destColSlug) newColumns[destColIndex] = destCol;
       return newColumns;
     });
     
-    if (sourceColSlug !== destColSlug) {
-      try {
-        await moveTask(pk, taskId, destColSlug);
-      } catch (error) {
-        const res = await getKanban(pk);
-        setColumns(res.data);
+    try {
+      const updates = {};
+      let hasUpdates = false;
+      if (sourceColSlug !== destColSlug) await moveTask(pk, taskId, destColSlug);
+      if (sourceLaneId !== destLaneId) {
+        if (groupBy === 'story') {
+          const newStoryId = destLaneId.replace('story-', '');
+          updates.story_id = newStoryId === 'none' ? null : parseInt(newStoryId);
+          hasUpdates = true;
+        } else if (groupBy === 'priority') {
+          const newPriority = destLaneId.replace('priority-', '');
+          updates.priority = newPriority === 'none' ? null : newPriority;
+          hasUpdates = true;
+        } else if (groupBy === 'assignee') {
+          const newUserId = destLaneId.replace('user-', '');
+          updates.assigned_to_ids = newUserId === 'none' ? [] : [parseInt(newUserId)];
+          hasUpdates = true;
+        }
       }
+      if (hasUpdates) await updateTask(pk, taskId, updates);
+    } catch (error) {
+      console.error('Failed to move task:', error);
+      fetchData();
     }
   };
 
@@ -374,37 +406,110 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
   const activeSprint = project?.sprints?.find(s => s.status === 'active');
   const isPM = checkPM(project);
 
+  const lanes = (() => {
+    if (groupBy === 'none') return [{ id: 'none', title: 'All Tasks', color: 'gray' }];
+    if (groupBy === 'story') {
+      return [
+        ...stories.map(s => ({ id: `story-${s.id}`, title: s.title, subtitle: `${s.points} pts`, color: 'purple' })),
+        { id: 'story-none', title: 'Unparented Tasks', color: 'gray' }
+      ];
+    }
+    if (groupBy === 'assignee') {
+      const members = [project?.manager, ...(project?.members || [])].filter(Boolean);
+      const uniqueMembers = Array.from(new Map(members.map(m => [m.id, m])).values());
+      return [
+        ...uniqueMembers.map(m => ({ id: `user-${m.id}`, title: m.username, color: 'indigo' })),
+        { id: 'user-none', title: 'Unassigned', color: 'gray' }
+      ];
+    }
+    if (groupBy === 'priority') {
+      return [
+        { id: 'priority-urgent', title: 'Urgent', color: 'red' },
+        { id: 'priority-high', title: 'High', color: 'orange' },
+        { id: 'priority-medium', title: 'Medium', color: 'blue' },
+        { id: 'priority-low', title: 'Low', color: 'slate' },
+        { id: 'priority-none', title: 'No Priority', color: 'gray' }
+      ];
+    }
+    return [];
+  })();
+
+  const colorMap = {
+    purple: 'bg-purple-600',
+    indigo: 'bg-indigo-600',
+    red: 'bg-red-600',
+    orange: 'bg-orange-600',
+    blue: 'bg-blue-600',
+    slate: 'bg-slate-600',
+    gray: 'bg-gray-400'
+  };
+
   return (
-    <div className={`px-4 py-6 ${isTab ? '' : 'max-w-7xl mx-auto'}`}>
-      {!isTab && (
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Link to={`/projects/${pk}`} className="hover:text-purple-600 transition-colors">← {project?.name}</Link>
-            <span>/</span><span className="font-medium text-gray-700">Kanban</span>
+    <div className={`flex flex-col h-[calc(100vh-64px)] overflow-hidden ${isTab ? '' : ''}`}>
+      {/* 1. FIXED HEADER & FILTERS */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 z-40">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            {!isTab && (
+              <Link to={`/projects/${pk}`} className="p-2 hover:bg-gray-50 rounded-full transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </Link>
+            )}
+            <div>
+              <h2 className="text-xl font-black text-gray-900 tracking-tight">
+                {activeSprint ? activeSprint.name : 'Project Kanban'}
+                {activeSprint && <span className="ml-3 px-2.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-black rounded-full uppercase tracking-widest">Active</span>}
+              </h2>
+            </div>
+          </div>
+          
+          <div className="flex gap-4 items-center">
+            <div className="flex items-center bg-gray-50 p-1 rounded-xl border border-gray-200">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3">View</span>
+              {[
+                { id: 'none', label: 'Flat' },
+                { id: 'story', label: 'Story' },
+                { id: 'assignee', label: 'User' },
+                { id: 'priority', label: 'Rank' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setGroupBy(opt.id)}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${groupBy === opt.id ? 'bg-white text-purple-600 shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border ${showOnlyMyTasks ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-100' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'}`}
+            >
+              {showOnlyMyTasks ? 'My Tasks' : 'All Tasks'}
+            </button>
           </div>
         </div>
-      )}
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          {activeSprint ? (
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-900">{activeSprint.name}</h2>
-              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Active Sprint</span>
+        {/* 2. STICKY COLUMN HEADERS */}
+        <div className="flex gap-6 mt-2">
+          {columns.map(col => (
+            <div key={col.status.id} className="flex-shrink-0 w-80 px-2">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-3 h-3 rounded-full shadow-sm" style={{ background: col.status.color }} />
+                  <span className="font-black text-[11px] text-gray-600 uppercase tracking-widest">{col.status.name}</span>
+                </div>
+                <span className="text-[10px] font-black bg-gray-100 px-2 py-0.5 rounded-full text-gray-400">
+                  {col.tasks.filter(t => !showOnlyMyTasks || t.assigned_to?.some(u => u.id === user?.id)).length}
+                </span>
+              </div>
+              {/* Thick Color Bar for Header */}
+              <div className="h-1 w-full rounded-full opacity-60" style={{ backgroundColor: col.status.color }}></div>
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-400 italic">No Active Sprint</h2>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2 items-center">
-          <button 
-            onClick={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
-            className={`px-3 py-1.5 text-sm rounded-xl transition-all border ${showOnlyMyTasks ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'}`}
-          >
-            {showOnlyMyTasks ? '👤 My Tasks' : '👥 All Tasks'}
-          </button>
+          ))}
         </div>
       </div>
 
@@ -416,82 +521,99 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
         onSuccess={fetchData} 
       />
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
-          {columns.map((col, colIndex) => {
-            const displayedTasks = col.tasks.filter(task => !showOnlyMyTasks || task.assigned_to?.some(u => u.id === user?.id));
-            
-            return (
-              <div key={col.status.id} className="flex-shrink-0 w-72">
-                <div className={`${colIndex % 2 === 0 ? 'rounded-2xl' : 'rounded-xl'} p-3 backdrop-blur-sm`} style={{ background: col.status.color + '18' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full shadow-sm" style={{ background: col.status.color }} />
-                      <span className="font-semibold text-sm text-gray-700">{col.status.name}</span>
-                    </div>
-                    <span className="text-xs bg-white/80 px-2 py-0.5 rounded-full text-gray-500 shadow-sm">{displayedTasks.length}</span>
-                  </div>
-                  <Droppable droppableId={col.status.slug}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`space-y-2 min-h-[100px] rounded-xl transition-colors ${snapshot.isDraggingOver ? 'bg-purple-50/50 ring-2 ring-purple-200 ring-dashed' : ''}`}
-                      >
-                        {displayedTasks.map((task, index) => {
-                          const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
-                          const canDrag = isPM || isAssignee;
-                          
-                          return (
-                            <Draggable 
-                              key={task.id} 
-                              draggableId={`task-${task.id}`} 
-                              index={index}
-                              isDragDisabled={!canDrag}
-                            >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={!canDrag ? 'cursor-not-allowed' : ''}
-                                  title={!canDrag ? 'Only assignees can move this task' : ''}
-                                  style={{
-                                    ...provided.draggableProps.style,
-                                    userSelect: 'none',
-                                    position: 'relative',
-                                    left: 0,
-                                    top: 0
-                                  }}
-                                >
-                                  <TaskCard 
-                                    task={task} 
-                                    projectId={pk} 
-                                    isDragging={snapshot.isDragging} 
-                                    isLocked={!canDrag}
-                                    isPM={isPM}
-                                    onEdit={(t) => setEditingTask(t)}
-                                  />
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })}
-                        {provided.placeholder}
-                        {displayedTasks.length === 0 && snapshot.isDraggingOver && (
-                          <div className="text-xs text-gray-400 text-center py-6 border-2 border-dashed rounded-lg">
-                            Drop tasks here
+      {/* 3. SCROLLABLE CONTENT WITH STICKY SWIMLANES */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white custom-scrollbar pb-20">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          {lanes.map((lane, laneIdx) => (
+            <div key={lane.id} className="relative group">
+              {/* STICKY SWIMLANE HEADER */}
+              {groupBy !== 'none' && (
+                <div className="sticky top-0 z-30 flex items-center bg-white/95 backdrop-blur-sm border-y border-gray-100 px-6 py-2.5 shadow-sm group-hover:bg-white transition-colors">
+                  <div className={`w-1.5 h-5 rounded-full ${colorMap[lane.color]} mr-3 shadow-sm`}></div>
+                  <h3 className="font-black text-gray-800 text-xs uppercase tracking-widest flex items-center gap-2">
+                    {lane.title}
+                    {lane.subtitle && <span className="text-[9px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">{lane.subtitle}</span>}
+                  </h3>
+                  <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent ml-4"></div>
+                </div>
+              )}
+
+              <div className="flex gap-6 px-6 py-0">
+                {columns.map((col) => {
+                  const tasksInLane = col.tasks.filter(task => {
+                    if (showOnlyMyTasks && !task.assigned_to?.some(u => u.id === user?.id)) return false;
+                    if (groupBy === 'none') return true;
+                    if (groupBy === 'story') {
+                      const storyId = lane.id.replace('story-', '');
+                      return storyId === 'none' ? !task.story_id : task.story_id === parseInt(storyId);
+                    }
+                    if (groupBy === 'assignee') {
+                      const userId = lane.id.replace('user-', '');
+                      return userId === 'none' ? (!task.assigned_to || task.assigned_to.length === 0) : task.assigned_to?.some(u => u.id === parseInt(userId));
+                    }
+                    if (groupBy === 'priority') {
+                      const p = lane.id.replace('priority-', '');
+                      return p === 'none' ? !task.priority : task.priority === p;
+                    }
+                    return true;
+                  });
+
+                  return (
+                    <div key={`${lane.id}-${col.status.id}`} className="flex-shrink-0 w-80 relative group/col">
+                      {/* 1. CONTINUOUS COLUMN TRACK TINT - BOLDER */}
+                      <div 
+                        className="absolute inset-0 opacity-[0.06] pointer-events-none border-x border-gray-100" 
+                        style={{ backgroundColor: col.status.color }}
+                      ></div>
+                      
+                      <Droppable droppableId={`${col.status.slug}|${lane.id}`}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`min-h-[150px] p-3 transition-all ${snapshot.isDraggingOver ? 'bg-white shadow-inner ring-2 ring-inset ring-purple-200' : ''}`}
+                          >
+                            <div className="space-y-4">
+                              {tasksInLane.map((task, index) => {
+                                const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
+                                const canDrag = isPM || isAssignee;
+                                return (
+                                  <Draggable key={task.id} draggableId={`task-${task.id}`} index={index} isDragDisabled={!canDrag}>
+                                    {(provided, snapshot) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}
+                                        className={snapshot.isDragging ? 'z-50' : ''}
+                                        style={provided.draggableProps.style}
+                                      >
+                                        <TaskCard 
+                                          task={task} 
+                                          projectId={pk} 
+                                          isDragging={snapshot.isDragging} 
+                                          isLocked={!canDrag}
+                                          isPM={isPM}
+                                          onEdit={(t) => setEditingTask(t)}
+                                        />
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                );
+                              })}
+                            </div>
+                            {provided.placeholder}
                           </div>
                         )}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
+                      </Droppable>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </DragDropContext>
+            </div>
+          ))}
+        </DragDropContext>
+      </div>
     </div>
   );
 }
+
