@@ -78,7 +78,7 @@ Product
 
 
 ### medium priority
-- resume bulk appraisal for a job posting 
+- resume bulk appraisal for a job posting (maybe)
 - data streaming
 - all text editors in the app should support markdown with @mentions(users, projects, tasks)
 
@@ -96,7 +96,7 @@ Product
 
 ```mermaid
 mindmap
-  root((App))
+  root((what needs to be done))
     scrum
       stories
         %% ordered Backlog
@@ -113,16 +113,15 @@ mindmap
         %% Assignee
       Ceremonies
         review
-          ai suggest new backlog stories or modifications
-        planning
-        %% Retrospective
+        Retrospective
     Reporting
       more charts
+      chart link to relevant items
       %% team workload
       %% Burndown chart
       %% Velocity history
     AI Features
-      Sprint planning assist
+      Sprint planning assist based backlog nd previous sprints' data
       Velocity predictor
       %% Assignee suggester
     Hiring

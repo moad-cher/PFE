@@ -250,16 +250,16 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
       {/* 2. Scrollable Board Content */}
       <div className="flex-1 overflow-auto custom-scrollbar px-6">
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="inline-block min-w-full">
+          <div className="inline-block min-w-full pr-6">
             
             {/* Column Headers - Sticky */}
             <div className="sticky top-0 z-30 flex gap-4 mb-4">
               {columns.map(col => (
                 <div key={col.status.id} className="flex-shrink-0 w-72">
-                <div className="backdrop-blur-sm p-3 border border-gray-200 shadow-sm flex items-center justify-between" style={{background: `${col.status.color}18` }}>
+                <div className="backdrop-blur-sm p-3 shadow-sm flex items-center justify-between" style={{background: `linear-gradient( ${col.status.color}18, #ffffff9f, ${col.status.color}18)` }}>
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full" style={{ background: col.status.color }} />
-                      <span className="font-bold text-xs text-gray-700 uppercase tracking-wider">{col.status.name}</span>
+                      <span className="font-bold text-xs text-gray-700 uppercase tracking-wider center">{col.status.name}</span>
                     </div>
                     <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                       {col.tasks.filter(t => !showOnlyMyTasks || t.assigned_to?.some(u => u.id === user?.id)).length}
@@ -270,7 +270,7 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
             </div>
 
             {/* Board Lanes & Tasks */}
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col  mb-40 gap-8">
               {filteredLanes.map((lane) => (
                 <section key={lane.id} className="relative">
                   {groupBy !== 'none' && (
@@ -285,17 +285,17 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
                     </div>
                   )}
 
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 items-stretch">
                     {columns.map((col) => {
                       const tasksInLane = getTasksInLane(col, lane);
                       return (
-                        <div key={`${lane.id}-${col.status.id}`} className="flex-shrink-0 w-72">
+                        <div key={`${lane.id}-${col.status.id}`} className="flex-shrink-0 w-72 flex flex-col">
                           <Droppable droppableId={`${col.status.slug}|${lane.id}`}>
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
-                                className={`min-h-[100px] p-2 rounded-xl transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-purple-50 border-2 border-dashed border-purple-200' : 'border-2 border-transparent'}`}
+                                className={`min-h-[100px] flex-1 p-2 rounded-xl transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-purple-50 border-2 border-dashed border-purple-200' : 'border-2 border-transparent'}`}
                                 style={{ background: snapshot.isDraggingOver ? undefined : `${col.status.color}12` }}
                               >
                                 <div className="flex flex-col gap-3">

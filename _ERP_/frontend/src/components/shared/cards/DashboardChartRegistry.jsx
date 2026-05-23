@@ -95,18 +95,60 @@ export default function DashboardChart({
           </PieChart>
         );
 
-      case CHART_TYPES.BAR:
+      case CHART_TYPES.BAR: {
+        const CustomizedBarAxisTick = ({ x, y, payload }) => {
+          const isCurrentItem = data.find(d => d[nameKey] === payload.value)?.isCurrent;
+          const label = payload.value ? payload.value.toString() : '';
+          
+          const words = label.split(' ');
+          const lines = [];
+          let currentLine = words[0] || '';
+          for (let i = 1; i < words.length; i++) {
+            if (currentLine.length + words[i].length < 15) {
+              currentLine += ' ' + words[i];
+            } else {
+              lines.push(currentLine);
+              currentLine = words[i];
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+
+          return (
+            <g transform={`translate(${x},${y})`}>
+              <text 
+                x={0} 
+                y={0} 
+                textAnchor={horizontal ? "end" : "middle"} 
+                fill={isCurrentItem ? '#8B5CF6' : '#6b7280'} 
+                fontSize={isCurrentItem ? 12 : 11} 
+                fontWeight={isCurrentItem ? 'bold' : 'normal'}
+              >
+                {lines.map((line, index) => (
+                  <tspan 
+                    key={index} 
+                    x={0} 
+                    dx={horizontal ? -10 : 0}
+                    dy={index === 0 ? (horizontal ? 4 : 12) : 14}
+                  >
+                    {line}
+                  </tspan>
+                ))}
+              </text>
+            </g>
+          );
+        };
+
         return (
           <BarChart data={data} layout={horizontal ? 'vertical' : 'horizontal'}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={!horizontal} horizontal={horizontal} stroke="#f3f4f6" />}
             {horizontal ? (
               <>
                 <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis dataKey={nameKey} type="category" width={100} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <YAxis dataKey={nameKey} type="category" width={100} tick={<CustomizedBarAxisTick />} />
               </>
             ) : (
               <>
-                <XAxis dataKey={nameKey} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <XAxis dataKey={nameKey} tick={<CustomizedBarAxisTick />} />
                 <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
               </>
             )}
@@ -128,6 +170,7 @@ export default function DashboardChart({
             )}
           </BarChart>
         );
+      }
 
       case CHART_TYPES.LINE:
         return (

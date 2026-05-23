@@ -240,10 +240,13 @@ async def update_task(
             task.project_id
         )
 
-    if task.status == "done" and not task.completed_at:
+    if task.status == "done" and old_status != "done":
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
         background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.project_id)
+    elif old_status == "done" and task.status != "done":
+        task.completed_at = None
+        await _revoke_points(task, db)
 
     if assignee_ids is not None:
         if not can_manage_project(current_user, project):

@@ -434,9 +434,10 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                 {!isReadOnly && canManage && (
                   <button
                     onClick={() => openTaskModal(story.id)}
-                    className="text-[10px] font-bold text-purple-600 hover:text-purple-800 uppercase tracking-tighter bg-purple-50 px-2.5 py-1.5 rounded-lg transition-all hover:bg-purple-100"
+                    className="inline-flex items-center gap-3 px-3 py-1 border-2 border-dashed border-purple-200 rounded-2xl text-purple-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/40 transition-all shadow-sm"
                   >
-                    + Task
+                    <span className="text-lg font-bold">+</span>
+                    <span className="text-xs font-bold tracking-wider">Task</span>
                   </button>
                 )}
               </div>
