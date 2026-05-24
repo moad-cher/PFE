@@ -5,6 +5,12 @@
  * NOTE: These logic rules must exactly mirror app/auth/permissions.py
  */
 
+export const SCRUM_ROLES = {
+  PRODUCT_OWNER: 'product_owner',
+  SCRUM_MASTER: 'scrum_master',
+  TEAM_MEMBER: 'team_member',
+};
+
 export const ROLES = {
   ADMIN: 'admin',
   HR_MANAGER: 'hr_manager',
@@ -44,25 +50,32 @@ export function canManageProjects(user) {
 /**
  * User can access project if: admin, manager, or member
  */
+export function getUserScrumRole(user, project) {
+  if (!user || !project || !project.members) return null;
+  const member = project.members.find(m => m.user_id === user.id);
+  return member ? member.scrum_role : null;
+}
+
+/**
+ * User can access project if: admin, manager, or member
+ */
 export function canAccessProject(user, project) {
   if (!user) return false;
   if (isAdmin(user)) return true;
   
-  const isManager = project?.manager_id === user.id || project?.manager?.id === user.id;
-  const isMember = project?.members?.some(m => (m.id === user.id || m === user.id));
-  
-  return isManager || isMember;
+  return project?.members?.some(m => m.user_id === user.id);
 }
 
 /**
- * User can manage project if: admin, PM role, or project's manager
+ * User can manage project if: admin, PM role, or PO/Scrum Master
  */
 export function canManageProject(user, project) {
   if (!user) return false;
   if (isAdmin(user)) return true;
   if (user.role === ROLES.PROJECT_MANAGER) return true;
   
-  return project?.manager_id === user.id || project?.manager?.id === user.id;
+  const role = getUserScrumRole(user, project);
+  return role === SCRUM_ROLES.PRODUCT_OWNER || role === SCRUM_ROLES.SCRUM_MASTER;
 }
 
 /**
@@ -88,7 +101,8 @@ export function canEditTaskStatus(user, task, project) {
 export function canReassignTask(user, project) {
   if (!user) return false;
   if (isAdmin(user)) return true;
-  return project?.manager_id === user.id || project?.manager?.id === user.id;
+  const role = getUserScrumRole(user, project);
+  return role === SCRUM_ROLES.PRODUCT_OWNER || role === SCRUM_ROLES.SCRUM_MASTER;
 }
 
 /**

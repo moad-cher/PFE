@@ -124,6 +124,7 @@ export const searchProjectMembers = (pk, q, departmentId) => api.get(`/projects/
 export const getProjectMembers = (pk) => api.get(`/projects/${pk}/members`);
 export const addProjectMember = (pk, userId) => api.post(`/projects/${pk}/members/${userId}`);
 export const removeProjectMember = (pk, userId) => api.delete(`/projects/${pk}/members/${userId}`);
+export const updateProjectMemberRole = (pk, userId, data) => api.patch(`/projects/${pk}/members/${userId}/role`, data);
 export const getLeaderboard = (pk) => api.get(`/projects/${pk}/leaderboard`);
 export const suggestAssignee = (pk, taskId) => api.post(`/projects/${pk}/tasks/${taskId}/suggest`);
 

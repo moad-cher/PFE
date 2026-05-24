@@ -11,12 +11,21 @@ from app.core.base import Base
 
 # ── Association tables ────────────────────────────────────────────────────────
 
-project_members = Table(
-    "project_members",
-    Base.metadata,
-    Column("project_id", ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True),
-    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-)
+class ScrumRole(str, enum.Enum):
+    PRODUCT_OWNER = "product_owner"
+    SCRUM_MASTER = "scrum_master"
+    TEAM_MEMBER = "team_member"
+
+class ProjectMember(Base):
+    __tablename__ = "project_members"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    scrum_role: Mapped[ScrumRole] = mapped_column(Enum(ScrumRole), default=ScrumRole.TEAM_MEMBER)
+    
+    project: Mapped["Project"] = relationship("Project", back_populates="members")
+    user: Mapped["User"] = relationship("User")
+
 
 task_assignees = Table(
     "task_assignees",
@@ -37,17 +46,29 @@ class Project(Base):
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
-    manager_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    manager: Mapped["User"] = relationship("User", foreign_keys=[manager_id])  # noqa: F821
-    members: Mapped[list["User"]] = relationship("User", secondary=project_members)  # noqa: F821
+    members: Mapped[list["ProjectMember"]] = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="project", cascade="all, delete-orphan")
     stories: Mapped[list["Story"]] = relationship("Story", back_populates="project", cascade="all, delete-orphan", order_by="Story.order")
     statuses: Mapped[list["TaskStatus"]] = relationship("TaskStatus", back_populates="project", cascade="all, delete-orphan")
     sprints: Mapped[list["Sprint"]] = relationship("Sprint", back_populates="project", cascade="all, delete-orphan")
     chat_messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="project")  # noqa: F821
     config: Mapped["ProjectConfig | None"] = relationship("ProjectConfig", back_populates="project", uselist=False, cascade="all, delete-orphan")
+
+    @property
+    def owner_member(self) -> "ProjectMember | None":
+        return next((member for member in self.members if member.scrum_role == ScrumRole.PRODUCT_OWNER), None)
+
+    @property
+    def owner_user_id(self) -> int | None:
+        owner = self.owner_member
+        return owner.user_id if owner else None
+
+    @property
+    def owner_user(self) -> "User | None":
+        owner = self.owner_member
+        return owner.user if owner else None
 
     @property
     def progress(self) -> int:

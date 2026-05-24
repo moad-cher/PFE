@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, listDepartments, updateProject } from '../../api';
+import { getProject, getProjectMembers, searchProjectMembers, addProjectMember, removeProjectMember, updateProjectMemberRole, listDepartments } from '../../api';
 import Spinner from '../../components/shared/ui/Spinner';
 import Guard from '../../auth/Guard';
-import { useAuth } from '../../context/AuthContext';
 
-function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnership }) {
+function MemberCard({ member, project, onRemove, onRoleChange }) {
   const u = member.user;
-  const isOwner = project.manager?.id === u.id;
-  const canBeOwner = u.role === 'project_manager' || u.role === 'admin';
+  const scrumRole = member.scrum_role || 'team_member';
+  const isOwner = scrumRole === 'product_owner';
+  const formatRole = (value) => value?.replace(/_/g, ' ') || '';
   const initials = [u.first_name, u.last_name].filter(Boolean).map(n => n[0]).join('').toUpperCase()
     || u.username[0].toUpperCase();
   return (
@@ -22,28 +22,36 @@ function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnershi
             <div className="flex items-center gap-2">
               <p className="font-semibold text-gray-900 text-sm">{u.first_name} {u.last_name}</p>
               {isOwner && (
-                <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Owner</span>
+                <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Product owner</span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{u.username} · {u.role?.replace(/_/g, ' ')}</p>
+            <p className="text-xs text-gray-400">{u.username} · {formatRole(u.role)} · {formatRole(scrumRole)}</p>
           </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <Guard isProjectManager project={project}>
+        <Guard isProjectManager project={project}>
+          <div className="flex flex-col gap-2">
+            <select
+              value={scrumRole}
+              onChange={e => onRoleChange(u.id, e.target.value)}
+              className="border rounded-lg px-2 py-1 text-xs bg-white"
+            >
+              {(u.role === 'admin' || u.role === 'project_manager') && (
+                <option value="product_owner">Product owner</option>
+              )}
+              <option value="scrum_master">Scrum master</option>
+              <option value="team_member">Team member</option>
+              {scrumRole === 'product_owner' && u.role === 'team_member' && (
+                <option value="product_owner">Product owner</option>
+              )}
+            </select>
             {!isOwner && (
               <button onClick={() => onRemove(u.id)}
                 className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded border border-red-200 hover:border-red-400 transition-colors">
                 Remove
               </button>
             )}
-          </Guard>
-          {canTransferOwnership && !isOwner && canBeOwner && (
-            <button onClick={() => onTransfer(u.id)}
-              className="text-purple-500 hover:text-purple-700 text-xs px-2 py-1 rounded border border-purple-200 hover:border-purple-400 transition-colors">
-              Set as Owner
-            </button>
-          )}
-        </div>
+          </div>
+        </Guard>
       </div>
       {u.skills && (
         <div className="flex flex-wrap gap-1 mb-3">
@@ -71,7 +79,6 @@ function MemberCard({ member, project, onRemove, onTransfer, canTransferOwnershi
 
 export default function Members({ project: propProject, isTab }) {
   const { pk } = useParams();
-  const { user } = useAuth();
   const [project, setProject] = useState(propProject || null);
   const [members, setMembers] = useState([]);
   const [searchQ, setSearchQ] = useState('');
@@ -79,8 +86,6 @@ export default function Members({ project: propProject, isTab }) {
   const [departments, setDepartments] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(!propProject);
-
-  const canTransferOwnership = user?.role === 'admin' || project?.manager?.id === user?.id;
 
   const loadAll = useCallback(() => {
     if (!propProject) setLoading(true);
@@ -121,14 +126,9 @@ export default function Members({ project: propProject, isTab }) {
     loadMembers();
   };
 
-  const transferOwnership = async userId => {
-    if (!window.confirm('Transfer project ownership to this member? You will no longer be the primary owner.')) return;
-    try {
-      await updateProject(pk, { manager_id: userId });
-      loadAll();
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to transfer ownership');
-    }
+  const updateRole = async (userId, scrumRole) => {
+    await updateProjectMemberRole(pk, userId, { scrum_role: scrumRole });
+    loadMembers();
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>;
@@ -202,8 +202,7 @@ export default function Members({ project: propProject, isTab }) {
             member={m} 
             project={project} 
             onRemove={removeMember} 
-            onTransfer={transferOwnership}
-            canTransferOwnership={canTransferOwnership}
+            onRoleChange={updateRole}
           />
         ))}
       </div>

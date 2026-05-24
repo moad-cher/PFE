@@ -84,8 +84,7 @@ async def ws_chat(ws: WebSocket, room_type: str, pk: int):
             return
         is_member = (
             user.role in ("admin", "hr_manager")
-            or project.manager_id == user.id
-            or any(m.id == user.id for m in project.members)
+            or any(m.user_id == user.id for m in project.members)
         )
         if not is_member:
             await close_policy("Not a member of this project")

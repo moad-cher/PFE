@@ -14,12 +14,13 @@ from app.auth.permissions import (
     can_access_project,
     can_manage_project,
 )
-from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, Comment, project_members, task_assignees
+from app.users.models import User, RoleEnum
+from app.projects.models import Project, ProjectConfig, RewardLog, Sprint, Story, Task, TaskStatus, SprintStatus, Comment, ProjectMember, ScrumRole, task_assignees
 from app.projects.schemas import (
     ProjectConfigRead,
     ProjectConfigUpdate,
     ProjectCreate,
+    ProjectMemberRoleUpdate,
     ProjectRead,
     ProjectUpdate,
     SprintCreate,
@@ -58,8 +59,7 @@ ESSENTIAL_SLUGS = {"todo", "done"}
 async def _load_project(pk: int, db: AsyncSession) -> Project:
     result = await db.execute(
         select(Project).where(Project.id == pk).options(
-            selectinload(Project.manager),
-            selectinload(Project.members),
+            selectinload(Project.members).selectinload(ProjectMember.user),
             selectinload(Project.tasks).selectinload(Task.assigned_to),
             selectinload(Project.stories),
             selectinload(Project.statuses),
@@ -90,8 +90,7 @@ async def dashboard(
     current_user: User = Depends(get_current_user),
 ):
     q = select(Project).options(
-        selectinload(Project.manager),
-        selectinload(Project.members),
+        selectinload(Project.members).selectinload(ProjectMember.user),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
         selectinload(Project.stories),
         selectinload(Project.statuses),
@@ -100,8 +99,7 @@ async def dashboard(
     )
     if not is_admin(current_user) and not can_manage_hiring(current_user) and not can_manage_projects(current_user):
         q = q.where(
-            (Project.manager_id == current_user.id)
-            | Project.members.any(User.id == current_user.id)
+            Project.members.any(ProjectMember.user_id == current_user.id)
         )
     projects = (await db.execute(q.order_by(Project.created_at.desc()))).scalars().all()
 
@@ -125,8 +123,7 @@ async def list_projects(
     current_user: User = Depends(get_current_user),
 ):
     q = select(Project).options(
-        selectinload(Project.manager),
-        selectinload(Project.members),
+        selectinload(Project.members).selectinload(ProjectMember.user),
         selectinload(Project.tasks).selectinload(Task.assigned_to),
         selectinload(Project.stories),
         selectinload(Project.statuses),
@@ -135,8 +132,7 @@ async def list_projects(
     )
     if not is_admin(current_user) and not can_manage_hiring(current_user) and not can_manage_projects(current_user):
         q = q.where(
-            (Project.manager_id == current_user.id)
-            | Project.members.any(User.id == current_user.id)
+            Project.members.any(ProjectMember.user_id == current_user.id)
         )
     result = await db.execute(q.order_by(Project.created_at.desc()))
     return result.scalars().all()
@@ -151,32 +147,26 @@ async def project_stats(
         can_see_all = is_admin(current_user) or can_manage_hiring(current_user) or can_manage_projects(current_user)
         if can_see_all:
             projects_result = await db.execute(
-                select(Project).options(selectinload(Project.tasks), selectinload(Project.manager))
+                select(Project).options(selectinload(Project.tasks), selectinload(Project.members).selectinload(ProjectMember.user))
             )
             all_projects = projects_result.scalars().all()
-            manager_result = await db.execute(
+            po_result = await db.execute(
                 select(User.username, func.count(Project.id))
                 .select_from(Project)
-                .join(User, Project.manager_id == User.id)
+                .join(ProjectMember, Project.id == ProjectMember.project_id)
+                .join(User, ProjectMember.user_id == User.id)
+                .where(ProjectMember.scrum_role == ScrumRole.PRODUCT_OWNER)
                 .group_by(User.username)
             )
-            projects_per_manager = {username: count for username, count in manager_result.all()}
+            projects_per_manager = {username: count for username, count in po_result.all()}
         else:
             projects_result = await db.execute(
                 select(Project)
-                .where(
-                    or_(
-                        Project.manager_id == current_user.id,
-                        Project.id.in_(
-                            select(project_members.c.project_id)
-                            .where(project_members.c.user_id == current_user.id)
-                        )
-                    )
-                )
+                .where(Project.members.any(ProjectMember.user_id == current_user.id))
                 .options(selectinload(Project.tasks))
             )
             all_projects = projects_result.scalars().all()
-            projects_per_manager = {current_user.username: len([p for p in all_projects if p.manager_id == current_user.id])}
+            projects_per_manager = {current_user.username: len(all_projects)}
         
         total_tasks = 0
         completed_tasks = 0
@@ -219,8 +209,9 @@ async def create_project(
     if existing_project.scalars().first():
         raise HTTPException(400, "A project with this name already exists")
 
-    project = Project(**data.model_dump(), manager_id=current_user.id)
+    project = Project(**data.model_dump())
     db.add(project)
+    project.members.append(ProjectMember(user_id=current_user.id, scrum_role=ScrumRole.PRODUCT_OWNER))
     await db.flush()
     await _ensure_default_statuses(project, db)
     await _ensure_config(project, db)
@@ -256,20 +247,10 @@ async def update_project(
         if existing_project.scalars().first():
             raise HTTPException(400, "A project with this name already exists")
 
-    if data.manager_id is not None and data.manager_id != project.manager_id:
-        if not is_admin(current_user) and project.manager_id != current_user.id:
-            raise HTTPException(403, "Only the current manager or an admin can transfer ownership")
-        
-        new_manager = await db.get(User, data.manager_id)
-        if not new_manager:
-            raise HTTPException(404, "New manager user not found")
-        if not can_manage_projects(new_manager):
-            raise HTTPException(400, "New manager must have 'admin' or 'project_manager' role")
-
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(project, field, value)
     await db.commit()
-    await db.refresh(project, ["manager", "members", "tasks"])
+    await db.refresh(project, ["members", "tasks"])
     return project
 
 
@@ -837,7 +818,7 @@ async def search_members(
         raise HTTPException(403, "Access denied")
 
 
-    member_ids = {m.id for m in project.members} | {project.manager_id}
+    member_ids = {m.user_id for m in project.members}
     
     # Exclude current members AND users in HR department
     from app.users.models import Department
@@ -867,7 +848,7 @@ async def member_stats(
     if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
-    all_members = list({project.manager, *project.members} - {None})
+    all_members = [m.user for m in project.members]
     member_ids = [m.id for m in all_members]
 
     if member_ids:
@@ -903,9 +884,10 @@ async def member_stats(
         active_tasks_by_user = {m.id: [] for m in all_members}
 
     result = []
-    for member in all_members:
+    for item in project.members:
+        member = item.user
         stats = stats_map.get(member.id, {"total": 0, "done": 0})
-        result.append(MemberStatsRead(user=member, tasks_count=stats["total"], done_count=stats["done"], active_tasks=active_tasks_by_user.get(member.id, [])))
+        result.append(MemberStatsRead(user=member, scrum_role=item.scrum_role, tasks_count=stats["total"], done_count=stats["done"], active_tasks=active_tasks_by_user.get(member.id, [])))
     return result
 
 
@@ -933,9 +915,40 @@ async def add_member(
     if user.department and user.department.name.upper() == "HR":
         raise HTTPException(400, "Members of the HR department cannot be added to projects")
         
-    if user not in project.members:
-        project.members.append(user)
+    if not any(m.user_id == user.id for m in project.members):
+        project.members.append(ProjectMember(user_id=user.id, scrum_role=ScrumRole.TEAM_MEMBER))
         await db.commit()
+
+
+@router.patch("/{pk}/members/{user_id}/role", status_code=204)
+async def update_member_role(
+    pk: int,
+    user_id: int,
+    data: ProjectMemberRoleUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = await db.get(Project, pk, options=[selectinload(Project.members).selectinload(ProjectMember.user)])
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    if not can_manage_project(current_user, project):
+        raise HTTPException(403, "Access denied")
+
+    member = next((m for m in project.members if m.user_id == user_id), None)
+    if not member:
+        raise HTTPException(404, "Project member not found")
+
+    if data.scrum_role == ScrumRole.PRODUCT_OWNER and member.user.role == RoleEnum.team_member:
+        raise HTTPException(400, "Team members cannot be assigned as Product Owner")
+
+    if data.scrum_role == ScrumRole.PRODUCT_OWNER:
+        for other_member in project.members:
+            if other_member.user_id != user_id and other_member.scrum_role == ScrumRole.PRODUCT_OWNER:
+                other_member.scrum_role = ScrumRole.TEAM_MEMBER
+
+    member.scrum_role = data.scrum_role
+    await db.commit()
 
 
 @router.delete("/{pk}/members/{user_id}", status_code=204)
@@ -952,7 +965,7 @@ async def remove_member(
     if not can_manage_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
-    project.members = [m for m in project.members if m.id != user_id]
+    project.members = [m for m in project.members if m.user_id != user_id]
     await db.commit()
 
 
@@ -968,7 +981,7 @@ async def leaderboard(
     if not can_access_project(current_user, project):
         raise HTTPException(403, "Access denied")
 
-    all_members = list({project.manager, *project.members} - {None})
+    all_members = [m.user for m in project.members]
     result = await db.execute(
         select(RewardLog.user_id, func.coalesce(func.sum(RewardLog.points), 0).label("total"))
         .join(Task, RewardLog.task_id == Task.id)

@@ -3,7 +3,7 @@ Centralized permission rules - single source of truth
 All permission logic lives here. Import and use these helpers everywhere.
 """
 from app.users.models import User, RoleEnum
-from app.projects.models import Project, Task
+from app.projects.models import Project, Task, ScrumRole
 
 
 # ── Role Groups ───────────────────────────────────────────────────────────────
@@ -33,22 +33,25 @@ def can_manage_projects(user: User) -> bool:
 
 # ── Project Permissions ───────────────────────────────────────────────────────
 
+def get_user_scrum_role(user: User, project: Project) -> ScrumRole | None:
+    for m in project.members:
+        if m.user_id == user.id:
+            return m.scrum_role
+    return None
+
 def can_access_project(user: User, project: Project) -> bool:
-    """User can access project if: admin, manager, or member"""
+    """User can access project if: admin or member"""
     return (
         is_admin(user)
-        or project.manager_id == user.id
-        or any(m.id == user.id for m in project.members)
+        or any(m.user_id == user.id for m in project.members)
     )
-
 
 def can_manage_project(user: User, project: Project) -> bool:
-    """User can manage project if: admin, PM role, or project's manager"""
-    return (
-        is_admin(user)
-        or user.role == RoleEnum.project_manager
-        or project.manager_id == user.id
-    )
+    """User can manage project if: admin, PM role, or PO/Scrum Master"""
+    if is_admin(user) or user.role == RoleEnum.project_manager:
+        return True
+    role = get_user_scrum_role(user, project)
+    return role in (ScrumRole.PRODUCT_OWNER, ScrumRole.SCRUM_MASTER)
 
 
 # ── Task Permissions ──────────────────────────────────────────────────────────
@@ -67,7 +70,10 @@ def can_edit_task_status(user: User, task: Task, project: Project) -> bool:
 
 def can_reassign_task(user: User, project: Project) -> bool:
     """Only project manager or admin can reassign tasks"""
-    return is_admin(user) or project.manager_id == user.id
+    if is_admin(user):
+        return True
+    role = get_user_scrum_role(user, project)
+    return role in (ScrumRole.PRODUCT_OWNER, ScrumRole.SCRUM_MASTER)
 
 
 def can_delete_task(user: User, project: Project) -> bool:

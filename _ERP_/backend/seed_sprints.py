@@ -15,12 +15,14 @@ from app.projects.models import (
     PriorityEnum,
     Project,
     ProjectConfig,
+    ProjectMember,
     RewardLog,
     Sprint,
     SprintStatus,
     Story,
     Task,
     TaskStatus,
+    ScrumRole,
 )
 from app.users.models import RoleEnum, User
 
@@ -137,10 +139,15 @@ async def seed_historical_data():
                 "Implementation of a modern ERP system with Hiring and Project Management modules, "
                 "featuring AI-powered resume analysis and real-time task collaboration."
             ),
-            manager_id=manager.id,
             start_date=start_date,
             deadline=deadline,
-            members=members,
+            members=[
+                ProjectMember(
+                    user_id=u.id,
+                    scrum_role=ScrumRole.PRODUCT_OWNER if u.id == manager.id else ScrumRole.TEAM_MEMBER,
+                )
+                for u in members
+            ],
         )
         db.add(project)
         await db.flush()

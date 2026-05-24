@@ -259,19 +259,24 @@ def test_project_ownership_transfer(client, auth_headers):
         new_pm_id = new_pm["id"]
 
         # 3. Transfer ownership to the new PM
-        r = client.patch(
-            f"/projects/{project_id}",
-            json={"manager_id": new_pm_id},
+        r = client.post(
+            f"/projects/{project_id}/members/{new_pm_id}",
             headers=auth_headers
         )
-        assert r.status_code == 200
-        updated_project = r.json()
-        assert updated_project["manager"]["id"] == new_pm_id
+        assert r.status_code == 204
+
+        r = client.patch(
+            f"/projects/{project_id}/members/{new_pm_id}/role",
+            json={"scrum_role": "product_owner"},
+            headers=auth_headers
+        )
+        assert r.status_code == 204
 
         # 4. Verify it actually changed
         r = client.get(f"/projects/{project_id}", headers=auth_headers)
         assert r.status_code == 200
-        assert r.json()["manager"]["id"] == new_pm_id
+        updated_project = r.json()
+        assert any(m["user"]["id"] == new_pm_id and m["scrum_role"] == "product_owner" for m in updated_project["members"])
 
         # 5. Attempt unauthorized transfer
         tm_username = f"tm_{uuid.uuid4().hex[:8]}"
@@ -290,8 +295,8 @@ def test_project_ownership_transfer(client, auth_headers):
         tm_headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
         r = client.patch(
-            f"/projects/{project_id}",
-            json={"manager_id": tm["id"]},
+            f"/projects/{project_id}/members/{tm['id']}/role",
+            json={"scrum_role": "product_owner"},
             headers=tm_headers
         )
         assert r.status_code == 403
@@ -313,12 +318,12 @@ def test_project_ownership_transfer(client, auth_headers):
         pm2_headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
         r = client.patch(
-            f"/projects/{project_id}",
-            json={"manager_id": pm2["id"]},
+            f"/projects/{project_id}/members/{pm2['id']}/role",
+            json={"scrum_role": "product_owner"},
             headers=pm2_headers
         )
         assert r.status_code == 403
-        assert r.json()["detail"] == "Only the current manager or an admin can transfer ownership"
+        assert r.json()["detail"] == "Access denied"
     finally:
         client.delete(f"/projects/{project_id}", headers=auth_headers)
 

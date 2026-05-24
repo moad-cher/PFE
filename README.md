@@ -96,7 +96,7 @@ Product
 
 ```mermaid
 mindmap
-  root((what needs to be done))
+  root((what to build?))
     scrum
       stories
         %% ordered Backlog
@@ -106,6 +106,7 @@ mindmap
         %% Incomplete stories
         Sprint timed start & close operations
       Tasks
+        real-time kanban
         DoD
         %% retrieve points when removed from done
         %% team capacity management
@@ -114,6 +115,10 @@ mindmap
       Ceremonies
         review
         Retrospective
+      roles
+        Product Owner
+        Scrum Master
+
     Reporting
       more charts
       chart link to relevant items

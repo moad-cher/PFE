@@ -12,7 +12,7 @@ from app.auth.permissions import (
     can_access_project,
 )
 from app.users.models import User
-from app.projects.models import Project, Task, RewardLog, task_assignees, project_members
+from app.projects.models import Project, ProjectMember, ScrumRole, Task, RewardLog, task_assignees
 from app.hiring.models import Application, JobPosting, ApplicationStatusEnum
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -172,8 +172,7 @@ async def get_project_overview(
         select(Project)
         .where(Project.id == project_id)
         .options(
-            selectinload(Project.manager),
-            selectinload(Project.members),
+            selectinload(Project.members).selectinload(ProjectMember.user),
             selectinload(Project.tasks),
         )
     )
@@ -199,8 +198,8 @@ async def get_project_overview(
         priority = str(t.priority) if hasattr(t, "priority") and t.priority else "medium"
         priority_counts[priority] = priority_counts.get(priority, 0) + 1
 
-    members = list({project.manager, *project.members} - {None})
-    member_ids = [m.id for m in members]
+    members = [member.user for member in project.members]
+    member_ids = [member.id for member in members]
     
     workload = []
     if member_ids:
@@ -277,21 +276,14 @@ async def get_project_manager_overview(
     if is_admin(current_user):
         projects_result = await db.execute(
             select(Project)
-            .options(selectinload(Project.tasks), selectinload(Project.manager))
+            .options(selectinload(Project.tasks), selectinload(Project.members).selectinload(ProjectMember.user))
         )
         all_projects = projects_result.scalars().all()
     else:
         projects_result = await db.execute(
             select(Project)
-            .where(
-                or_(
-                    Project.manager_id == current_user.id,
-                    Project.id.in_(
-                        select(project_members.c.project_id).where(project_members.c.user_id == current_user.id)
-                    )
-                )
-            )
-            .options(selectinload(Project.tasks), selectinload(Project.manager))
+            .where(Project.members.any(ProjectMember.user_id == current_user.id))
+            .options(selectinload(Project.tasks), selectinload(Project.members).selectinload(ProjectMember.user))
         )
         all_projects = projects_result.scalars().all()
 
@@ -305,7 +297,7 @@ async def get_project_manager_overview(
         projects_data.append({
             "id": proj.id,
             "name": proj.name,
-            "manager": proj.manager.username if proj.manager else "Unknown",
+            "manager": proj.owner_user.username if proj.owner_user else "Unknown",
             "total_tasks": total,
             "completed_tasks": done,
             "completion_rate": round(completion, 2),

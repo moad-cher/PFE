@@ -78,6 +78,7 @@ What it does:
 - Backend uses OAuth2PasswordBearer token extraction and JWT access/refresh tokens.
 - get_current_user validates token type="access", resolves user from DB, and enforces active users.
 - Centralized permission helpers in `app/auth/permissions.py` are used inside route bodies for granular access control.
+- Scrum roles are project-scoped and stored on `project_members.scrum_role` (`product_owner`, `scrum_master`, `team_member`); they drive project-context display and member management.
 - Frontend `<Guard>` component and `usePermissions` hook provide centralized UI and logic protection.
 - Frontend ProtectedRoute blocks anonymous users and role-mismatched routes.
 - Navbar and route visibility adapt to role via Guard components.
@@ -123,6 +124,7 @@ What it does:
 ### Projects, Tasks, and Collaboration
 - Projects domain includes: dashboard, CRUD, config, task statuses, kanban, scrum roadmap view, member management.
 - **Project names are unique** (enforced via DB constraint and API validation).
+- **Project leadership is contextual**: the project no longer relies on a `manager_id` column; project membership rows now carry Scrum roles per member.
 - **Scrum + Story-centric UX**: Sprints contain Stories, which in turn act as containers for Tasks.
 - **Decoupled Sprints**: Tasks no longer have a direct `sprint_id`. They inherit their sprint context solely from their parent Story.
 - **Draggable Stories**: Stories (and their tasks) can be dragged between the Backlog and Sprints.
@@ -133,6 +135,7 @@ What it does:
 - **Completed Sprint Guardrails**: API rejects creating or moving stories into a `completed` sprint.
 - **Bulk User Management**: Department modal supports multi-selection (Ctrl/Shift click) and bulk drag-and-drop.
 - Project member stats and leaderboard use grouped DB queries (not per-user N+1 loops).
+- Members screen exposes per-project Scrum role editing for Product Owner, Scrum Master, and Team Member.
 - Messaging supports project and task chat via REST history + WS live events.
 - AI suggest assignee after clicking "Find Best Candidates" inside the Task Edit panel.
 

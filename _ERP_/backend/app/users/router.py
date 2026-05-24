@@ -12,7 +12,7 @@ from app.auth.permissions import is_admin, can_manage_hiring
 from app.core.security import hash_password, verify_password
 from app.core.media import ensure_media_dir, get_media_url, AVATARS_DIR
 from app.users.models import Department, User
-from app.projects.models import Project, Task, project_members, task_assignees
+from app.projects.models import Project, ProjectMember, Task, task_assignees
 from app.users.schemas import (
     DepartmentCreate, DepartmentRead,
     PasswordChange, UserAdminUpdate, UserRead, UserUpdate, UserBrief, UserStats,
@@ -43,10 +43,7 @@ async def get_my_stats(
     # Count active projects where user is manager or member
     proj_q = await db.execute(
         select(func.count(Project.id.distinct())).where(
-            or_(
-                Project.manager_id == current_user.id,
-                Project.id.in_(select(project_members.c.project_id).where(project_members.c.user_id == current_user.id)),
-            )
+            Project.members.any(ProjectMember.user_id == current_user.id)
         )
     )
     active_projects = proj_q.scalar_one()

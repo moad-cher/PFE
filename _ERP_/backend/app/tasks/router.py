@@ -24,7 +24,7 @@ from app.notifications.service import (
     schedule_notification,
 )
 from app.users.models import User
-from app.projects.models import Project, ProjectConfig, RewardLog, Task, Comment, TaskStatus
+from app.projects.models import Project, ProjectConfig, ProjectMember, RewardLog, Task, Comment, TaskStatus
 from app.projects.schemas import (
     CommentCreate,
     CommentRead,
@@ -41,7 +41,7 @@ router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["tasks"])
 
 async def _get_project_or_403(project_id: int, user: User, db: AsyncSession) -> Project:
     result = await db.execute(
-        select(Project).where(Project.id == project_id).options(selectinload(Project.members))
+        select(Project).where(Project.id == project_id).options(selectinload(Project.members).selectinload(ProjectMember.user))
     )
     project = result.scalar_one_or_none()
     if not project:
@@ -232,9 +232,10 @@ async def update_task(
         setattr(task, field, value)
 
     if payload.get("is_blocked") is True:
+        owner_user_id = project.owner_user_id or current_user.id
         background_tasks.add_task(
             notify_task_blocked,
-            project.manager_id,
+            owner_user_id,
             task.title,
             task.blocker_reason or "No reason provided",
             task.project_id
@@ -243,7 +244,7 @@ async def update_task(
     if task.status == "done" and old_status != "done":
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
-        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.project_id)
+        background_tasks.add_task(notify_task_completed, project.owner_user_id or current_user.id, task.title, task.project_id)
     elif old_status == "done" and task.status != "done":
         task.completed_at = None
         await _revoke_points(task, db)
@@ -323,7 +324,7 @@ async def move_task(
     if data.status == "done" and previous_status != "done":
         task.completed_at = datetime.now(timezone.utc)
         await _award_points(task, db)
-        background_tasks.add_task(notify_task_completed, project.manager_id, task.title, task.project_id)
+        background_tasks.add_task(notify_task_completed, project.owner_user_id or current_user.id, task.title, task.project_id)
     elif previous_status == "done" and data.status != "done":
         task.completed_at = None
         await _revoke_points(task, db)

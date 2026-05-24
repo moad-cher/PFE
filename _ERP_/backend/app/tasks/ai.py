@@ -109,7 +109,7 @@ async def run_ai_task_suggestion(task_id: int, project_id: int, user_id: int) ->
     then emits a personal realtime event to the requester.
     """
     from app.core.database import AsyncSessionLocal
-    from app.projects.models import Project, Task, task_assignees
+    from app.projects.models import Project, ProjectMember, Task, task_assignees
     from app.websockets.manager import ws_manager
 
     async with AsyncSessionLocal() as db:
@@ -117,7 +117,7 @@ async def run_ai_task_suggestion(task_id: int, project_id: int, user_id: int) ->
         project_res = await db.execute(
             select(Project)
             .where(Project.id == project_id)
-            .options(selectinload(Project.manager), selectinload(Project.members))
+            .options(selectinload(Project.members).selectinload(ProjectMember.user))
         )
         project = project_res.scalar_one_or_none()
         if not project:
@@ -129,9 +129,9 @@ async def run_ai_task_suggestion(task_id: int, project_id: int, user_id: int) ->
             return
 
         # Build workload stats for project members
-        all_members = list({project.manager, *project.members})
-        member_ids = [m.id for m in all_members]
-        active_counts: dict[int, int] = {m.id: 0 for m in all_members}
+        all_members = [member.user for member in project.members]
+        member_ids = [member.id for member in all_members]
+        active_counts: dict[int, int] = {member.id: 0 for member in all_members}
 
         if member_ids:
             counts_res = await db.execute(

@@ -11,7 +11,7 @@ This document evaluates the current ERP implementation against the **Official Sc
 
 ### Roles & Accountability
 - **Current State:** Uses traditional hierarchy: `Admin`, `Project Manager`, `Team Member`.
-- **Scrum Alignment:** ⚠️ **Contextual.** Keep global roles as-is for centralized governance, and introduce Scrum roles as **project-scoped** assignments (per member per project). This preserves centralized control while still mapping Scrum accountability within each project.
+- **Scrum Alignment:** ✅ **Implemented.** Scrum roles are project-scoped on `project_members` (`product_owner`, `scrum_master`, `team_member`), while global app roles remain unchanged.
 
 ### Events & Ceremonies
 - **The Sprint:** ✅ **Aligned.** Fixed durations with clear states (draft, active, completed).
@@ -21,22 +21,25 @@ This document evaluates the current ERP implementation against the **Official Sc
 
 ## 2. Proposed Scrum Role Context (Centralized Control)
 
-Maintain centralized management and keep **global roles unchanged**. Add **Scrum roles** as a required, project-scoped attribute on each `project_members` record. Scrum roles become descriptive and workflow-oriented, while permissions remain centralized.
+Maintain centralized management and keep **global roles unchanged**. Scrum roles are stored per project member and used for project-context display and authorization.
 
 ### Project-Scoped Scrum Roles (New Column)
 ```text
 project_members.scrum_role (required)
 - product_owner
 - scrum_master
-- developer
+- team_member
 ```
 
 ### Permissions (No Change)
 | Logic Function | Proposed Change | Rationale |
 | :--- | :--- | :--- |
-| `canCreateTask` | Keep manager-only. | Centralized control remains the policy. |
-| `canReassignTask` | Keep manager-only. | Centralized control remains the policy. |
-| `canDeleteTask` | Keep manager-only. | Centralized control remains the policy. |
+| `canCreateTask` | Product Owner / Scrum Master / project manager. | Matches the implemented project-context policy. |
+| `canReassignTask` | Product Owner / Scrum Master / project manager. | Matches the implemented project-context policy. |
+| `canDeleteTask` | Product Owner / Scrum Master / project manager. | Matches the implemented project-context policy. |
+
+### Role Constraint
+- A global `team_member` cannot be assigned as `product_owner`; that Scrum role is reserved for users who can act with project leadership authority.
 
 ---
 
@@ -44,8 +47,8 @@ project_members.scrum_role (required)
 
 ### Database + Models
 - Convert `project_members` from a plain association table into a model so it can store `scrum_role`.
-- Add `scrum_role` as a required field with allowed values: `product_owner`, `scrum_master`, `developer`.
-- Backfill existing members with a default (suggested: `developer`) and ensure the project manager gets PO or SM.
+- Add `scrum_role` as a required field with allowed values: `product_owner`, `scrum_master`, `team_member`.
+- Backfill existing members with a default (suggested: `team_member`) and ensure the project manager gets PO or SM.
 
 **Files:**
 - `app/projects/models.py` (new `ProjectMember` model + relationship updates)
@@ -63,7 +66,7 @@ project_members.scrum_role (required)
 - Document that Scrum roles are descriptive only (not authorization).
 
 **Files:**
-- `app/auth/permissions.py` (no logic change; add comment if needed)
+- `app/auth/permissions.py` (project-context permission helpers use `scrum_role`)
 
 ### Frontend UI
 - Display each member’s `scrum_role` in the members list.
@@ -75,7 +78,7 @@ project_members.scrum_role (required)
 
 ### Migration + Defaults
 - Add a migration step for the new column or table.
-- Default new members to `developer`.
+- Default new members to `team_member`.
 
 ---
 
@@ -83,12 +86,12 @@ project_members.scrum_role (required)
 
 Changing the frontend alone will cause mismatches if the backend does not expose the new project-scoped role. A synchronized update is required:
 
-1.  **Database Layer (`app/projects/models.py` or `app/users/models.py`):** Add required `scrum_role` to `project_members` with allowed values (`product_owner`, `scrum_master`, `developer`).
-2.  **Backend Logic (`app/auth/permissions.py`):** Keep centralized checks unchanged. Add `scrum_role` to project member responses for UI display.
+1.  **Database Layer (`app/projects/models.py` or `app/users/models.py`):** `project_members` now stores required `scrum_role` with allowed values (`product_owner`, `scrum_master`, `team_member`).
+2.  **Backend Logic (`app/auth/permissions.py`):** Project-context permissions now consult `scrum_role`, and project member responses expose that field for the UI.
 3.  **Frontend Logic (`src/auth/permissions.js` and project member UI):**
   *   Keep global roles as-is.
   *   Add Scrum role selection per project member and show it in project context.
-  *   Do not alter task creation/reassignment permissions.
+  *   Task creation/reassignment follows project-scoped Scrum accountability.
 
 ## 6. Sprint Transition Timeline: Theory vs. Code
 

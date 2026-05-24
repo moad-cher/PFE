@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, computed_field
 
-from app.projects.models import PriorityEnum, SprintStatus
+from app.projects.models import PriorityEnum, SprintStatus, ScrumRole
 from app.users.schemas import UserBrief
 
 
@@ -182,6 +182,18 @@ class ProjectConfigUpdate(BaseModel):
     notify_deadline_days: Optional[int] = None
     sprint_duration_days: Optional[int] = None
 
+# ── Project Member ───────────────────────────────────
+
+class ProjectMemberRead(BaseModel):
+    user_id: int
+    scrum_role: ScrumRole
+    user: UserBrief
+
+    model_config = {"from_attributes": True}
+
+
+class ProjectMemberRoleUpdate(BaseModel):
+    scrum_role: ScrumRole
 
 # ── Project ───────────────────────────────────────────────────────────────────
 
@@ -200,8 +212,7 @@ class ProjectRead(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     deadline: Optional[date] = None
-    manager: Optional[UserBrief] = None
-    members: list[UserBrief] = []
+    members: list[ProjectMemberRead] = []
     tasks: list[TaskRead] = []
     stories: list[StoryRead] = []
     statuses: list[TaskStatusRead] = []
@@ -219,7 +230,6 @@ class ProjectUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     deadline: Optional[date] = None
-    manager_id: Optional[int] = None
 
 
 # ── Comment ───────────────────────────────────────────────────────────────────
@@ -273,6 +283,7 @@ class KanbanColumnRead(BaseModel):
 
 class MemberStatsRead(BaseModel):
     user: UserBrief
+    scrum_role: ScrumRole
     tasks_count: int
     done_count: int
     active_tasks: list[TaskRead]
