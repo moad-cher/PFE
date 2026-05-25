@@ -468,13 +468,20 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Sprint Timeline</h1>
           </div>
-          <div className="flex gap-3">
-            {canManage && (
-              <button onClick={() => openStoryModal()} className="px-4 py-2 bg-white border border-purple-200 text-purple-700 rounded-xl text-sm font-semibold hover:bg-purple-50 transition-all shadow-sm">
-                New Story
-              </button>
-            )}
-          </div>
+
+        <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-2xl border border-gray-300">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Filters:</span>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="border-none rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-400 bg-white shadow-sm">
+            <option value="">All statuses</option>
+            {statuses.map(s => <option key={s.id} value={s.slug}>{s.name}</option>)}
+          </select>
+          <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}
+            className="border-none rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-400 bg-white shadow-sm">
+            <option value="">All members</option>
+            {allMembers.map(m => <option key={m.id} value={m.id}>{m.username}</option>)}
+          </select>
+        </div>
         </div>
 
         <TaskEdit
@@ -493,19 +500,6 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
           onSuccess={fetchData}
         />
 
-        <div className="flex flex-wrap gap-4 mb-12 items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Filters:</span>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="border-none rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-400 bg-white shadow-sm">
-            <option value="">All statuses</option>
-            {statuses.map(s => <option key={s.id} value={s.slug}>{s.name}</option>)}
-          </select>
-          <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}
-            className="border-none rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-400 bg-white shadow-sm">
-            <option value="">All members</option>
-            {allMembers.map(m => <option key={m.id} value={m.id}>{m.username}</option>)}
-          </select>
-        </div>
 
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
           <div className="relative">
