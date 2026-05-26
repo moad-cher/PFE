@@ -220,6 +220,7 @@ class ProjectRead(BaseModel):
     config: Optional[ProjectConfigRead] = None
     progress: int = 0
     created_at: datetime
+    owner_user: Optional[UserBrief] = None
 
     model_config = {"from_attributes": True}
 

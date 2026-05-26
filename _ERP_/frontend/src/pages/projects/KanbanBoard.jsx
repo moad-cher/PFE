@@ -300,7 +300,7 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
                               >
                                 <div className="flex flex-col gap-3">
                                   {tasksInLane.map((task, index) => {
-                                    const isAssignee = task.assigned_to?.some(u => u.id === user?.id);
+                                      const isAssignee = task.assigned_to?.some(u => u.id === user?.id || u === user?.id);
                                     const canDrag = isPM || isAssignee;
                                     return (
                                       <Draggable key={task.id} draggableId={`task-${task.id}`} index={index} isDragDisabled={!canDrag}>
@@ -308,8 +308,8 @@ export default function KanbanBoard({ project: propProject, isTab, onRefresh }) 
                                           <div
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
-                                            {...provided.dragHandleProps}
-                                            style={provided.draggableProps.style}
+                                            {...(canDrag ? provided.dragHandleProps : {})}
+                                            style={{ ...(provided.draggableProps.style || {}), pointerEvents: canDrag ? 'auto' : 'none' }}
                                             className={snapshot.isDragging ? 'z-50' : ''}
                                           >
                                             <TaskCard 

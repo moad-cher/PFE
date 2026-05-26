@@ -35,7 +35,7 @@ def upgrade() -> None:
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
     sa.Column('first_name', sa.String(length=150), nullable=False),
     sa.Column('last_name', sa.String(length=150), nullable=False),
-    sa.Column('role', sa.Enum('admin', 'hr_manager', 'project_manager', 'team_member', name='roleenum'), nullable=False),
+    sa.Column('role', sa.Enum('admin', 'hr_manager', 'project_manager', 'employee', name='roleenum'), nullable=False),
     sa.Column('skills', sa.Text(), nullable=False),
     sa.Column('avatar', sa.String(length=300), nullable=True),
     sa.Column('reward_points', sa.Integer(), nullable=False),

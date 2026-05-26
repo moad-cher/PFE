@@ -275,15 +275,20 @@ export default function ProjectDetail() {
     if (!project || !project.members) return [];
 
     const memberWorkload = project.members.map(member => {
-      const activeTasks = project.tasks.filter(t =>
-        t.status !== 'done' && t.assigned_to.some(a => a.id === member.id)
-      ).length;
-      const completedTasks = project.tasks.filter(t =>
-        t.status === 'done' && t.assigned_to.some(a => a.id === member.id)
-      ).length;
+      const u = member.user || member;
+      const uid = u.id || member.user_id;
+
+      const activeTasks = project.tasks?.filter(t =>
+        t.status !== 'done' && t.assigned_to?.some(a => a.id === uid)
+      ).length || 0;
+      const completedTasks = project.tasks?.filter(t =>
+        t.status === 'done' && t.assigned_to?.some(a => a.id === uid)
+      ).length || 0;
+
+      const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Unknown';
 
       return {
-        name: `${member.first_name} ${member.last_name}`,
+        name: fullName,
         active: activeTasks,
         completed: completedTasks,
       };
@@ -569,10 +574,10 @@ export default function ProjectDetail() {
                 <label className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Manager</label>
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-600 uppercase">
-                    {project?.manager?.first_name?.[0]}{project?.manager?.last_name?.[0]}
+                    {project?.owner_user?.first_name?.[0]}{project?.owner_user?.last_name?.[0]}
                   </div>
                   <span className="text-xs font-semibold text-gray-900 truncate">
-                    {project?.manager ? `${project.manager.first_name} ${project.manager.last_name}` : 'Unassigned'}
+                    {project?.owner_user ? `${project.owner_user.first_name} ${project.owner_user.last_name}` : 'Unassigned'}
                   </span>
                 </div>
               </div>

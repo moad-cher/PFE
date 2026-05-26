@@ -9,7 +9,7 @@ const initialForm = {
   last_name: '',
   password: '',
   confirmPassword: '',
-  role: 'team_member',
+  role: 'employee',
 };
 
 export default function CreateUserModal({ open, onClose, onSubmit, roleOptions }) {

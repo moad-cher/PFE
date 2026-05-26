@@ -10,6 +10,9 @@ from app.core.config import settings
 from app.core.media import MEDIA_ROOT
 from app.notifications.scheduler import deadline_scheduler
 
+# Ensure all models are loaded
+import app.models  # noqa: F401
+
 # Domain routers
 from app.auth.router import router as auth_router
 from app.users.router import router as users_router, dept_router, admin_router

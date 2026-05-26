@@ -88,7 +88,7 @@ export default function Navbar() {
         )
       });
     }
-    if (user?.role === 'team_member' || links.length === 0) {
+    if (user?.role === 'employee' || links.length === 0) {
       links.push({ 
         id: 'tasks', 
         name: 'My Tasks',
@@ -266,7 +266,7 @@ export default function Navbar() {
               Projects
             </Link>
           )}
-          {user?.role === 'team_member' && (
+          {user?.role === 'employee' && (
             <Link
               to="/dashboard?tab=tasks"
               onClick={() => setMobileMenuOpen(false)}
@@ -280,6 +280,8 @@ export default function Navbar() {
     </nav>
   );
 }
+
+
 
 
 

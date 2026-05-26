@@ -2,8 +2,13 @@ import { useState } from 'react';
 import { getTaskComments, relativeTime, createTaskComment, updateTask, formatDateTime } from '../../../api';
 import Spinner from '../../shared/ui/Spinner';
 import PriorityBadge from '../../shared/ui/PriorityBadge';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function TaskCard({ task, projectId, isDragging, isLocked, onEdit, isPM }) {
+  const { user } = useAuth();
+  const isAssignee = task.assigned_to?.some(a => a.id === user?.id || a === user?.id);
+  const canEditTask = isPM || isAssignee;
+
   const [showComments, setShowComments] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [comments, setComments] = useState([]);
@@ -105,7 +110,7 @@ export default function TaskCard({ task, projectId, isDragging, isLocked, onEdit
       )}
       <div className="flex justify-between items-start gap-2">
           <p className="inline flex-1 font-medium text-sm text-gray-800 group-hover/title:text-purple-600 line-clamp-2 mb-2 transition-colors">{task.title}</p>
-        {isPM && (
+        {canEditTask && (
           <button 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(task); }}
             className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"

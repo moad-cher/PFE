@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import AdministrationDashboard from './AdministrationDashboard';
 import HiringDashboard from './HiringDashboard';
 import ProjectsDashboard from './ProjectsDashboard';
-import TeamMemberDashboard from './TeamMemberDashboard';
+import EmployeeDashboard from './EmployeeDashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -23,8 +23,8 @@ export default function Dashboard() {
     if (user.role === 'admin' || user.role === 'project_manager') {
       list.push({ id: 'projects', component: ProjectsDashboard });
     }
-    if (user.role === 'team_member' || list.length === 0) {
-      list.push({ id: 'tasks', component: TeamMemberDashboard });
+    if (user.role === 'employee' || list.length === 0) {
+      list.push({ id: 'tasks', component: EmployeeDashboard });
     }
     return list;
   }, [user.role]);

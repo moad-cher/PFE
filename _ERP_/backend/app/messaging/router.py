@@ -13,7 +13,7 @@ from app.websockets.manager import ws_manager
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
-_CHAT_PARTICIPANTS = ("admin", "hr_manager", "project_manager", "team_member")
+_CHAT_PARTICIPANTS = ("admin", "hr_manager", "project_manager", "employee")
 
 # ── History endpoints ─────────────────────────────────────────────────────────
 

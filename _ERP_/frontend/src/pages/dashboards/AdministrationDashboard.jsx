@@ -11,8 +11,8 @@ import {
   createUser,
   // getAdminActivityTrend
 } from '../../api';
-import CreateUserModal from '../../components/features/admin/CreateUserModal';
-import DepartmentModal from '../../components/features/admin/DepartmentModal';
+import CreateUserModal from '../../components/features/admin/CreateUserModal.jsx';
+import DepartmentModal from '../../components/features/admin/DepartmentModal.jsx';
 import Spinner from '../../components/shared/ui/Spinner';
 import Card from '../../components/shared/ui/Card';
 import DashboardChartCard from '../../components/shared/cards/DashboardChartCard';
@@ -129,7 +129,7 @@ export default function AdministrationDashboard() {
 
   const roleOptions = useMemo(() => {
     const options = [
-      { value: 'team_member', label: 'Team Member' },
+      { value: 'employee', label: 'Employee' },
       { value: 'project_manager', label: 'Project Manager' },
       { value: 'hr_manager', label: 'HR Manager' },
       { value: 'admin', label: 'Admin' },

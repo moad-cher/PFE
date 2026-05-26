@@ -155,7 +155,7 @@ async def project_stats(
                 .select_from(Project)
                 .join(ProjectMember, Project.id == ProjectMember.project_id)
                 .join(User, ProjectMember.user_id == User.id)
-                .where(ProjectMember.scrum_role == ScrumRole.PRODUCT_OWNER)
+                .where(ProjectMember.scrum_role == ScrumRole.product_owner)
                 .group_by(User.username)
             )
             projects_per_manager = {username: count for username, count in po_result.all()}
@@ -211,7 +211,7 @@ async def create_project(
 
     project = Project(**data.model_dump())
     db.add(project)
-    project.members.append(ProjectMember(user_id=current_user.id, scrum_role=ScrumRole.PRODUCT_OWNER))
+    project.members.append(ProjectMember(user_id=current_user.id, scrum_role=ScrumRole.product_owner))
     await db.flush()
     await _ensure_default_statuses(project, db)
     await _ensure_config(project, db)
@@ -916,7 +916,7 @@ async def add_member(
         raise HTTPException(400, "Members of the HR department cannot be added to projects")
         
     if not any(m.user_id == user.id for m in project.members):
-        project.members.append(ProjectMember(user_id=user.id, scrum_role=ScrumRole.TEAM_MEMBER))
+        project.members.append(ProjectMember(user_id=user.id, scrum_role=ScrumRole.team_member))
         await db.commit()
 
 
@@ -939,13 +939,10 @@ async def update_member_role(
     if not member:
         raise HTTPException(404, "Project member not found")
 
-    if data.scrum_role == ScrumRole.PRODUCT_OWNER and member.user.role == RoleEnum.team_member:
-        raise HTTPException(400, "Team members cannot be assigned as Product Owner")
-
-    if data.scrum_role == ScrumRole.PRODUCT_OWNER:
+    if data.scrum_role == ScrumRole.product_owner:
         for other_member in project.members:
-            if other_member.user_id != user_id and other_member.scrum_role == ScrumRole.PRODUCT_OWNER:
-                other_member.scrum_role = ScrumRole.TEAM_MEMBER
+            if other_member.user_id != user_id and other_member.scrum_role == ScrumRole.product_owner:
+                other_member.scrum_role = ScrumRole.team_member
 
     member.scrum_role = data.scrum_role
     await db.commit()

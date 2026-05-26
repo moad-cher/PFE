@@ -47,15 +47,9 @@ export default function ProjectsDashboard() {
       ]);
       setStats(statsRes.data);
       
-      // If Admin, show all projects. Otherwise, filter by membership.
-      const displayProjects = isAdmin 
-        ? projectsRes.data 
-        : projectsRes.data.filter(project => {
-            const isManager = project.manager?.id === user?.id;
-            const isMember = project.members?.some(member => member.id === user?.id);
-            return isManager || isMember;
-          });
-      setProjects(displayProjects);
+      // The backend already filters projects based on user permissions.
+      // Admins and PMs see all, others see only their projects.
+      setProjects(projectsRes.data);
       
       setDashboardData(dashboardRes.data);
       setOverview(overviewRes.data);
@@ -270,8 +264,8 @@ export default function ProjectsDashboard() {
                 const sprintCompletionRate = sprintCommittedPoints > 0
                   ? Math.round((sprintDonePoints / sprintCommittedPoints) * 100)
                   : 0;
-                const isManager = project.manager?.id === user?.id;
-                const manager = project.manager || {};
+                const isManager = project.owner_user?.id === user?.id;
+                const manager = project.owner_user || {};
                 const managerName = [manager.first_name, manager.last_name].filter(Boolean).join(' ')
                   || manager.username
                   || 'Unassigned';

@@ -35,14 +35,11 @@ function MemberCard({ member, project, onRemove, onRoleChange }) {
               onChange={e => onRoleChange(u.id, e.target.value)}
               className="border rounded-lg px-2 py-1 text-xs bg-white"
             >
-              {(u.role === 'admin' || u.role === 'project_manager') && (
+              {u.role !== 'employee' && (
                 <option value="product_owner">Product owner</option>
               )}
               <option value="scrum_master">Scrum master</option>
               <option value="team_member">Team member</option>
-              {scrumRole === 'product_owner' && u.role === 'team_member' && (
-                <option value="product_owner">Product owner</option>
-              )}
             </select>
             {!isOwner && (
               <button onClick={() => onRemove(u.id)}
@@ -209,3 +206,4 @@ export default function Members({ project: propProject, isTab }) {
     </div>
   );
 }
+

@@ -238,7 +238,7 @@ export const getAdminActivityTrend = (days = 30) => api.get(`/analytics/admin/ac
 export const getHRPipeline = () => api.get('/analytics/hr/pipeline');
 export const getProjectOverview = (projectId) => api.get(`/analytics/project/${projectId}/overview`);
 export const getProjectManagerOverview = () => api.get('/analytics/project-manager/overview');
-export const getTeamMemberPerformance = () => api.get('/analytics/team-member/performance');
+export const getEmployeePerformance = () => api.get('/analytics/employee/performance');
 
 // ===================== Utility =====================
 export const relativeTime = (dateStr) => {

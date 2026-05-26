@@ -286,7 +286,7 @@ def test_project_ownership_transfer(client, auth_headers):
                 "username": tm_username,
                 "email": f"{tm_username}@example.com",
                 "password": "Password123",
-                "role": "team_member"
+                "role": "employee"
             }
         )
         tm = r.json()

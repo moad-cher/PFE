@@ -5,7 +5,7 @@ import { getProject, getProjectStatuses, getSprints, getStories, createSprint, u
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
-import { isProjectManager } from '../../auth/permissions';
+import { canManageProject, canAccessProject } from '../../auth/permissions';
 import TaskEdit from '../../components/features/projects/TaskEdit';
 import StoryNew from '../../components/features/projects/StoryNew';
 import SprintEditModal from '../../components/features/projects/SprintEditModal';
@@ -224,11 +224,13 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
   const allMembers = useMemo(() => {
     if (!project) return [];
     const seen = new Set();
-    return [project.manager, ...(project.members || [])]
+    // project.members are ProjectMemberRead objects: { user_id, scrum_role, user }
+    const memberUsers = (project.members || []).map(m => m.user);
+    return [project.owner_user, ...memberUsers]
       .filter(Boolean)
-      .filter(member => {
-        if (seen.has(member.id)) return false;
-        seen.add(member.id);
+      .filter(u => {
+        if (seen.has(u.id)) return false;
+        seen.add(u.id);
         return true;
       });
   }, [project]);
@@ -281,13 +283,13 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
             {!isReadOnly && <th className="px-4 py-1 font-bold">Status</th>}
             <th className="px-4 py-1 font-bold text-center">Pts</th>
             <th className="px-4 py-1 font-bold">Assignees</th>
-            {canManage && !isReadOnly && <th className="px-4 py-1 font-bold text-right">Actions</th>}
+            {canAccess && !isReadOnly && <th className="px-4 py-1 font-bold text-right">Actions</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100/50">
           {taskList.length === 0 ? (
             <tr>
-              <td colSpan={canManage && !isReadOnly ? 5 : isReadOnly ? 3 : 4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td>
+              <td colSpan={canAccess && !isReadOnly ? 5 : isReadOnly ? 3 : 4} className="px-4 py-3 text-center text-gray-400 italic text-xs">No tasks</td>
             </tr>
           ) : (
             taskList.map(t => (
@@ -331,7 +333,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                     ))}
                   </div>
                 </td>
-                {canManage && !isReadOnly && (
+                {canAccess && !isReadOnly && (
                   <td className="px-4 py-2 text-right">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -431,7 +433,7 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
                     <div className="w-px h-4 bg-gray-200 mx-1"></div>
                   </div>
                 )}
-                {!isReadOnly && canManage && (
+                {!isReadOnly && canAccess && (
                   <button
                     onClick={() => openTaskModal(story.id)}
                     className="inline-flex items-center gap-3 px-3 py-1 border-2 border-dashed border-purple-200 rounded-2xl text-purple-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/40 transition-all shadow-sm"
@@ -453,7 +455,8 @@ export default function ScrumBoard({ project: propProject, isTab, onRefresh }) {
 
   if (loading) return <div className="flex justify-center py-24"><Spinner /></div>;
 
-  const canManage = isProjectManager(user, project);
+  const canManage = canManageProject(user, project);
+  const canAccess = canAccessProject(user, project);
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>

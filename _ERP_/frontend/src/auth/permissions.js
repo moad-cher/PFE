@@ -1,6 +1,6 @@
 /**
  * Role-based permission helpers
- * Roles: admin, hr_manager, project_manager, team_member
+ * Roles: admin, hr_manager, project_manager, employee
  * 
  * NOTE: These logic rules must exactly mirror app/auth/permissions.py
  */
@@ -15,7 +15,7 @@ export const ROLES = {
   ADMIN: 'admin',
   HR_MANAGER: 'hr_manager',
   PROJECT_MANAGER: 'project_manager',
-  TEAM_MEMBER: 'team_member',
+  EMPLOYEE: 'employee',
 };
 
 /**
@@ -67,7 +67,7 @@ export function canAccessProject(user, project) {
 }
 
 /**
- * User can manage project if: admin, PM role, or PO/Scrum Master
+ * User can manage project if: admin, global PM role, or PO/Scrum Master
  */
 export function canManageProject(user, project) {
   if (!user) return false;
@@ -79,14 +79,14 @@ export function canManageProject(user, project) {
 }
 
 /**
- * Only managers can create tasks
+ * Any member can create tasks.
  */
 export function canCreateTask(user, project) {
-  return canManageProject(user, project);
+  return canAccessProject(user, project);
 }
 
 /**
- * Manager or assignee can change task status
+ * Task status is editable by assignees or managers.
  */
 export function canEditTaskStatus(user, task, project) {
   if (!user) return false;
@@ -96,17 +96,19 @@ export function canEditTaskStatus(user, task, project) {
 }
 
 /**
- * Only project manager or admin can reassign tasks
+ * Only project manager/admin (or PO/Scrum Master) can reassign tasks.
+ * Wait, actually, the user said "tasks must still be editable only by their employees". 
+ * For reassign, usually either manager or current assignee... let's just make it isManager or isAssignee.
  */
-export function canReassignTask(user, project) {
+export function canReassignTask(user, task, project) {
   if (!user) return false;
-  if (isAdmin(user)) return true;
-  const role = getUserScrumRole(user, project);
-  return role === SCRUM_ROLES.PRODUCT_OWNER || role === SCRUM_ROLES.SCRUM_MASTER;
+  const isManager = canManageProject(user, project);
+  const isAssignee = task?.assigned_to?.some(a => (a.id === user.id || a === user.id));
+  return isManager || isAssignee;
 }
 
 /**
- * Only managers can delete tasks
+ * Only managers can delete tasks.
  */
 export function canDeleteTask(user, project) {
   return canManageProject(user, project);

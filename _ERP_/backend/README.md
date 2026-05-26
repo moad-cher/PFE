@@ -117,7 +117,7 @@ API Documentation: `http://localhost:8001/docs`
 - User login with JWT tokens
 - User registration
 - Token validation
-- Role-based access control (admin, hr_manager, project_manager, team_member)
+- Role-based access control (admin, hr_manager, project_manager, employee)
 
 ### 👤 **Users** (`/users`)
 - User profiles with skills, avatars, reward points

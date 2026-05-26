@@ -12,16 +12,16 @@ from app.core.base import Base
 # ── Association tables ────────────────────────────────────────────────────────
 
 class ScrumRole(str, enum.Enum):
-    PRODUCT_OWNER = "product_owner"
-    SCRUM_MASTER = "scrum_master"
-    TEAM_MEMBER = "team_member"
+    product_owner = "product_owner"
+    scrum_master = "scrum_master"
+    team_member = "team_member"
 
 class ProjectMember(Base):
     __tablename__ = "project_members"
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    scrum_role: Mapped[ScrumRole] = mapped_column(Enum(ScrumRole), default=ScrumRole.TEAM_MEMBER)
+    scrum_role: Mapped[ScrumRole] = mapped_column(Enum(ScrumRole), default=ScrumRole.team_member)
     
     project: Mapped["Project"] = relationship("Project", back_populates="members")
     user: Mapped["User"] = relationship("User")
@@ -58,7 +58,7 @@ class Project(Base):
 
     @property
     def owner_member(self) -> "ProjectMember | None":
-        return next((member for member in self.members if member.scrum_role == ScrumRole.PRODUCT_OWNER), None)
+        return next((member for member in self.members if member.scrum_role == ScrumRole.product_owner), None)
 
     @property
     def owner_user_id(self) -> int | None:

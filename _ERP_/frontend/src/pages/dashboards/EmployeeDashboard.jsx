@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getDashboard, getTeamMemberPerformance } from '../../api';
+import { getDashboard, getEmployeePerformance } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import Spinner from '../../components/shared/ui/Spinner';
 import StatusBadge from '../../components/shared/ui/StatusBadge';
@@ -17,7 +17,7 @@ const KANBAN_STATUS_COLORS = {
   done: '#2ecc71',
 };
 
-export default function TeamMemberDashboard() {
+export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [performance, setPerformance] = useState(null);
@@ -29,7 +29,7 @@ export default function TeamMemberDashboard() {
       try {
         const [dashboardRes, performanceRes] = await Promise.all([
           getDashboard(),
-          getTeamMemberPerformance(),
+          getEmployeePerformance(),
         ]);
         setData(dashboardRes.data);
         setPerformance(performanceRes.data);

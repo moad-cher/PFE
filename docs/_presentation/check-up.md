@@ -195,7 +195,7 @@ table {
 
 ---
 
-| Action | admin | HR | PM | team_member |
+| Action | admin | HR | PM | employee |
 |--------|-------|------------|-----------------|-------------|
 | View all users | <y/> | <y/> | <n/> | <n/> |
 | Edit user profile (own) | <y/> | <y/> | <y/> | <y/> |

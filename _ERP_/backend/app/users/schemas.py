@@ -26,7 +26,7 @@ class UserCreate(BaseModel):
     password: str
     first_name: str = ""
     last_name: str = ""
-    role: RoleEnum = RoleEnum.team_member
+    role: RoleEnum = RoleEnum.employee
 
     @field_validator("username")
     @classmethod

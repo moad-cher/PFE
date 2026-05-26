@@ -78,7 +78,7 @@ What it does:
 - Backend uses OAuth2PasswordBearer token extraction and JWT access/refresh tokens.
 - get_current_user validates token type="access", resolves user from DB, and enforces active users.
 - Centralized permission helpers in `app/auth/permissions.py` are used inside route bodies for granular access control.
-- Scrum roles are project-scoped and stored on `project_members.scrum_role` (`product_owner`, `scrum_master`, `team_member`); they drive project-context display and member management.
+- Scrum roles are project-scoped and stored on `project_members.scrum_role` (`product_owner`, `scrum_master`, `employee`); they drive project-context display and member management.
 - Frontend `<Guard>` component and `usePermissions` hook provide centralized UI and logic protection.
 - Frontend ProtectedRoute blocks anonymous users and role-mismatched routes.
 - Navbar and route visibility adapt to role via Guard components.
@@ -152,7 +152,7 @@ What it does:
   - /analytics/hr/pipeline
   - /analytics/project/{id}/overview
   - /analytics/project-manager/overview
-  - /analytics/team-member/performance
+  - /analytics/employee/performance
 - Frontend Dashboard routes by role (and privilege) to AdministrationDashboard, HiringDashboard, ProjectsDashboard, TeamMemberDashboard via a tabbed interface for Admin/HR.
 - **Centralized Charting**: `DashboardChartRegistry.jsx` provides a DRY API for `BAR`, `PIE`, `LINE`, `AREA`, `DONUT`, and `FUNNEL` charts with global consistency for tooltips and themes.
 - **Unified Stats**: `StatCard.jsx` handles numeric summaries with icons, status colors, and trend indicators across all dashboards.

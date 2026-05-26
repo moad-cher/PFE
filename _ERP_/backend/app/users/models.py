@@ -11,7 +11,7 @@ class RoleEnum(str, enum.Enum):
     admin = "admin"
     hr_manager = "hr_manager"
     project_manager = "project_manager"
-    team_member = "team_member"
+    employee = "employee"
 
 
 class Department(Base):
@@ -34,7 +34,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[str] = mapped_column(String(150), default="")
     last_name: Mapped[str] = mapped_column(String(150), default="")
-    role: Mapped[RoleEnum] = mapped_column(Enum(RoleEnum), default=RoleEnum.team_member)
+    role: Mapped[RoleEnum] = mapped_column(Enum(RoleEnum), default=RoleEnum.employee)
     skills: Mapped[str] = mapped_column(Text, default="")
     avatar: Mapped[str | None] = mapped_column(String(300), nullable=True)
     reward_points: Mapped[int] = mapped_column(Integer, default=0)

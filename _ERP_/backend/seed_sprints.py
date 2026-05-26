@@ -144,7 +144,7 @@ async def seed_historical_data():
             members=[
                 ProjectMember(
                     user_id=u.id,
-                    scrum_role=ScrumRole.PRODUCT_OWNER if u.id == manager.id else ScrumRole.TEAM_MEMBER,
+                    scrum_role=ScrumRole.product_owner if u.id == manager.id else ScrumRole.team_member,
                 )
                 for u in members
             ],

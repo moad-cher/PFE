@@ -14,6 +14,7 @@ from app.auth.permissions import (
     can_edit_task_status,
     can_reassign_task,
     can_delete_task,
+    can_edit_task,
 )
 from app.notifications.service import (
     notify_task_assigned,
@@ -162,7 +163,7 @@ async def create_task(
 ):
     project = await _get_project_or_403(project_id, current_user, db)
     if not can_create_task(current_user, project):
-        raise HTTPException(403, "Only managers can create tasks")
+        raise HTTPException(403, "Only project members can create tasks")
 
     # 30-minute grace period for discrete shift selection
     if data.start_time and data.start_time < (datetime.now(timezone.utc) - timedelta(minutes=30)):
@@ -220,13 +221,17 @@ async def update_task(
     if not task:
         raise HTTPException(404, "Task not found")
 
+    if not can_edit_task(current_user, task, project):
+        raise HTTPException(403, "Only assignees or managers can edit tasks")
+
     payload = data.model_dump(exclude_none=True)
     assignee_ids = payload.pop("assigned_to_ids", None)
     old_status = task.status
 
+    # Task status and reassign logic is covered by the `can_edit_task` check above,
+    # but we will keep this as a no-op just to maintain structure if needed.
     if "status" in payload and payload["status"] != old_status:
-        if not can_edit_task_status(current_user, task, project):
-            raise HTTPException(403, "Only assignees or project managers can change task status")
+        pass
 
     for field, value in payload.items():
         setattr(task, field, value)
@@ -250,8 +255,8 @@ async def update_task(
         await _revoke_points(task, db)
 
     if assignee_ids is not None:
-        if not can_manage_project(current_user, project):
-            raise HTTPException(403, "Only project managers can reassign tasks")
+        if not can_reassign_task(current_user, task, project):
+            raise HTTPException(403, "Only the task assignees or manager can reassign tasks")
         users = (await db.execute(select(User).where(User.id.in_(assignee_ids)))).scalars().all()
         task.assigned_to = list(users)
 
@@ -274,7 +279,7 @@ async def delete_task(
 ):
     project = await _get_project_or_403(project_id, current_user, db)
     if not can_delete_task(current_user, project):
-        raise HTTPException(403, "Only managers can delete tasks")
+        raise HTTPException(403, "Only project members can delete tasks")
         
     result = await db.execute(select(Task).where(Task.id == task_id, Task.project_id == project_id))
     task = result.scalar_one_or_none()
@@ -316,7 +321,7 @@ async def move_task(
         raise HTTPException(404, "Task not found")
 
     if not can_edit_task_status(current_user, task, project):
-        raise HTTPException(403, "Only assignees or project managers can change task status")
+        raise HTTPException(403, "Only assignees or managers can change task status")
 
     previous_status = task.status
     task.status = data.status
@@ -350,10 +355,8 @@ async def reassign_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Replace all assignees with a single new assignee (manager only)."""
+    """Replace all assignees with a single new assignee."""
     project = await _get_project_or_403(project_id, current_user, db)
-    if not can_reassign_task(current_user, project):
-        raise HTTPException(403, "Only the project manager can reassign tasks")
 
     result = await db.execute(
         select(Task).where(Task.id == task_id, Task.project_id == project_id)
@@ -362,6 +365,9 @@ async def reassign_task(
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(404, "Task not found")
+
+    if not can_reassign_task(current_user, task, project):
+        raise HTTPException(403, "Only the task assignees or manager can reassign tasks")
 
     user_res = await db.execute(select(User).where(User.id == new_assignee_id))
     new_user = user_res.scalar_one_or_none()

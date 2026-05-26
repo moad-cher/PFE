@@ -131,7 +131,7 @@ export default function Profile() {
     admin: 'Administrator',
     hr_manager: 'HR Manager',
     project_manager: 'Project Manager',
-    team_member: 'Team Member',
+    employee: 'Employee',
   };
 
   if (!user) return null;

@@ -167,7 +167,7 @@ async def get_project_overview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Project manager/team member dashboard: project health, team workload, progress."""
+    """Project manager/employee dashboard: project health, team workload, progress."""
     result = await db.execute(
         select(Project)
         .where(Project.id == project_id)
@@ -319,12 +319,12 @@ async def get_project_manager_overview(
     }
 
 
-@router.get("/team-member/performance")
-async def get_team_member_performance(
+@router.get("/employee/performance")
+async def get_employee_performance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Team member performance analytics."""
+    """Employee performance analytics."""
     user_id = current_user.id
 
     tasks_result = await db.execute(

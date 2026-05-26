@@ -11,7 +11,7 @@ This document evaluates the current ERP implementation against the **Official Sc
 
 ### Roles & Accountability
 - **Current State:** Uses traditional hierarchy: `Admin`, `Project Manager`, `Team Member`.
-- **Scrum Alignment:** ✅ **Implemented.** Scrum roles are project-scoped on `project_members` (`product_owner`, `scrum_master`, `team_member`), while global app roles remain unchanged.
+- **Scrum Alignment:** ✅ **Implemented.** Scrum roles are project-scoped on `project_members` (`product_owner`, `scrum_master`, `employee`), while global app roles remain unchanged.
 
 ### Events & Ceremonies
 - **The Sprint:** ✅ **Aligned.** Fixed durations with clear states (draft, active, completed).
@@ -28,7 +28,7 @@ Maintain centralized management and keep **global roles unchanged**. Scrum roles
 project_members.scrum_role (required)
 - product_owner
 - scrum_master
-- team_member
+- employee
 ```
 
 ### Permissions (No Change)
@@ -39,7 +39,7 @@ project_members.scrum_role (required)
 | `canDeleteTask` | Product Owner / Scrum Master / project manager. | Matches the implemented project-context policy. |
 
 ### Role Constraint
-- A global `team_member` cannot be assigned as `product_owner`; that Scrum role is reserved for users who can act with project leadership authority.
+- A global `employee` cannot be assigned as `product_owner`; that Scrum role is reserved for users who can act with project leadership authority.
 
 ---
 
@@ -47,8 +47,8 @@ project_members.scrum_role (required)
 
 ### Database + Models
 - Convert `project_members` from a plain association table into a model so it can store `scrum_role`.
-- Add `scrum_role` as a required field with allowed values: `product_owner`, `scrum_master`, `team_member`.
-- Backfill existing members with a default (suggested: `team_member`) and ensure the project manager gets PO or SM.
+- Add `scrum_role` as a required field with allowed values: `product_owner`, `scrum_master`, `employee`.
+- Backfill existing members with a default (suggested: `employee`) and ensure the project manager gets PO or SM.
 
 **Files:**
 - `app/projects/models.py` (new `ProjectMember` model + relationship updates)
@@ -78,7 +78,7 @@ project_members.scrum_role (required)
 
 ### Migration + Defaults
 - Add a migration step for the new column or table.
-- Default new members to `team_member`.
+- Default new members to `employee`.
 
 ---
 
@@ -86,7 +86,7 @@ project_members.scrum_role (required)
 
 Changing the frontend alone will cause mismatches if the backend does not expose the new project-scoped role. A synchronized update is required:
 
-1.  **Database Layer (`app/projects/models.py` or `app/users/models.py`):** `project_members` now stores required `scrum_role` with allowed values (`product_owner`, `scrum_master`, `team_member`).
+1.  **Database Layer (`app/projects/models.py` or `app/users/models.py`):** `project_members` now stores required `scrum_role` with allowed values (`product_owner`, `scrum_master`, `employee`).
 2.  **Backend Logic (`app/auth/permissions.py`):** Project-context permissions now consult `scrum_role`, and project member responses expose that field for the UI.
 3.  **Frontend Logic (`src/auth/permissions.js` and project member UI):**
   *   Keep global roles as-is.
